@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
+import { DOMParser } from 'linkedom';
 
 export interface EPubData {
   metadata: EPubMetadata;
@@ -63,14 +64,14 @@ export class EPubParser {
     try {
       await fs.access(filePath);
       const rawZipData = await fs.readFile(filePath);
-      
+
       // Basic validation - check for epub magic numbers
       // EPub files should start with "PK\x03\x04"
-      if (!rawZipData || rawZipData.length < 4 || 
-          rawZipData[0] !== 0x50 || // P
-          rawZipData[1] !== 0x4B || // K
-          rawZipData[2] !== 0x03 || 
-          rawZipData[3] !== 0x04) {
+      if (!rawZipData || rawZipData.length < 4 ||
+        rawZipData[0] !== 0x50 || // P
+        rawZipData[1] !== 0x4B || // K
+        rawZipData[2] !== 0x03 ||
+        rawZipData[3] !== 0x04) {
         throw new Error('Invalid epub file');
       }
 
@@ -97,7 +98,7 @@ export class EPubParser {
   private async getOpfPath(): Promise<string> {
     const container = await this.getContainerXml();
     const rootfile = container?.container?.rootfiles?.rootfile;
-    
+
     if (!rootfile || !rootfile['full-path']) {
       throw new Error('Invalid epub: cannot find OPF file path');
     }
@@ -114,7 +115,7 @@ export class EPubParser {
   async metadata(): Promise<EPubMetadata> {
     const opfPath = await this.getOpfPath();
     const opfFile = this.zip.file(opfPath);
-    
+
     if (!opfFile) {
       throw new Error('Invalid epub: missing OPF file');
     }
@@ -151,14 +152,14 @@ export class EPubParser {
   async manifest(): Promise<EPubManifestItem[]> {
     const opfPath = await this.getOpfPath();
     const opfFile = this.zip.file(opfPath);
-    
+
     if (!opfFile) {
       throw new Error('Invalid epub: missing OPF file');
     }
 
     const opfContent = await opfFile.async('text');
     const opfData = this.xmlParser.parse(opfContent);
-    
+
     const manifest = opfData.package?.manifest;
 
     if (!manifest?.item) {
@@ -166,7 +167,7 @@ export class EPubParser {
     }
 
     const items = Array.isArray(manifest.item) ? manifest.item : [manifest.item];
-    
+
     return items.map((item: any) => ({
       id: item['id'],
       href: item['href'],
@@ -178,7 +179,7 @@ export class EPubParser {
   async spine(): Promise<EPubSpineItem[]> {
     const opfPath = await this.getOpfPath();
     const opfFile = this.zip.file(opfPath);
-    
+
     if (!opfFile) {
       throw new Error('Invalid epub: missing OPF file');
     }
@@ -192,7 +193,7 @@ export class EPubParser {
     }
 
     const items = Array.isArray(spine.itemref) ? spine.itemref : [spine.itemref];
-    
+
     return items.map((item: any) => ({
       idref: item.idref,
       linear: item.linear !== 'no'
@@ -201,43 +202,50 @@ export class EPubParser {
 
   private async tocEPUB3(navItem: EPubManifestItem): Promise<EPubTocItem[]> {
     const navPath = await this.resolveFromOpf(navItem.href);
-    const navFile = this.zip?.file(navPath);
-    
+    const navFile = this.zip.file(navPath);
+
     if (!navFile) {
       throw new Error('Invalid epub: nav document not found');
     }
 
     const navContent = await navFile.async('text');
-    const navData = this.xmlParser.parse(navContent);
+    // Parse the XML content using linkedom
+    const dom = new DOMParser().parseFromString(navContent, 'text/xml');
 
-    // Find the nav element with epub:type="toc"
-    const nav = navData.html?.body?.section?.nav;
-    // Check if this nav element has epub:type containing "toc"
-    const isTocNav = nav?.['epub:type']?.includes('toc');
+    const tocNav = dom.querySelector('nav[epub\\:type~="toc"]') ||
+                 dom.querySelector('nav[epub:type~="toc"]');
 
-    if (!isTocNav || !nav?.ol?.li) {
-      throw new Error('Invalid epub: nav document does not contain a valid table of contents');
+    if (!tocNav) {
+      throw new Error('Invalid epub: nav document missing [epub:type~="toc"]');
     }
 
-    const parseNavItems = (items: any[]): EPubTocItem[] => {
-      return items.map((item: any) => {
-        const a = item.a;
-        return {
-          label: a['#text'] || '',
-          href: a.href || '',
-          subItems: item.ol?.li ? parseNavItems(Array.isArray(item.ol.li) ? item.ol.li : [item.ol.li]) : []
-        };
+    const walkList = (olElement: any): EPubTocItem[] => {
+      return Array.from(olElement.children).flatMap((li: any) => {
+        const anchor = li.querySelector('a');
+        if (!anchor) return [];
+
+        const label = anchor.textContent.trim();
+        const href = anchor.getAttribute('href') || '';
+
+        const subOl = li.querySelector('ol');
+        const subItems = subOl ? walkList(subOl) : [];
+
+        return [{ label, href, subItems }];
       });
     };
 
-    const items = Array.isArray(nav.ol.li) ? nav.ol.li : [nav.ol.li];
-    return parseNavItems(items);
+    const ol = tocNav.querySelector('ol');
+    if (!ol) {
+      throw new Error('Invalid epub: nav TOC is missing an <ol> element');
+    }
+
+    return walkList(ol);
   }
 
   private async tocNCX(ncxItem: EPubManifestItem): Promise<EPubTocItem[]> {
     const ncxPath = await this.resolveFromOpf(ncxItem.href);
     const ncxFile = this.zip?.file(ncxPath);
-    
+
     if (!ncxFile) {
       throw new Error('Invalid epub: NCX document not found');
     }
@@ -340,7 +348,7 @@ export class EPubParser {
     const spine = await this.spine();
     const toc = await this.toc();
     const chapters = await this.chapters();
-    
+
     return {
       metadata,
       manifest,
