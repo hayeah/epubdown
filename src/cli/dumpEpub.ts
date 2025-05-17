@@ -17,6 +17,7 @@ function slug(text: string): string {
 }
 
 async function dumpSingle(epubPath: string, dumpDir: string) {
+  // Helper function to write files relative to the baseDir
   console.log(`dumping ${epubPath}`);
   const parser = await EPubParser.load(epubPath);
 
@@ -24,31 +25,29 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
   const epubBaseName = path.basename(epubPath, '.epub');
   const baseDir = path.join(dumpDir, `${epubBaseName}.dump`);
   const chaptersDir = path.join(baseDir, 'chapters');
-  // const markdownDir = path.join(baseDir, 'markdown');
-  const rawDir = path.join(baseDir, 'raw');
+
+  const outputFile = async (filePath: string, data: string) => {
+    await fs.writeFile(path.join(baseDir, filePath), data, 'utf8');
+  };
+
+  // Helper function to write files to chapters directory
+  const outputChapterFile = async (filePath: string, data: string) => {
+    await fs.writeFile(path.join(chaptersDir, filePath), data, 'utf8');
+  };
+
 
   await fs.mkdir(chaptersDir, { recursive: true });
-  // await fs.mkdir(markdownDir, { recursive: true });
-  await fs.mkdir(rawDir, { recursive: true });
 
   // Dump container XML
   const containerContent = await parser.readContainerXml();
-  await fs.writeFile(
-    path.join(rawDir, 'container.xml'),
-    containerContent,
-    'utf8'
-  );
+  await outputFile('container.xml', containerContent);
 
   // Get OPF path and content
   const opfContent = await parser.readOpfXml();
   // const opfData = parser['xmlParser'].parse(opfContent);
 
   // Save raw OPF content
-  await fs.writeFile(
-    path.join(rawDir, 'opf.xml'),
-    opfContent,
-    'utf8'
-  );
+  await outputFile('opf.xml', opfContent);
 
   // Check if nav item exists and dump it
   const manifest = await parser.manifest();
@@ -59,24 +58,26 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
     const navContent = await parser.readFileFromOpf(navItem.href);
 
     if (navContent) {
-      await fs.writeFile(
-        path.join(rawDir, 'nav.xml'),
-        navContent,
-        'utf8'
-      );
+      await outputFile('nav.xml', navContent);
     }
-  } else {
-    console.log('No nav item found');
   }
 
-  const { metadata, chapters } = await parser.parse();
+  // Check if NCX file exists and dump it
+  const ncxItem = manifest.find(item => item.mediaType === 'application/x-dtbncx+xml');
+  if (ncxItem) {
+    console.log(`Found NCX item: ${ncxItem.href}`);
+    const ncxContent = await parser.readFileFromOpf(ncxItem.href);
+
+    if (ncxContent) {
+      await outputFile('ncx.xml', ncxContent);
+    }
+  }
+
+  const { metadata, chapters, toc } = await parser.parse();
 
   // write metadata
-  await fs.writeFile(
-    path.join(baseDir, 'metadata.json'),
-    JSON.stringify(metadata, null, 2),
-    'utf8'
-  );
+  await outputFile('metadata.json', JSON.stringify(metadata, null, 2));
+  await outputFile('toc.json', JSON.stringify(toc, null, 2));
 
   // Initialize Turndown for markdown conversion
   const td = createTurndownService();
@@ -90,12 +91,12 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
 
     // Write HTML version
     const htmlName = `${baseName}.html`;
-    await fs.writeFile(path.join(chaptersDir, htmlName), chapter.content, 'utf8');
+    await outputChapterFile(htmlName, chapter.content);
 
     // Convert to markdown and write markdown version
     const markdownName = `${baseName}.md`;
     const markdown = td.turndown(chapter.content);
-    await fs.writeFile(path.join(chaptersDir, markdownName), markdown, 'utf8');
+    await outputChapterFile(markdownName, markdown);
   }
 
   console.log(`wrote → ${baseDir}`);
