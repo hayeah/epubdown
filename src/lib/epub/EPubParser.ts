@@ -332,8 +332,8 @@ export class EPubParser {
       if (item.href.endsWith(href)) {
         return item;
       }
-      if (item.subItems!.length > 0) {
-        const found = this.findTocItem(item.subItems!, href);
+      if (item.subItems?.length) {
+        const found = this.findTocItem(item.subItems, href);
         if (found) {
           return found;
         }
