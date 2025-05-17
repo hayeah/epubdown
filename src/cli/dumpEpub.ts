@@ -2,7 +2,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import { EPubParser } from '../lib/epub/EPubParser';
-import TurndownService from 'turndown';
+import { createTurndownService } from '../lib/markdown';
 
 const epubsDir = path.join(import.meta.dir, '../../epubs');
 
@@ -34,23 +34,15 @@ async function dumpSingle(epubPath: string) {
   await fs.mkdir(rawDir, { recursive: true });
 
   // Dump container XML
-  const containerFile = parser['zip'].file('META-INF/container.xml');
-  if (containerFile) {
-    const containerContent = await containerFile.async('text');
-    await fs.writeFile(
-      path.join(rawDir, 'container.xml'),
-      containerContent,
-      'utf8'
-    );
-  }
+  const containerContent = await parser.readContainerXml();
+  await fs.writeFile(
+    path.join(rawDir, 'container.xml'),
+    containerContent,
+    'utf8'
+  );
 
   // Get OPF path and content
-  const opfPath = await parser['getOpfPath']();
-  const opfFile = parser['zip'].file(opfPath);
-  if (!opfFile) {
-    throw new Error('Invalid epub: missing OPF file');
-  }
-  const opfContent = await opfFile.async('text');
+  const opfContent = await parser.readOpfXml();
   // const opfData = parser['xmlParser'].parse(opfContent);
 
   // Save raw OPF content
@@ -66,11 +58,9 @@ async function dumpSingle(epubPath: string) {
 
   if (navItem) {
     console.log(`Found nav item: ${navItem.href}`);
-    const navPath = await parser['resolveFromOpf'](navItem.href);
-    const navFile = parser['zip'].file(navPath);
+    const navContent = await parser.readFileFromOpf(navItem.href);
 
-    if (navFile) {
-      const navContent = await navFile.async('text');
+    if (navContent) {
       await fs.writeFile(
         path.join(rawDir, 'nav.xml'),
         navContent,
@@ -91,12 +81,7 @@ async function dumpSingle(epubPath: string) {
   );
 
   // Initialize Turndown for markdown conversion
-  const td = new TurndownService({ headingStyle: 'atx' });
-  // custom rule to turn calibre page-break spans into hr
-  td.addRule('pageBreak', {
-    filter: (node) => node.nodeName === 'SPAN' && node.classList.contains('page-break'),
-    replacement: () => '\n\n---\n\n'
-  });
+  const td = createTurndownService();
 
   // write chapters
   for (let i = 0; i < chapters.length; i++) {

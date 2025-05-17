@@ -60,6 +60,18 @@ export class EPubParser {
     });
   }
 
+  /**
+   * Read a file from the zip archive in the given mode. Throws if the file does
+   * not exist so callers don't need to handle missing files.
+   */
+  private async readFileFromZip(filePath: string, mode: "text" | "uint8array" = "text"): Promise<string | Uint8Array> {
+    const file = this.zip.file(filePath);
+    if (!file) {
+      throw new Error(`Invalid epub: file ${filePath} not found`);
+    }
+    return file.async(mode);
+  }
+
   static async load(filePath: string): Promise<EPubParser> {
     try {
       await fs.access(filePath);
@@ -85,7 +97,7 @@ export class EPubParser {
     }
   }
 
-  private async getContainerXml(): Promise<any> {
+  public async getContainerXml(): Promise<any> {
     const containerFile = this.zip.file('META-INF/container.xml');
     if (!containerFile) {
       throw new Error('Invalid epub: missing container.xml');
@@ -95,7 +107,7 @@ export class EPubParser {
     return this.xmlParser.parse(containerXml);
   }
 
-  private async getOpfPath(): Promise<string> {
+  public async getOpfPath(): Promise<string> {
     const container = await this.getContainerXml();
     const rootfile = container?.container?.rootfiles?.rootfile;
 
@@ -106,10 +118,34 @@ export class EPubParser {
     return rootfile['full-path'];
   }
 
-  private async resolveFromOpf(href: string): Promise<string> {
+  public async resolveFromOpf(href: string): Promise<string> {
     const opfPath = await this.getOpfPath();
     const opfDir = opfPath.split('/').slice(0, -1).join('/');
     return opfDir ? `${opfDir}/${href}` : href;
+  }
+
+  /**
+   * Read the raw container.xml text.
+   */
+  public async readContainerXml(): Promise<string> {
+    return this.readFileFromZip('META-INF/container.xml', 'text') as Promise<string>;
+  }
+
+  /**
+   * Read the raw OPF document text.
+   */
+  public async readOpfXml(): Promise<string> {
+    const opfPath = await this.getOpfPath();
+    return this.readFileFromZip(opfPath, 'text') as Promise<string>;
+  }
+
+  /**
+   * Read a file referenced relative to the OPF document.
+   */
+  public async readFileFromOpf(href: string): Promise<string | null> {
+    const resolved = await this.resolveFromOpf(href);
+    const file = this.zip.file(resolved);
+    return file ? await file.async('text') : null;
   }
 
   async metadata(): Promise<EPubMetadata> {
@@ -200,7 +236,7 @@ export class EPubParser {
     }));
   }
 
-  private async tocEPUB3(navItem: EPubManifestItem): Promise<EPubTocItem[]> {
+  public async tocEPUB3(navItem: EPubManifestItem): Promise<EPubTocItem[]> {
     const navPath = await this.resolveFromOpf(navItem.href);
     const navFile = this.zip.file(navPath);
 
@@ -242,7 +278,7 @@ export class EPubParser {
     return walkList(ol);
   }
 
-  private async tocNCX(ncxItem: EPubManifestItem): Promise<EPubTocItem[]> {
+  public async tocNCX(ncxItem: EPubManifestItem): Promise<EPubTocItem[]> {
     const ncxPath = await this.resolveFromOpf(ncxItem.href);
     const ncxFile = this.zip?.file(ncxPath);
 
@@ -327,7 +363,7 @@ export class EPubParser {
     return chapters;
   }
 
-  private findTocItem(items: EPubTocItem[], href: string): EPubTocItem | undefined {
+  public findTocItem(items: EPubTocItem[], href: string): EPubTocItem | undefined {
     for (const item of items) {
       if (item.href.endsWith(href)) {
         return item;
