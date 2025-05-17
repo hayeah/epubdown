@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 import path from 'path';
 import fs from 'fs/promises';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 import { EPubParser } from '../lib/epub/EPubParser';
 import { createTurndownService } from '../lib/markdown';
-
-const epubsDir = path.join(import.meta.dir, '../../epubs');
 
 function slug(text: string): string {
   return (
@@ -16,15 +16,13 @@ function slug(text: string): string {
   );
 }
 
-async function dumpSingle(epubPath: string) {
+async function dumpSingle(epubPath: string, dumpDir: string) {
   console.log(`dumping ${epubPath}`);
   const parser = await EPubParser.load(epubPath);
 
   // Create directories first
-  const baseDir = path.join(
-    path.dirname(epubPath),
-    path.basename(epubPath, '.epub') + '_dump'
-  );
+  const epubBaseName = path.basename(epubPath, '.epub');
+  const baseDir = path.join(dumpDir, `${epubBaseName}.dump`);
   const chaptersDir = path.join(baseDir, 'chapters');
   // const markdownDir = path.join(baseDir, 'markdown');
   const rawDir = path.join(baseDir, 'raw');
@@ -103,17 +101,52 @@ async function dumpSingle(epubPath: string) {
   console.log(`wrote → ${baseDir}`);
 }
 
-async function main() {
-  const entries = await fs.readdir(epubsDir);
+interface Args {
+  dir: string;
+  [x: string]: unknown;
+}
 
-  for (const entry of entries) {
-    if (!entry.toLowerCase().endsWith('.epub')) continue;
-    const fullPath = path.join(epubsDir, entry);
-    try {
-      await dumpSingle(fullPath);
-    } catch (error) {
-      console.error(`Error dumping ${fullPath}:`, error);
+async function main() {
+  const argv = await yargs(hideBin(process.argv))
+    .option('dir', {
+      alias: 'd',
+      type: 'string',
+      description: 'Directory containing EPUB files',
+      default: path.join(import.meta.dir, '../../epubs')
+    })
+    .option('output', {
+      alias: 'o',
+      type: 'string',
+      description: 'Custom output directory for all EPUBs'
+    })
+    .help()
+    .alias('help', 'h')
+    .parse() as Args & { output?: string };
+
+  const epubsDir = argv.dir;
+  console.log(`Looking for EPUBs in: ${epubsDir}`);
+
+  let dumpDir = `${epubsDir}.dump`;
+  if (argv.output) {
+    dumpDir = argv.output;
+  }
+
+  try {
+    const entries = await fs.readdir(epubsDir);
+
+    for (const entry of entries) {
+      if (!entry.toLowerCase().endsWith('.epub')) continue;
+      const fullPath = path.join(epubsDir, entry);
+      try {
+
+        await dumpSingle(fullPath, dumpDir);
+      } catch (error) {
+        console.error(`Error dumping ${fullPath}:`, error);
+      }
     }
+  } catch (error) {
+    console.error(`Error reading directory ${epubsDir}:`, error);
+    process.exit(1);
   }
 }
 
