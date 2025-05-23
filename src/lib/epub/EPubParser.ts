@@ -47,6 +47,28 @@ export interface EPubChapter {
 	content: string;
 }
 
+export interface EPubContainerXml {
+	container?: {
+		rootfiles?: {
+			rootfile?: {
+				"full-path": string;
+			};
+		};
+	};
+}
+
+interface ManifestItemRaw {
+	id: string;
+	href: string;
+	"media-type": string;
+	properties?: string;
+}
+
+interface SpineItemRaw {
+	idref: string;
+	linear?: string;
+}
+
 export class EPubParser {
 	private zip: JSZip;
 	private xmlParser: XMLParser;
@@ -103,14 +125,14 @@ export class EPubParser {
 		}
 	}
 
-	public async getContainerXml(): Promise<any> {
+	public async getContainerXml(): Promise<EPubContainerXml> {
 		const containerFile = this.zip.file("META-INF/container.xml");
 		if (!containerFile) {
 			throw new Error("Invalid epub: missing container.xml");
 		}
 
 		const containerXml = await containerFile.async("text");
-		return this.xmlParser.parse(containerXml);
+		return this.xmlParser.parse(containerXml) as EPubContainerXml;
 	}
 
 	public async getOpfPath(): Promise<string> {
@@ -174,14 +196,22 @@ export class EPubParser {
 		}
 
 		// Helper function to handle both single values and arrays
-		const getValue = (field: any): string[] => {
-			if (!field) return [];
+		const getValue = (field: unknown): string[] => {
+			if (field === undefined || field === null) return [];
 			if (Array.isArray(field)) {
-				return field.map((item) =>
-					typeof item === "object" ? item["#text"] || "" : String(item),
-				);
+				return field.map((item) => {
+					if (typeof item === "object" && item !== null) {
+						const text = (item as Record<string, unknown>)["#text"];
+						return typeof text === "string" ? text : "";
+					}
+					return String(item);
+				});
 			}
-			return [typeof field === "object" ? field["#text"] || "" : String(field)];
+			if (typeof field === "object") {
+				const text = (field as Record<string, unknown>)["#text"];
+				return [typeof text === "string" ? text : ""];
+			}
+			return [String(field)];
 		};
 
 		return {
@@ -213,15 +243,15 @@ export class EPubParser {
 			throw new Error("Invalid epub: missing manifest in OPF");
 		}
 
-		const items = Array.isArray(manifest.item)
-			? manifest.item
-			: [manifest.item];
+		const items: ManifestItemRaw[] = Array.isArray(manifest.item)
+			? (manifest.item as ManifestItemRaw[])
+			: [manifest.item as ManifestItemRaw];
 
-		return items.map((item: any) => ({
-			id: item.id,
-			href: item.href,
-			mediaType: item["media-type"],
-			properties: item.properties?.split(" ") || undefined,
+		return items.map((item) => ({
+			id: String(item.id),
+			href: String(item.href),
+			mediaType: String(item["media-type"]),
+			properties: item.properties?.split(" ") ?? undefined,
 		}));
 	}
 
@@ -241,12 +271,12 @@ export class EPubParser {
 			throw new Error("Invalid epub: missing spine in OPF");
 		}
 
-		const items = Array.isArray(spine.itemref)
-			? spine.itemref
-			: [spine.itemref];
+		const items: SpineItemRaw[] = Array.isArray(spine.itemref)
+			? (spine.itemref as SpineItemRaw[])
+			: [spine.itemref as SpineItemRaw];
 
-		return items.map((item: any) => ({
-			idref: item.idref,
+		return items.map((item) => ({
+			idref: String(item.idref),
 			linear: item.linear !== "no",
 		}));
 	}
@@ -271,8 +301,8 @@ export class EPubParser {
 			throw new Error('Invalid epub: nav document missing [epub:type~="toc"]');
 		}
 
-		const walkList = (olElement: any): EPubTocItem[] => {
-			return Array.from(olElement.children).flatMap((li: any) => {
+		const walkList = (olElement: Element): EPubTocItem[] => {
+			return Array.from(olElement.children).flatMap((li) => {
 				const anchor = li.querySelector("a");
 				if (!anchor) return [];
 
@@ -310,19 +340,23 @@ export class EPubParser {
 			throw new Error("Invalid epub: missing navigation points");
 		}
 
-		const parseNavPoints = (items: any[]): EPubTocItem[] => {
-			return items.map((item: any) => {
-				const content = item.content || {};
-				const href = content.src || "";
-				return {
-					label: item.navLabel?.text || "",
-					href,
-					subItems: item.navPoint
-						? parseNavPoints(
-								Array.isArray(item.navPoint) ? item.navPoint : [item.navPoint],
-							)
-						: [],
-				};
+		const parseNavPoints = (
+			items: Record<string, unknown>[],
+		): EPubTocItem[] => {
+			return items.map((item) => {
+				const content = item.content as Record<string, unknown> | undefined;
+				const href = (content?.src as string) || "";
+				const navLabel = item.navLabel as Record<string, unknown> | undefined;
+				const label = (navLabel?.text as string) || "";
+				const navPoint = item.navPoint as unknown;
+				const subItems = navPoint
+					? parseNavPoints(
+							Array.isArray(navPoint)
+								? (navPoint as Record<string, unknown>[])
+								: [navPoint as Record<string, unknown>],
+						)
+					: [];
+				return { label, href, subItems };
 			});
 		};
 
