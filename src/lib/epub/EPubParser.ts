@@ -1,5 +1,5 @@
+import fs from "node:fs/promises";
 import { XMLParser } from "fast-xml-parser";
-import fs from "fs/promises";
 import JSZip from "jszip";
 import { DOMParser } from "linkedom";
 
@@ -218,10 +218,10 @@ export class EPubParser {
 			: [manifest.item];
 
 		return items.map((item: any) => ({
-			id: item["id"],
-			href: item["href"],
+			id: item.id,
+			href: item.href,
 			mediaType: item["media-type"],
-			properties: item["properties"]?.split(" ") || undefined,
+			properties: item.properties?.split(" ") || undefined,
 		}));
 	}
 

@@ -1,8 +1,8 @@
-import { createWriteStream } from "fs";
-import path from "path";
-import { promisify } from "util";
-import fs from "fs/promises";
-import { pipeline } from "stream/promises";
+import { createWriteStream } from "node:fs";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { pipeline } from "node:stream/promises";
+import { promisify } from "node:util";
 import yauzl from "yauzl";
 
 const openZip = promisify<string, yauzl.Options, yauzl.ZipFile>(yauzl.open);

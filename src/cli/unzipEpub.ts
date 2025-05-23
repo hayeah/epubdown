@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import path from "path";
+import path from "node:path";
 import { extractZip } from "../lib/epub/extractZip";
 
 async function main() {
