@@ -53,8 +53,8 @@ export async function extractZip(
 		});
 
 	try {
-		let entry: yauzl.Entry | null;
-		while ((entry = await nextEntry()) !== null) {
+		let entry: yauzl.Entry | null = await nextEntry();
+		while (entry !== null) {
 			const fullPath = path.join(targetDir, entry.fileName);
 			const directory = path.dirname(fullPath);
 
@@ -66,6 +66,7 @@ export async function extractZip(
 				const writeStream = createWriteStream(fullPath);
 				await pipeline(readStream, writeStream);
 			}
+			entry = await nextEntry();
 		}
 	} finally {
 		zipfile.close();

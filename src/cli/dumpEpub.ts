@@ -84,8 +84,7 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
 	const td = createTurndownService();
 
 	// write chapters
-	for (let i = 0; i < chapters.length; i++) {
-		const chapter = chapters[i]!;
+	for (const [i, chapter] of chapters.entries()) {
 		const baseName = `${String(i + 1).padStart(4, "0")}_${slug(
 			chapter.title || chapter.id || chapter.href,
 		)}`;

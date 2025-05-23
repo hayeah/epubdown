@@ -19,8 +19,12 @@ async function main() {
 		console.log(`Extracting ${absolutePath} to ${targetDir}`);
 		await extractZip(absolutePath, targetDir);
 		console.log("Done!");
-	} catch (error: any) {
-		console.error("Error:", error.message);
+	} catch (error) {
+		if (error instanceof Error) {
+			console.error("Error:", error.message);
+		} else {
+			console.error("Unknown error:", error);
+		}
 		process.exit(1);
 	}
 }
