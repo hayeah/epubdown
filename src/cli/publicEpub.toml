@@ -1,0 +1,65 @@
+[[books]]
+title = "Pride and Prejudice"
+author = "Jane Austen"
+source = "Project Gutenberg"
+link = "https://gutenberg.org/ebooks/1342.epub.images"
+
+[[books]]
+title = "Moby-Dick; or, The Whale (advanced epub)"
+author = "Herman Melville"
+source = "Standard Ebooks"
+link = "https://standardebooks.org/ebooks/herman-melville/moby-dick/downloads/herman-melville_moby-dick_advanced.epub"
+
+# [[books]]
+# title = "Moby-Dick; or, The Whale"
+# author = "Herman Melville"
+# source = "Standard Ebooks"
+# link = "https://standardebooks.org/ebooks/herman-melville/moby-dick/downloads/herman-melville_moby-dick.epub"
+
+[[books]]
+title = "Frankenstein; or, The Modern Prometheus"
+author = "Mary Shelley"
+source = "Planet eBook"
+link = "https://www.planetebook.com/free-ebooks/frankenstein.epub?download"
+
+
+
+# [[books]]
+# title = "Alice's Adventures in Wonderland"
+# author = "Lewis Carroll"
+# source = "Internet Archive"
+# link = "https://archive.org/download/alicesadventures1902carrrich/alicesadventures1902carrrich_text.epub"
+
+# [[books]]
+# title = "The Federalist Papers"
+# author = "Alexander Hamilton, James Madison, John Jay"
+# source = "Standard Ebooks"
+# link = "https://standardebooks.org/ebooks/alexander-hamilton_john-jay_james-madison/the-federalist-papers/downloads/alexander-hamilton_john-jay_james-madison_the-federalist-papers.epub"
+# 
+[[books]]
+title = "Introduction to Sociology - 3rd Canadian Edition"
+author = "BCcampus"
+source = "BCcampus Pressbooks"
+link = "https://opentextbc.ca/introductiontosociology3rdedition/open/download?type=epub"
+
+[[books]]
+title = "A Byte of Python"
+author = "Swaroop C. H."
+source = "GitHub"
+link = "https://github.com/swaroopch/byte-of-python/releases/download/va62ee8caa3475e8733c40918bbe16719b4904693/byte-of-python.epub"
+
+#
+# [[books]]
+# title = "The Pleasures of Life"
+# author = "John Lubbock"
+# source = "ManyBooks"
+# link = "https://manybooks.net/sites/default/files/old-files/epub-4544.epub"
+# 
+[[books]]
+title = "Pride and Prejudice (Illustrated EPUB 3 Edition)"
+author = "Jane Austen"
+source = "Project Gutenberg"
+link = "https://gutenberg.org/ebooks/1342.epub3.images"
+
+# try to find more free epubs from this
+# https://open.umn.edu/opentextbooks
