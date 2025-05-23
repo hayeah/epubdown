@@ -1,2 +1,2 @@
-- use pnpm to install dependencies.
+- use pnpm. assume that `pnpm install` has been run.
 - `pnpm check` to format and lint code.
