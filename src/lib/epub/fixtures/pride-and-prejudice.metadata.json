@@ -1,0 +1,104 @@
+{
+  "rights": [
+    {
+      "value": "Public domain in the USA.",
+      "attributes": {},
+      "refinements": {}
+    }
+  ],
+  "identifier": [
+    {
+      "value": "http://www.gutenberg.org/1342",
+      "attributes": {
+        "opf:scheme": "URI",
+        "id": "id"
+      },
+      "refinements": {}
+    }
+  ],
+  "creator": [
+    {
+      "value": "Jane Austen",
+      "attributes": {
+        "opf:file-as": "Austen, Jane"
+      },
+      "refinements": {}
+    }
+  ],
+  "title": [
+    {
+      "value": "Pride and Prejudice",
+      "attributes": {},
+      "refinements": {}
+    }
+  ],
+  "language": [
+    {
+      "value": "en",
+      "attributes": {
+        "xsi:type": "dcterms:RFC4646"
+      },
+      "refinements": {}
+    }
+  ],
+  "subject": [
+    {
+      "value": "England -- Fiction",
+      "attributes": {},
+      "refinements": {}
+    },
+    {
+      "value": "Young women -- Fiction",
+      "attributes": {},
+      "refinements": {}
+    },
+    {
+      "value": "Love stories",
+      "attributes": {},
+      "refinements": {}
+    },
+    {
+      "value": "Sisters -- Fiction",
+      "attributes": {},
+      "refinements": {}
+    },
+    {
+      "value": "Domestic fiction",
+      "attributes": {},
+      "refinements": {}
+    },
+    {
+      "value": "Courtship -- Fiction",
+      "attributes": {},
+      "refinements": {}
+    },
+    {
+      "value": "Social classes -- Fiction",
+      "attributes": {},
+      "refinements": {}
+    }
+  ],
+  "date": [
+    {
+      "value": "1998-06-01",
+      "attributes": {
+        "opf:event": "publication"
+      },
+      "refinements": {}
+    },
+    {
+      "value": "2025-05-01T14:01:35.654537+00:00",
+      "attributes": {
+        "opf:event": "conversion"
+      },
+      "refinements": {}
+    }
+  ],
+  "source": [
+    {
+      "value": "https://www.gutenberg.org/files/1342/1342-h/1342-h.htm",
+      "attributes": {},
+      "refinements": {}
+    }
+  ]
+}

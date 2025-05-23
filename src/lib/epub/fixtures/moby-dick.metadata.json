@@ -1,0 +1,380 @@
+{
+  "identifier": [
+    {
+      "value": "url:https://standardebooks.org/ebooks/herman-melville/moby-dick",
+      "attributes": {
+        "id": "uid"
+      },
+      "refinements": {}
+    }
+  ],
+  "date": [
+    {
+      "value": "2018-03-27T22:02:30Z",
+      "attributes": {},
+      "refinements": {}
+    }
+  ],
+  "rights": [
+    {
+      "value": "The source text and artwork in this ebook are believed to be in the United States public domain; that is, they are believed to be free of copyright restrictions in the United States. They may still be copyrighted in other countries, so users located outside of the United States must check their local laws before using this ebook. The creators of, and contributors to, this ebook dedicate their contributions to the worldwide public domain via the terms in the [CC0 1.0 Universal Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/).",
+      "attributes": {},
+      "refinements": {}
+    }
+  ],
+  "publisher": [
+    {
+      "value": "Standard Ebooks",
+      "attributes": {
+        "id": "publisher"
+      },
+      "refinements": {
+        "file-as": [
+          "Standard Ebooks"
+        ],
+        "se:url.homepage": [
+          "https://standardebooks.org"
+        ],
+        "role": [
+          "bkd",
+          "mdc",
+          "pbl"
+        ]
+      }
+    }
+  ],
+  "contributor": [
+    {
+      "value": "The League of Moveable Type",
+      "attributes": {
+        "id": "type-designer"
+      },
+      "refinements": {
+        "file-as": [
+          "League of Moveable Type, The"
+        ],
+        "se:url.homepage": [
+          "https://www.theleagueofmoveabletype.com"
+        ],
+        "role": [
+          "tyd"
+        ]
+      }
+    },
+    {
+      "value": "Albert Pinkham Ryder",
+      "attributes": {
+        "id": "artist"
+      },
+      "refinements": {
+        "file-as": [
+          "Ryder, Albert Pinkham"
+        ],
+        "se:url.encyclopedia.wikipedia": [
+          "https://en.wikipedia.org/wiki/Albert_Pinkham_Ryder"
+        ],
+        "se:url.authority.nacoaf": [
+          "http://id.loc.gov/authorities/names/n88163150"
+        ],
+        "role": [
+          "art"
+        ]
+      }
+    },
+    {
+      "value": "Daniel Lazarus",
+      "attributes": {
+        "id": "transcriber-1"
+      },
+      "refinements": {
+        "file-as": [
+          "Lazarus, Daniel"
+        ],
+        "role": [
+          "trc"
+        ]
+      }
+    },
+    {
+      "value": "Jonesey",
+      "attributes": {
+        "id": "transcriber-2"
+      },
+      "refinements": {
+        "file-as": [
+          "Jonesey"
+        ],
+        "role": [
+          "trc"
+        ]
+      }
+    },
+    {
+      "value": "David Widger",
+      "attributes": {
+        "id": "transcriber-3"
+      },
+      "refinements": {
+        "file-as": [
+          "Widger, David"
+        ],
+        "se:url.authority.nacoaf": [
+          "http://id.loc.gov/authorities/names/no2011017869"
+        ],
+        "role": [
+          "trc"
+        ]
+      }
+    },
+    {
+      "value": "Robin Whittleton",
+      "attributes": {
+        "id": "producer-1"
+      },
+      "refinements": {
+        "file-as": [
+          "Whittleton, Robin"
+        ],
+        "se:url.homepage": [
+          "http://www.robinwhittleton.com"
+        ],
+        "role": [
+          "bkp",
+          "blw",
+          "cov",
+          "mrk",
+          "pfr",
+          "tyg",
+          "wat"
+        ]
+      }
+    }
+  ],
+  "title": [
+    {
+      "value": "Moby Dick",
+      "attributes": {
+        "id": "title"
+      },
+      "refinements": {
+        "file-as": [
+          "Moby Dick"
+        ],
+        "title-type": [
+          "main"
+        ]
+      }
+    },
+    {
+      "value": "Or, The Whale",
+      "attributes": {
+        "id": "subtitle"
+      },
+      "refinements": {
+        "file-as": [
+          "Or, The Whale"
+        ],
+        "title-type": [
+          "subtitle"
+        ]
+      }
+    },
+    {
+      "value": "Moby Dick, or The Whale",
+      "attributes": {
+        "id": "fulltitle"
+      },
+      "refinements": {
+        "file-as": [
+          "Moby Dick"
+        ],
+        "title-type": [
+          "extended"
+        ]
+      }
+    }
+  ],
+  "subject": [
+    {
+      "value": "Whaling -- Fiction",
+      "attributes": {
+        "id": "subject-1"
+      },
+      "refinements": {
+        "authority": [
+          "LCSH"
+        ],
+        "term": [
+          "sh2008113463"
+        ]
+      }
+    },
+    {
+      "value": "Sea stories",
+      "attributes": {
+        "id": "subject-2"
+      },
+      "refinements": {
+        "authority": [
+          "LCSH"
+        ],
+        "term": [
+          "sh85119251"
+        ]
+      }
+    },
+    {
+      "value": "Psychological fiction",
+      "attributes": {
+        "id": "subject-3"
+      },
+      "refinements": {
+        "authority": [
+          "LCSH"
+        ],
+        "term": [
+          "sh85108438"
+        ]
+      }
+    },
+    {
+      "value": "Ship captains -- Fiction",
+      "attributes": {
+        "id": "subject-4"
+      },
+      "refinements": {
+        "authority": [
+          "LCSH"
+        ],
+        "term": [
+          "sh2008111148"
+        ]
+      }
+    },
+    {
+      "value": "Adventure stories",
+      "attributes": {
+        "id": "subject-5"
+      },
+      "refinements": {
+        "authority": [
+          "LCSH"
+        ],
+        "term": [
+          "sh85001072"
+        ]
+      }
+    },
+    {
+      "value": "Mentally ill -- Fiction",
+      "attributes": {
+        "id": "subject-6"
+      },
+      "refinements": {
+        "authority": [
+          "LCSH"
+        ],
+        "term": [
+          "sh2008107226"
+        ]
+      }
+    },
+    {
+      "value": "Ahab, Captain (Fictitious character) -- Fiction",
+      "attributes": {
+        "id": "subject-7"
+      },
+      "refinements": {
+        "authority": [
+          "LCSH"
+        ],
+        "term": [
+          "sh2007100918"
+        ]
+      }
+    },
+    {
+      "value": "Whales -- Fiction",
+      "attributes": {
+        "id": "subject-8"
+      },
+      "refinements": {
+        "authority": [
+          "LCSH"
+        ],
+        "term": [
+          "sh2008113464"
+        ]
+      }
+    },
+    {
+      "value": "Whaling ships -- Fiction",
+      "attributes": {
+        "id": "subject-9"
+      },
+      "refinements": {
+        "authority": [
+          "LCSH"
+        ],
+        "term": [
+          "sh2008113462"
+        ]
+      }
+    }
+  ],
+  "description": [
+    {
+      "value": "Captain Ahab, having lost his leg to the white whale Moby Dick, travels the world on a quest for vengeance.",
+      "attributes": {
+        "id": "description"
+      },
+      "refinements": {
+        "se:long-description": [
+          "\n\t\t\t<p>“Call me Ishmael” says <i>Moby Dick</i>’s protagonist, and with this famous first line launches one of the acclaimed great American novels. Part adventure story, part quest for vengeance, part biological textbook, and part whaling manual, <i>Moby Dick</i> was first published in 1851. The story follows Ishmael as he abandons his humdrum life on shore for an adventure on the waves. Finding the whaler <i>Pequod</i> at harbour in Nantucket, he signs up for a three year term without meeting the Captain of the ship, a mysterious figure called Ahab. It’s only well into the voyage that Ahab’s thirst for vengeance against the eponymous white whale Moby Dick—and the consequences—become clear.</p>\n\t\t\t<p>The novel is semi-autobiographical: <a href=\"https://standardebooks.org/ebooks/herman-melville\">Herman Melville</a> had had his own experience of whaling, having spent a year and a half aboard a whaling ship and further years traveling the world in the early 1840s. Herman used the knowledge gained from his experiences and wide reading on the subject to furnish <i>Moby Dick</i> with an almost encyclopaedic quality. The literary style varies widely, veering from soliloquies and staged scenes to dream sequences to comprehensive lists of ships’ provisions, but everything serves to further detail the world that’s being painted.</p>\n\t\t\t<p>Presented here is the New York edition, which was published later than the London edition and reverted numerous changes the original publishers had made, as well as including the initially-omitted epilogue.</p>\n\t\t"
+        ]
+      }
+    }
+  ],
+  "language": [
+    {
+      "value": "en-US",
+      "attributes": {},
+      "refinements": {}
+    }
+  ],
+  "source": [
+    {
+      "value": "https://www.gutenberg.org/ebooks/2701",
+      "attributes": {},
+      "refinements": {}
+    },
+    {
+      "value": "https://archive.org/details/mobydickorwhale01melv",
+      "attributes": {},
+      "refinements": {}
+    }
+  ],
+  "creator": [
+    {
+      "value": "Herman Melville",
+      "attributes": {
+        "id": "author"
+      },
+      "refinements": {
+        "file-as": [
+          "Melville, Herman"
+        ],
+        "se:url.encyclopedia.wikipedia": [
+          "https://en.wikipedia.org/wiki/Herman_Melville"
+        ],
+        "se:url.authority.nacoaf": [
+          "http://id.loc.gov/authorities/names/n79006936"
+        ],
+        "role": [
+          "aut",
+          "ann"
+        ]
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 
-import { EPubParser } from "../EPubParser";
+import { EPubParser } from "./EPubParser";
 import { compareOrUpdateFixture } from "./testUtils";
 
 describe("EPubParser", () => {
