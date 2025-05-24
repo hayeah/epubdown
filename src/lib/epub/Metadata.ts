@@ -156,7 +156,6 @@ export class Metadata {
 	/* ---------- helpers ---------- */
 
 	private static extractText(node: any): string {
-		console.log(node);
 		return stringify(node.children);
 	}
 }
