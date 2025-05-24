@@ -22,34 +22,26 @@
  * I needed a small xmlparser chat can be used in a worker.
  */
 
-/**
- * @typedef tNode
- * @property {string} tagName
- * @property {object} attributes
- * @property {(tNode|string)[]} children
- **/
+export type tNode = {
+	tagName: string;
+	attributes: object;
+	children: (tNode | string)[];
+};
 
-/**
- * @typedef TParseOptions
- * @property {number} [pos]
- * @property {string[]} [noChildNodes]
- * @property {boolean} [setPos]
- * @property {boolean} [keepComments]
- * @property {boolean} [keepWhitespace]
- * @property {boolean} [simplify]
- * @property {(a: tNode, b: tNode) => boolean} [filter]
- */
+export type TParseOptions = {
+	pos?: number;
+	noChildNodes?: string[];
+	setPos?: boolean;
+	keepComments?: boolean;
+	keepWhitespace?: boolean;
+	simplify?: boolean;
+	filter?: (a: tNode, b: tNode) => boolean;
+};
 
-/**
- * parseXML / html into a DOM Object. with no validation and some failur tolerance
- * @param {string} S your XML to parse
- * @param {TParseOptions} [options]  all other options:
- * @return {(tNode | string)[]}
- */
-export function parse(S, options) {
-	"txml";
-	options = options || {};
-
+export function parse(
+	S: string,
+	options: TParseOptions = {},
+): (tNode | string)[] {
 	let pos = options.pos || 0;
 	const keepComments = !!options.keepComments;
 	const keepWhitespace = !!options.keepWhitespace;
@@ -176,7 +168,7 @@ export function parse(S, options) {
 	/**
 	 *    returns the text outside of texts until the first '<'
 	 */
-	function parseText() {
+	function parseText(): string {
 		const start = pos;
 		pos = S.indexOf(openBracket, pos) - 1;
 		if (pos === -2) pos = S.length;
@@ -187,7 +179,7 @@ export function parse(S, options) {
 	 */
 	const nameSpacer = "\r\n\t>/= ";
 
-	function parseName() {
+	function parseName(): string {
 		const start = pos;
 		while (nameSpacer.indexOf(S[pos]) === -1 && S[pos]) {
 			pos++;
