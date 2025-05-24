@@ -1,4 +1,3 @@
-import { XMLParser } from "fast-xml-parser";
 /*
 
   A small, JSON-friendly wrapper around EPUB3 `<metadata>`.
@@ -21,36 +20,35 @@ import { XMLParser } from "fast-xml-parser";
     new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_", trimValues: false })
 
 */
+import { parse, stringify } from "./txml.js";
 
 export interface DCProperty {
-	name: string; // “title”, “creator”, “subject” …
-	value: string; // text content
-	attributes: Record<string, string>; // Raw XML attributes like "scheme", "file-as", etc.
-	refinements: Map<string, string[]>; // “file-as” → [ "Melville, Herman" ]
+	name: string;
+	value: string;
+	attributes: Record<string, string>;
+	refinements: Map<string, string[]>;
 }
 
 export interface MetaProperty {
-	property: string; // @property
-	value: string; // text content
-	id?: string; // optional @id
-	refines?: string; // @refines (must start with “#”)
-	scheme?: string; // @scheme, kept only if you need it
+	property: string;
+	value: string;
+	id?: string;
+	refines?: string;
+	scheme?: string;
 }
 
 export class Metadata {
 	private propertiesByName: Map<string, DCProperty[]> = new Map();
 	private propertiesById: Map<string, DCProperty> = new Map();
 
-	/* ---------- public API ------------------------------------------------ */
+	/* ---------- public API ---------- */
 
 	addDC(
 		name: string,
 		value: string,
 		attributes: Record<string, string> = {},
 	): void {
-		// Get ID from attributes if present
 		const id = attributes.id;
-
 		const prop: DCProperty = {
 			name,
 			value,
@@ -63,15 +61,13 @@ export class Metadata {
 		}
 		this.propertiesByName.get(name)!.push(prop);
 
-		if (id) {
-			this.propertiesById.set(`#${id}`, prop);
-		}
+		if (id) this.propertiesById.set(`#${id}`, prop);
 	}
 
 	addMeta(meta: MetaProperty): void {
-		if (!meta.refines) return; // only interested in refinements
+		if (!meta.refines) return;
 		const target = this.propertiesById.get(meta.refines);
-		if (!target) return; // unknown target → discard
+		if (!target) return;
 
 		const key = meta.property.trim();
 		if (!target.refinements.has(key)) {
@@ -104,48 +100,52 @@ export class Metadata {
 		return out;
 	}
 
-	/* ---------- loaders --------------------------------------------------- */
+	/* ---------- loaders ---------- */
 
-	/** Convert the object returned by fast-xml-parser for the `<metadata>` node. */
-	/** Build a `Metadata` instance from the plain object produced by Fast-XML-Parser. */
-	static fromDom(dom: Record<string, unknown>): Metadata {
+	/** Build a Metadata instance from a raw XML string via tXml. */
+	static fromXml(xml: string): Metadata {
+		// Parse with “pure XML” settings (no automatic void elements)
+		const dom = parse(xml, { noChildNodes: [] }) as any[];
+
+		// <package> is the root in an OPF file
+		const pkg = dom.find((n) => n.tagName === "package");
+		if (!pkg) throw new Error("EPUB package element not found");
+
+		// <metadata> is a direct child of <package>
+		const metaNode = (pkg.children as any[]).find(
+			(n) => typeof n === "object" && n.tagName === "metadata",
+		);
+		if (!metaNode) throw new Error("EPUB package metadata not found");
+
+		return Metadata.fromDom(metaNode);
+	}
+
+	/** Convert the tXml `<metadata>` node into a Metadata object. */
+	static fromDom(metadataNode: any): Metadata {
 		const meta = new Metadata();
 
-		// FxP returns either an object or an array for each tag
-		const asArray = <T>(v: T | T[]): T[] => (Array.isArray(v) ? v : [v]);
+		for (const node of metadataNode.children as any[]) {
+			if (typeof node !== "object") continue; // skip raw text
 
-		// --- 1st pass: add every dc:* element ---------------------------------
-		for (const [tag, raw] of Object.entries(dom)) {
-			if (!tag.startsWith("dc:")) continue;
-			for (const elem of asArray<any>(raw)) {
-				const name = tag.slice(3); // dc:title → title
-				const value = Metadata.extractText(elem);
-
-				// Extract attributes from the $ group
-				const attrGroup = (elem?.$ ?? {}) as Record<string, string>;
-
-				meta.addDC(name, value, attrGroup);
+			// <dc:*>
+			if (node.tagName?.startsWith("dc:")) {
+				const name = node.tagName.slice(3); // dc:title → title
+				const value = Metadata.extractText(node);
+				meta.addDC(name, value, node.attributes ?? {});
+				continue;
 			}
-		}
 
-		// --- 2nd pass: attach refinements from <meta> -------------------------
-		const metaNodes = dom.meta;
-		if (metaNodes) {
-			for (const elem of asArray<any>(metaNodes as any)) {
-				// Extract attributes from the $ group
-				const attrGroup = elem?.$ as Record<string, string> | undefined;
-				if (!attrGroup) continue;
-
-				const property = attrGroup.property;
-				const refines = attrGroup.refines;
-				if (!property) continue; // plain <meta>, ignore
+			// <meta>
+			if (node.tagName === "meta") {
+				const attrs = node.attributes ?? {};
+				if (!attrs.property) continue; // ignore plain <meta>
 
 				meta.addMeta({
-					property,
-					value: Metadata.extractText(elem),
-					id: attrGroup.id,
-					refines,
-					scheme: attrGroup.scheme,
+					property: attrs.property,
+					value: Metadata.extractText(node),
+					id: attrs.id,
+					refines: attrs.refines,
+					scheme: attrs.scheme,
 				});
 			}
 		}
@@ -153,54 +153,10 @@ export class Metadata {
 		return meta;
 	}
 
-	/** Convenience helper: parse raw XML text and return `Metadata`. */
-	static fromXml(xml: string): Metadata {
-		const parser = new XMLParser({
-			ignoreAttributes: false,
-			attributeNamePrefix: "",
-			attributesGroupName: "$",
-			trimValues: false,
-		});
-		const obj = parser.parse(xml);
-
-		if (!obj?.package?.metadata) {
-			throw new Error("EPUB package metadata not found");
-		}
-
-		// fast-xml-parser: <metadata> may be wrapped in an array if multiple <metadata> tags exist
-		const metaNode = Array.isArray(obj.package.metadata)
-			? obj.package.metadata[0]
-			: obj.package.metadata;
-
-		return Metadata.fromDom(metaNode);
-	}
-
-	/* ---------- helpers --------------------------------------------------- */
+	/* ---------- helpers ---------- */
 
 	private static extractText(node: any): string {
-		if (node == null) return "";
-		if (typeof node === "string") return node;
-
-		// With the new config, text content is directly in the node
-		// We need to filter out the attributes ($) and other special properties
-		if (typeof node === "object") {
-			// If there's a #text property, use that (for backward compatibility)
-			if ("#text" in node) return node["#text"];
-
-			// If there's a __cdata property, use that
-			if ("__cdata" in node) {
-				const c = node.__cdata;
-				return Array.isArray(c) ? c.join("") : c;
-			}
-
-			// Otherwise, look for a text property that's not $ or other special keys
-			for (const [key, value] of Object.entries(node)) {
-				if (key !== "$" && typeof value === "string") {
-					return value;
-				}
-			}
-		}
-
-		return "";
+		console.log(node);
+		return stringify(node.children);
 	}
 }
