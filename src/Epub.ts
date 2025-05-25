@@ -1,4 +1,4 @@
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import JSZip from "jszip";
 import { parseXml } from "./xmlParser";
 
@@ -11,23 +11,11 @@ abstract class DataResolver {
 
   // Can be implemented in base class since it just creates new instance
   rebase(base: string): DataResolver {
-    // const newBase = this.base ? join(this.base, base) : base;
-    console.log("rebase", this.base, base);
     return this.createInstance(base);
   }
 
-  async readXML(href: string): Promise<XMLDocument | undefined> {
-    const xml = await this.read(href);
-    if (!xml) return undefined;
-    return parseXml(xml) as any;
-  }
-
   async readXMLFile(href: string): Promise<XMLFile | undefined> {
-    const xml = await this.readXML(href);
-    if (!xml) return undefined;
-    const newBase = join(this.base, dirname(href));
-    console.log("readXMLFile", href, newBase);
-    return new XMLFile(newBase, xml, this.rebase(newBase));
+    return XMLFile.load(href, this);
   }
 
   abstract createInstance(base: string): DataResolver;
@@ -90,10 +78,32 @@ class FileDataResolver extends DataResolver {
 export class XMLFile extends DataResolver {
   constructor(
     public readonly base: string,
+    public readonly name: string,
+    public readonly content: string,
     public readonly dom: XMLDocument,
     public readonly resolver: DataResolver,
   ) {
     super(base);
+  }
+
+  get path() {
+    return join(this.base, this.name);
+  }
+
+  static async load(
+    href: string,
+    resolver: DataResolver,
+  ): Promise<XMLFile | undefined> {
+    const content = await resolver.read(href);
+    if (!content) {
+      return undefined;
+    }
+
+    const dom = parseXml(content) as XMLDocument;
+    const newBase = join(resolver.base, dirname(href));
+    const name = basename(href);
+
+    return new XMLFile(newBase, name, content, dom, resolver.rebase(newBase));
   }
 
   async readRaw(href: string): Promise<Uint8Array | undefined> {

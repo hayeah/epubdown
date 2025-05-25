@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { EPubParser } from "../lib/epub/EPubParser";
-import { createTurndownService } from "../markdown";
+import { EPub } from "../Epub";
+import { MarkdownConverter } from "../MarkdownConverter";
 
 function slug(text: string): string {
   return (
@@ -19,7 +19,8 @@ function slug(text: string): string {
 async function dumpSingle(epubPath: string, dumpDir: string) {
   // Helper function to write files relative to the baseDir
   console.log(`dumping ${epubPath}`);
-  const parser = await EPubParser.load(epubPath);
+  const raw = await fs.readFile(epubPath);
+  const epub = await EPub.fromZip(raw);
 
   // Create directories first
   const epubBaseName = path.basename(epubPath, ".epub");
@@ -35,29 +36,29 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
     await fs.writeFile(path.join(chaptersDir, filePath), data, "utf8");
   };
 
+  const outputJSON = async (filePath: string, data: unknown) => {
+    await outputFile(filePath, JSON.stringify(data, null, 2));
+  };
+
   await fs.mkdir(chaptersDir, { recursive: true });
 
-  // Dump container XML
-  const containerContent = await parser.readContainerXml();
-  await outputFile("container.xml", containerContent);
+  // // Import XMLSerializer from linkedom for Node.js environment
+  // const { XMLSerializer } = await import("linkedom");
+  // const serializer = new XMLSerializer();
 
-  // Get OPF path and content
-  const opfContent = await parser.readOpfXml();
-  // const opfData = parser['xmlParser'].parse(opfContent);
+  // Dump container XML and OPF
+  await outputFile("container.xml", epub.container.content);
+  await outputFile("opf.xml", epub.opf.content);
 
-  // Save raw OPF content
-  await outputFile("opf.xml", opfContent);
-
-  // Check if nav item exists and dump it
-  const manifest = await parser.manifest();
+  // Get manifest and check for nav/ncx items
+  const manifest = epub.getManifest();
   const navItem = manifest.find((item) => item.properties?.includes("nav"));
 
   if (navItem) {
     console.log(`Found nav item: ${navItem.href}`);
-    const navContent = await parser.readFileFromOpf(navItem.href);
-
-    if (navContent) {
-      await outputFile("nav.xml", navContent);
+    const navFile = await epub.opf.readXMLFile(navItem.href);
+    if (navFile) {
+      await outputFile("nav.xml", navFile.content);
     }
   }
 
@@ -67,36 +68,39 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
   );
   if (ncxItem) {
     console.log(`Found NCX item: ${ncxItem.href}`);
-    const ncxContent = await parser.readFileFromOpf(ncxItem.href);
-
-    if (ncxContent) {
-      await outputFile("ncx.xml", ncxContent);
+    const ncxFile = await epub.opf.readXMLFile(ncxItem.href);
+    if (ncxFile) {
+      await outputFile("ncx.xml", ncxFile.content);
     }
   }
 
-  const { metadata, chapters, toc } = await parser.parse();
+  // Get metadata
+  const metadata = epub.getMetadata();
+  await outputJSON("metadata.json", metadata);
 
-  // write metadata
-  await outputFile("metadata.json", JSON.stringify(metadata, null, 2));
-  await outputFile("toc.json", JSON.stringify(toc, null, 2));
+  // Dump manifest
+  await outputJSON("manifest.json", manifest);
 
-  // Initialize Turndown for markdown conversion
-  const td = createTurndownService();
+  // Dump spine with manifest context
+  const spineManifest = epub.getSpineWithManifest(false);
+  await outputJSON("spineManifest.json", spineManifest);
 
-  // write chapters
-  for (const [i, chapter] of chapters.entries()) {
-    const baseName = `${String(i + 1).padStart(4, "0")}_${slug(
-      chapter.title || chapter.id || chapter.href,
+  // Process chapters
+  const converter = new MarkdownConverter();
+  let index = 0;
+  for await (const chapter of epub.getChapters(false)) {
+    index += 1;
+    const { title } = await converter.convertXMLFile(chapter);
+    const base = `${String(index).padStart(4, "0")}_${slug(
+      title || "chapter",
     )}`;
 
-    // Write HTML version
-    const htmlName = `${baseName}.html`;
-    await outputChapterFile(htmlName, chapter.content);
+    // HTML
+    await outputChapterFile(`${base}.html`, chapter.content);
 
-    // Convert to markdown and write markdown version
-    const markdownName = `${baseName}.md`;
-    const markdown = td.turndown(chapter.content);
-    await outputChapterFile(markdownName, markdown);
+    // Markdown
+    const { content } = await converter.convertXMLFile(chapter);
+    await outputChapterFile(`${base}.md`, content);
   }
 
   console.log(`wrote → ${baseDir}`);
