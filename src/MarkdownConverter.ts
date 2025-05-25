@@ -172,8 +172,8 @@ export class MarkdownConverter {
 
   constructor(options: MarkdownConversionOptions = {}) {
     this.options = {
-      imageComponent: "Image",
-      footnoteComponent: "Footnote",
+      imageComponent: "x-image",
+      footnoteComponent: "x-footnote",
       enableViewportDetection: true,
       enableFootnoteHover: true,
       ...options,
@@ -294,7 +294,7 @@ export async function loadImageData(
 }
 
 export function createImageDataUrl(data: Uint8Array, mimeType: string): string {
-  const base64 = btoa(String.fromCharCode(...data));
+  const base64 = Buffer.from(data).toString("base64");
   return `data:${mimeType};base64,${base64}`;
 }
 

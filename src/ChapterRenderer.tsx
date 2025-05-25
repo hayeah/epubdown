@@ -5,6 +5,8 @@ import type { EPub, XMLFile } from "./Epub";
 import { EPubResolverProvider, Footnote, Image } from "./MarkdownComponents";
 import { MarkdownConverter, type MarkdownResult } from "./MarkdownConverter";
 
+import htmlToDOM from 'html-dom-parser';
+
 // Chapter renderer component that puts everything together
 export interface ChapterRendererProps {
   xmlFile: XMLFile;
@@ -28,8 +30,8 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = ({
         setError(null);
 
         const converter = new MarkdownConverter({
-          imageComponent: "Image",
-          footnoteComponent: "Footnote",
+          imageComponent: "x-image",
+          footnoteComponent: "x-footnote",
           enableViewportDetection: true,
           enableFootnoteHover: true,
         });
@@ -40,13 +42,20 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = ({
         // Convert markdown to HTML using marked
         const html = await marked.parse(result.content);
 
+        // The parse options only work in node environment. In the browser
+        // the built-in HTML parsing is used.
+        //
+        // const dom = htmlToDOM(html,{ lowerCaseTags: false });
+        // console.log(dom)
+
         // Parse HTML to React components
         const tree = parse(html, {
+          htmlparser2: { lowerCaseTags: false }, // keep tag-names exactly as written
           replace(domNode) {
             if (domNode.type === "tag" && domNode instanceof Element) {
-              const tag = domNode.name.toLowerCase();
+              const tag = domNode.name;
 
-              if (tag === "image") {
+              if (tag === "x-image") {
                 const {
                   href,
                   alt,
@@ -55,6 +64,7 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = ({
                   height,
                   class: className,
                 } = domNode.attribs;
+
                 return (
                   <Image
                     href={href}
@@ -67,7 +77,7 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = ({
                 );
               }
 
-              if (tag === "footnote") {
+              if (tag === "x-footnote") {
                 const { href, id, class: className } = domNode.attribs;
                 const children = domToReact(domNode.children as DOMNode[]);
                 return (

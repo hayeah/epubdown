@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { EPubParser } from "./EPubParser";
-import { compareOrUpdateFixture } from "./testUtils";
+import { compareOrUpdateFixture } from "../../testUtils";
 
 describe("EPubParser", () => {
   describe("load()", () => {

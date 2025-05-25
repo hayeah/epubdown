@@ -11,8 +11,9 @@ abstract class DataResolver {
 
   // Can be implemented in base class since it just creates new instance
   rebase(base: string): DataResolver {
-    const newBase = this.base ? join(this.base, base) : base;
-    return this.createInstance(newBase);
+    // const newBase = this.base ? join(this.base, base) : base;
+    console.log("rebase", this.base, base);
+    return this.createInstance(base);
   }
 
   async readXML(href: string): Promise<XMLDocument | undefined> {
@@ -25,7 +26,8 @@ abstract class DataResolver {
     const xml = await this.readXML(href);
     if (!xml) return undefined;
     const newBase = join(this.base, dirname(href));
-    return new XMLFile(xml, this.rebase(newBase));
+    console.log("readXMLFile", href, newBase);
+    return new XMLFile(newBase, xml, this.rebase(newBase));
   }
 
   abstract createInstance(base: string): DataResolver;
@@ -87,10 +89,11 @@ class FileDataResolver extends DataResolver {
 
 export class XMLFile extends DataResolver {
   constructor(
+    public readonly base: string,
     public readonly dom: XMLDocument,
     public readonly resolver: DataResolver,
   ) {
-    super();
+    super(base);
   }
 
   async readRaw(href: string): Promise<Uint8Array | undefined> {
@@ -102,6 +105,7 @@ export class XMLFile extends DataResolver {
   }
 
   createInstance(base: string): DataResolver {
+    // throw new Error("Not implemented");
     return this.resolver.createInstance(base);
   }
 
