@@ -2,8 +2,8 @@ import React from "react";
 import TurndownService from "turndown";
 import type { XMLFile } from "./Epub";
 
-// Types for MDX conversion
-export interface MDXConversionOptions {
+// Types for Markdown conversion
+export interface MarkdownConversionOptions {
   imageComponent?: string;
   footnoteComponent?: string;
   enableViewportDetection?: boolean;
@@ -25,20 +25,20 @@ export interface FootnoteData {
   backref?: string;
 }
 
-export interface MDXResult {
+export interface MarkdownResult {
   content: string;
   images: ImageData[];
   footnotes: FootnoteData[];
   title?: string;
 }
 
-// Custom Turndown rules for MDX components
-export class MDXTurndownService extends TurndownService {
+// Custom Turndown rules for Markdown components
+export class MarkdownTurndownService extends TurndownService {
   private footnoteCounter = 0;
   private footnotes: FootnoteData[] = [];
   private images: ImageData[] = [];
 
-  constructor(options: MDXConversionOptions = {}) {
+  constructor(options: MarkdownConversionOptions = {}) {
     super({
       headingStyle: "atx",
       codeBlockStyle: "fenced",
@@ -72,7 +72,7 @@ export class MDXTurndownService extends TurndownService {
 
         this.images.push(imageData);
 
-        // Build props for MDX component
+        // Build props for component
         const props = [
           `href="${src}"`,
           alt && `alt="${alt}"`,
@@ -166,11 +166,11 @@ export class MDXTurndownService extends TurndownService {
 }
 
 // Main converter class
-export class XMLToMDXConverter {
-  private turndownService: MDXTurndownService;
-  private options: MDXConversionOptions;
+export class MarkdownConverter {
+  private turndownService: MarkdownTurndownService;
+  private options: MarkdownConversionOptions;
 
-  constructor(options: MDXConversionOptions = {}) {
+  constructor(options: MarkdownConversionOptions = {}) {
     this.options = {
       imageComponent: "Image",
       footnoteComponent: "Footnote",
@@ -179,10 +179,10 @@ export class XMLToMDXConverter {
       ...options,
     };
 
-    this.turndownService = new MDXTurndownService(this.options);
+    this.turndownService = new MarkdownTurndownService(this.options);
   }
 
-  async convertXMLFile(xmlFile: XMLFile): Promise<MDXResult> {
+  async convertXMLFile(xmlFile: XMLFile): Promise<MarkdownResult> {
     // Reset service state
     this.turndownService.reset();
 
@@ -192,7 +192,7 @@ export class XMLToMDXConverter {
     // Get the body content or main content
     const bodyContent = this.extractMainContent(xmlFile.dom);
 
-    // Convert to markdown with MDX components
+    // Convert to markdown with custom components
     const markdownContent = this.turndownService.turndown(bodyContent);
 
     // Get collected data
@@ -331,4 +331,28 @@ export function detectImageMimeType(href: string): string {
     default:
       return "image/jpeg";
   }
+}
+
+// Export utility functions
+export async function exportChapterAsMarkdown(
+  xmlFile: XMLFile,
+  options?: MarkdownConversionOptions,
+): Promise<MarkdownResult> {
+  const converter = new MarkdownConverter(options);
+  return await converter.convertXMLFile(xmlFile);
+}
+
+export async function convertEPubToMarkdown(
+  epubFiles: XMLFile[],
+  options?: MarkdownConversionOptions,
+): Promise<MarkdownResult[]> {
+  const converter = new MarkdownConverter(options);
+  const results: MarkdownResult[] = [];
+
+  for (const file of epubFiles) {
+    const result = await converter.convertXMLFile(file);
+    results.push(result);
+  }
+
+  return results;
 }

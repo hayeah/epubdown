@@ -2,17 +2,20 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   EPubResolverContext,
-  MDXComponentHelpers,
+  createImageDataUrl,
+  detectImageMimeType,
+  loadImageData,
+  resolveFootnoteContent,
   useEPubResolver,
-} from "./MDXConverter";
+} from "./MarkdownConverter";
 
 // Image component with viewport detection and lazy loading
 export interface ImageProps {
   href: string;
   alt?: string;
   title?: string;
-  width?: string;
-  height?: string;
+  width?: number;
+  height?: number;
   className?: string;
 }
 
@@ -67,16 +70,10 @@ export const Image: React.FC<ImageProps> = ({
       setHasError(false);
 
       try {
-        const imageData = await MDXComponentHelpers.loadImageData(
-          resolver,
-          href,
-        );
+        const imageData = await loadImageData(resolver, href);
         if (imageData) {
-          const mimeType = MDXComponentHelpers.detectImageMimeType(href);
-          const dataUrl = MDXComponentHelpers.createImageDataUrl(
-            imageData,
-            mimeType,
-          );
+          const mimeType = detectImageMimeType(href);
+          const dataUrl = createImageDataUrl(imageData, mimeType);
           setImageSrc(dataUrl);
         } else {
           setHasError(true);
@@ -171,10 +168,7 @@ export const Footnote: React.FC<FootnoteProps> = ({
 
     setIsLoading(true);
     try {
-      const content = await MDXComponentHelpers.resolveFootnoteContent(
-        resolver,
-        href,
-      );
+      const content = await resolveFootnoteContent(resolver, href);
       setFootnoteContent(content || "Footnote content not found");
     } catch (error) {
       console.error("Failed to load footnote:", href, error);
@@ -343,19 +337,3 @@ export const EPubResolverProvider: React.FC<EPubResolverProviderProps> = ({
     </EPubResolverContext.Provider>
   );
 };
-
-// Default MDX component mapping
-export const defaultMDXComponents = {
-  Image,
-  Footnote,
-};
-
-// Utility for creating a complete MDX component set
-export function createMDXComponents(
-  customComponents: Record<string, React.ComponentType<any>> = {},
-) {
-  return {
-    ...defaultMDXComponents,
-    ...customComponents,
-  };
-}
