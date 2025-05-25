@@ -139,29 +139,33 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
 }
 
 interface Args {
-  dir: string;
+  _: string[];
+  dir?: string;
   [x: string]: unknown;
 }
 
 async function main() {
   const argv = (await yargs(hideBin(process.argv))
+    .usage("Usage: $0 <input> [options]")
+    .positional("input", {
+      describe: "Path to EPUB file or directory containing EPUB files",
+      type: "string",
+    })
     .option("dir", {
       alias: "d",
       type: "string",
-      description:
-        "Directory containing EPUB files or path to a single EPUB file",
-      default: path.join(import.meta.dir, "../../epubs"),
+      description: "Output directory (default: input path + '.dump')",
     })
-    .option("output", {
-      alias: "o",
-      type: "string",
-      description: "Custom output directory for all EPUBs",
-    })
+    .demandCommand(1, "Please provide an input path")
     .help()
     .alias("help", "h")
-    .parse()) as Args & { output?: string };
+    .parse()) as Args;
 
-  const targetPath = argv.dir;
+  const targetPath = argv._[0];
+  if (!targetPath) {
+    console.error("Error: No input path provided");
+    process.exit(1);
+  }
 
   // Check if target is a single EPUB file
   try {
@@ -171,9 +175,10 @@ async function main() {
       // Single EPUB file
       console.log(`Dumping single EPUB: ${targetPath}`);
 
-      let dumpDir = path.dirname(targetPath);
-      if (argv.output) {
-        dumpDir = argv.output;
+      // Default output dir is same directory as input file
+      let dumpDir = `${path.dirname(targetPath)}.dump`;
+      if (argv.dir) {
+        dumpDir = argv.dir;
       }
 
       await dumpSingle(targetPath, dumpDir);
@@ -181,9 +186,10 @@ async function main() {
       // Directory of EPUBs
       console.log(`Looking for EPUBs in: ${targetPath}`);
 
+      // Default output dir is input directory + .dump
       let dumpDir = `${targetPath}.dump`;
-      if (argv.output) {
-        dumpDir = argv.output;
+      if (argv.dir) {
+        dumpDir = argv.dir;
       }
 
       const entries = await fs.readdir(targetPath);
