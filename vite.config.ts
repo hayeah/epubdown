@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig({
 	// assetsInclude: ["**/*.wasm"],
@@ -16,6 +17,7 @@ export default defineConfig({
 			include: ["path"],
 			protocolImports: true, // lets “node:path” resolve cleanly
 		}),
+		visualizer(),
 	],
 	resolve: {
 		alias: {
