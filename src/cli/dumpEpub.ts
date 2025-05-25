@@ -16,6 +16,16 @@ function slug(text: string): string {
   );
 }
 
+async function time<T>(msg: string, fn: () => Promise<T>): Promise<T> {
+  const startTime = performance.now();
+  const result = await fn();
+  const elapsed = performance.now() - startTime;
+  if (elapsed > 100) {
+    console.log(`  [${elapsed.toFixed(2)}ms] ${msg}`);
+  }
+  return result;
+}
+
 async function dumpSingle(epubPath: string, dumpDir: string) {
   // Helper function to write files relative to the baseDir
   console.log(`dumping ${epubPath}`);
@@ -59,8 +69,10 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
     await outputFile("nav.xml", navFile.content);
 
     // Convert nav to markdown
-    const { content: navMarkdown } = await converter.convertXMLFile(navFile);
-    await outputFile("nav.md", navMarkdown);
+    await time("nav.md", async () => {
+      const { content: navMarkdown } = await converter.convertXMLFile(navFile);
+      await outputFile("nav.md", navMarkdown);
+    });
   }
 
   // Dump NCX file if exists
@@ -75,8 +87,11 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
       await outputFile("ncx.html", ncxHtml.content);
 
       // Convert the HTML version to markdown
-      const { content: ncxMarkdown } = await converter.convertXMLFile(ncxHtml);
-      await outputFile("ncx.md", ncxMarkdown);
+      await time("ncx.md", async () => {
+        const { content: ncxMarkdown } =
+          await converter.convertXMLFile(ncxHtml);
+        await outputFile("ncx.md", ncxMarkdown);
+      });
     }
   }
 
@@ -96,17 +111,20 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
   let index = 0;
   for await (const chapter of epub.getChapters(false)) {
     index += 1;
-    const { title } = await converter.convertXMLFile(chapter);
-    const base = `${String(index).padStart(4, "0")}_${slug(
-      title || "chapter",
-    )}`;
 
-    // HTML
-    await outputChapterFile(`${base}.html`, chapter.content);
+    await time(`chapter ${index}`, async () => {
+      const { title } = await converter.convertXMLFile(chapter);
+      const base = `${String(index).padStart(4, "0")}_${slug(
+        title || "chapter",
+      )}`;
 
-    // Markdown
-    const { content } = await converter.convertXMLFile(chapter);
-    await outputChapterFile(`${base}.md`, content);
+      // HTML
+      await outputChapterFile(`${base}.html`, chapter.content);
+
+      // Markdown
+      const { content } = await converter.convertXMLFile(chapter);
+      await outputChapterFile(`${base}.md`, content);
+    });
   }
 
   console.log(`wrote → ${baseDir}`);
