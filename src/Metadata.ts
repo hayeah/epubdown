@@ -10,12 +10,12 @@
   • Every `<dc:* id="…">value</dc:*>` becomes one DCProperty.
   • Every `<meta property="x" refines="#id">value</meta>` turns into a refinement on
     the DCProperty whose id is that fragment. Meta elements without `refines`
-    (or with an unknown target) are ignored.
+    (or with an unknown target) are ignored.  
   • Non-`dc:*` elements (link, meta without refines, etc.) are skipped intentionally;
     add support as needed.
 
 */
-import { parseXml } from "../xmlParser";
+import { parseXml } from "./xmlParser";
 
 export interface DCProperty {
   name: string;

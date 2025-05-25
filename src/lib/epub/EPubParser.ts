@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { XMLParser } from "fast-xml-parser";
 import JSZip from "jszip";
-import { parseXml } from "../xmlParser";
+import { parseXml } from "../../xmlParser";
 
 export interface EPubData {
   metadata: EPubMetadata;

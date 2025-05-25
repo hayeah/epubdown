@@ -1,6 +1,6 @@
 import { dirname, join, resolve } from "node:path";
 import JSZip from "jszip";
-import { parseXml } from "./lib/xmlParser";
+import { parseXml } from "./xmlParser";
 
 // Data resolver abstract class and implementations
 abstract class DataResolver {

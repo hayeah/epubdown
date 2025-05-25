@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@types/marked':
+        specifier: ^6.0.0
+        version: 6.0.0
       '@types/turndown':
         specifier: ^5.0.5
         version: 5.0.5
@@ -632,6 +635,10 @@ packages:
 
   '@types/estree@1.0.7':
     resolution: {integrity: sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==}
+
+  '@types/marked@6.0.0':
+    resolution: {integrity: sha512-jmjpa4BwUsmhxcfsgUit/7A9KbrC48Q0q8KvnY107ogcjGgTFDlIL3RpihNpx2Mu1hM4mdFQjoVc4O6JoGKHsA==}
+    deprecated: This is a stub types definition. marked provides its own type definitions, so you do not need this installed.
 
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
@@ -2193,6 +2200,10 @@ snapshots:
     optional: true
 
   '@types/estree@1.0.7': {}
+
+  '@types/marked@6.0.0':
+    dependencies:
+      marked: 5.1.2
 
   '@types/ms@2.1.0':
     optional: true
