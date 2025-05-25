@@ -5,6 +5,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { EPub } from "../Epub";
 import { MarkdownConverter } from "../MarkdownConverter";
+import { EPubMarkdownConverter } from "../EPubMarkdownConverter";
 
 function slug(text: string): string {
   return (
@@ -14,14 +15,6 @@ function slug(text: string): string {
       .replace(/^-+|-+$/g, "")
       .slice(0, 50) || "untitled"
   );
-}
-
-function collectTocAnchorIds(
-  tocLinks: Map<string, Set<string>>,
-  chapterPath: string,
-): Set<string> {
-  // Get the anchor IDs for this specific chapter path
-  return tocLinks.get(chapterPath) || new Set();
 }
 
 async function time<T>(msg: string, fn: () => Promise<T>): Promise<T> {
@@ -68,11 +61,12 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
   await outputFile("container.xml", epub.container.content);
   await outputFile("opf.xml", epub.opf.content);
 
-  // Get TOC anchor links before processing chapters
+  // Initialize TOC anchor links (will be cached in epub instance)
   const tocAnchorLinks = await epub.tocAnchorLinks();
   console.log(`Found ${tocAnchorLinks.size} files with TOC anchors`);
 
   const converter = new MarkdownConverter();
+  const epubMarkdownConverter = new EPubMarkdownConverter(epub);
 
   // Dump nav file if exists
   const navFile = await epub.nav();
@@ -125,18 +119,10 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
     index += 1;
 
     await time(`chapter ${index}`, async () => {
-      // Get the keepIds for this chapter
-      const chapterPath = chapter.path;
-      const keepIds = collectTocAnchorIds(tocAnchorLinks, chapterPath);
+      // Get markdown with all metadata
+      const { title, content } =
+        await epubMarkdownConverter.getChapterMarkdown(chapter);
 
-      if (keepIds.size > 0) {
-        console.log(`  Chapter ${index} has ${keepIds.size} TOC anchor IDs`);
-      }
-
-      // Convert with keepIds
-      const { title, content } = await converter.convertXMLFile(chapter, {
-        keepIds,
-      });
       const base = `${String(index).padStart(4, "0")}_${slug(
         title || "chapter",
       )}`;

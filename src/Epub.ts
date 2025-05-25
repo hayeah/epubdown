@@ -151,6 +151,8 @@ interface SpineItem {
 }
 
 export class EPub {
+  private _tocAnchorLinks?: Map<string, Set<string>>;
+
   constructor(
     public readonly container: XMLFile,
     public readonly opf: XMLFile,
@@ -394,10 +396,19 @@ export class EPub {
   /**
    * Extract all anchor links from the table of contents
    * Returns a Map where keys are resolved file paths and values are Sets of anchor IDs
+   * Results are memoized for performance
    */
   async tocAnchorLinks(): Promise<Map<string, Set<string>>> {
+    // Return memoized result if available
+    if (this._tocAnchorLinks) {
+      return this._tocAnchorLinks;
+    }
+
     const tocFile = await this.toc();
-    if (!tocFile) return new Map();
+    if (!tocFile) {
+      this._tocAnchorLinks = new Map();
+      return this._tocAnchorLinks;
+    }
 
     const anchorMap = new Map<string, Set<string>>();
 
@@ -422,6 +433,8 @@ export class EPub {
       anchorMap.get(resolvedPath)!.add(anchor);
     }
 
+    // Memoize the result
+    this._tocAnchorLinks = anchorMap;
     return anchorMap;
   }
 }
