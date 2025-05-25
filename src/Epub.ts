@@ -307,4 +307,87 @@ export class EPub {
       yield chapter;
     }
   }
+
+  async toc(): Promise<XMLFile | undefined> {
+    // First check for EPUB3 nav document
+    const navFile = await this.nav();
+    if (navFile) {
+      return navFile;
+    }
+
+    // Otherwise try to convert NCX to HTML
+    return await this.ncxToHTML();
+  }
+
+  async nav(): Promise<XMLFile | undefined> {
+    const manifest = this.opf.querySelector("manifest");
+    if (!manifest) return undefined;
+
+    const navItem = manifest.querySelector('item[properties~="nav"]');
+    if (!navItem) return undefined;
+
+    const href = navItem.getAttribute("href");
+    if (!href) return undefined;
+
+    return this.opf.readXMLFile(href);
+  }
+
+  async ncx(): Promise<XMLFile | undefined> {
+    const manifest = this.opf.querySelector("manifest");
+    if (!manifest) return undefined;
+
+    const ncxItem = manifest.querySelector(
+      'item[media-type="application/x-dtbncx+xml"]',
+    );
+    if (!ncxItem) return undefined;
+
+    const href = ncxItem.getAttribute("href");
+    if (!href) return undefined;
+
+    return this.opf.readXMLFile(href);
+  }
+
+  async ncxToHTML(): Promise<XMLFile | undefined> {
+    const ncxFile = await this.ncx();
+    if (!ncxFile) return undefined;
+
+    const navMap = ncxFile.querySelector("navMap");
+    if (!navMap) {
+      return undefined;
+    }
+
+    const convertNavPoints = (parent: Element): string => {
+      const navPoints = Array.from(
+        parent.querySelectorAll(":scope > navPoint"),
+      );
+      if (navPoints.length === 0) {
+        return "";
+      }
+
+      const items = navPoints
+        .map((navPoint) => {
+          const label =
+            navPoint.querySelector("text")?.textContent?.trim() || "";
+          const href =
+            navPoint.querySelector("content")?.getAttribute("src") || "";
+          const children = convertNavPoints(navPoint);
+
+          return `<li><a href="${href}">${label}</a>${children}</li>`;
+        })
+        .join("\n");
+
+      return `<ul>\n${items}\n</ul>`;
+    };
+
+    const olMarkup = convertNavPoints(navMap);
+    const html = `<nav epub:type="toc">\n${olMarkup}\n</nav>`;
+
+    return new XMLFile(
+      ncxFile.base,
+      "ncx.xml.html",
+      html,
+      parseXml(html) as XMLDocument,
+      ncxFile.resolver,
+    );
+  }
 }

@@ -50,27 +50,33 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
   await outputFile("container.xml", epub.container.content);
   await outputFile("opf.xml", epub.opf.content);
 
-  // Get manifest and check for nav/ncx items
-  const manifest = epub.getManifest();
-  const navItem = manifest.find((item) => item.properties?.includes("nav"));
+  const converter = new MarkdownConverter();
 
-  if (navItem) {
-    console.log(`Found nav item: ${navItem.href}`);
-    const navFile = await epub.opf.readXMLFile(navItem.href);
-    if (navFile) {
-      await outputFile("nav.xml", navFile.content);
-    }
+  // Dump nav file if exists
+  const navFile = await epub.nav();
+  if (navFile) {
+    console.log(`Found nav file: ${navFile.path}`);
+    await outputFile("nav.xml", navFile.content);
+
+    // Convert nav to markdown
+    const { content: navMarkdown } = await converter.convertXMLFile(navFile);
+    await outputFile("nav.md", navMarkdown);
   }
 
-  // Check if NCX file exists and dump it
-  const ncxItem = manifest.find(
-    (item) => item.mediaType === "application/x-dtbncx+xml",
-  );
-  if (ncxItem) {
-    console.log(`Found NCX item: ${ncxItem.href}`);
-    const ncxFile = await epub.opf.readXMLFile(ncxItem.href);
-    if (ncxFile) {
-      await outputFile("ncx.xml", ncxFile.content);
+  // Dump NCX file if exists
+  const ncxFile = await epub.ncx();
+  if (ncxFile) {
+    console.log(`Found NCX file: ${ncxFile.path}`);
+    await outputFile("ncx.xml", ncxFile.content);
+
+    // Convert NCX to HTML
+    const ncxHtml = await epub.ncxToHTML();
+    if (ncxHtml) {
+      await outputFile("ncx.html", ncxHtml.content);
+
+      // Convert the HTML version to markdown
+      const { content: ncxMarkdown } = await converter.convertXMLFile(ncxHtml);
+      await outputFile("ncx.md", ncxMarkdown);
     }
   }
 
@@ -78,6 +84,7 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
   const metadata = epub.getMetadata();
   await outputJSON("metadata.json", metadata);
 
+  const manifest = epub.getManifest();
   // Dump manifest
   await outputJSON("manifest.json", manifest);
 
@@ -86,7 +93,6 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
   await outputJSON("spineManifest.json", spineManifest);
 
   // Process chapters
-  const converter = new MarkdownConverter();
   let index = 0;
   for await (const chapter of epub.getChapters(false)) {
     index += 1;
