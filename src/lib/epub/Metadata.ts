@@ -14,13 +14,8 @@
   • Non-`dc:*` elements (link, meta without refines, etc.) are skipped intentionally;
     add support as needed.
 
-  Fast-XML-Parser settings
-
-  The `fromDom()` helper expects you parsed the XML with:
-    new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_", trimValues: false })
-
 */
-import { parse, stringify } from "./txml.js";
+import { DOMParser } from "linkedom";
 
 export interface DCProperty {
   name: string;
@@ -102,60 +97,57 @@ export class Metadata {
 
   /* ---------- loaders ---------- */
 
-  /** Build a Metadata instance from a raw XML string via tXml. */
+  /** Build a Metadata instance from a raw XML string using linkedom. */
   static fromXml(xml: string): Metadata {
-    // Parse with “pure XML” settings (no automatic void elements)
-    const dom = parse(xml, { noChildNodes: [] }) as any[];
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml, "text/xml");
 
     // <package> is the root in an OPF file
-    const pkg = dom.find((n) => n.tagName === "package");
+    const pkg = doc.querySelector("package");
     if (!pkg) throw new Error("EPUB package element not found");
 
     // <metadata> is a direct child of <package>
-    const metaNode = (pkg.children as any[]).find(
-      (n) => typeof n === "object" && n.tagName === "metadata",
-    );
+    const metaNode = pkg.querySelector("metadata");
     if (!metaNode) throw new Error("EPUB package metadata not found");
 
     return Metadata.fromDom(metaNode);
   }
 
-  /** Convert the tXml `<metadata>` node into a Metadata object. */
-  static fromDom(metadataNode: any): Metadata {
+  /** Convert the linkedom `<metadata>` Element into a Metadata object. */
+  static fromDom(metadataNode: Element): Metadata {
     const meta = new Metadata();
 
-    for (const node of metadataNode.children as any[]) {
-      if (typeof node !== "object") continue; // skip raw text
-
+    for (const node of Array.from(metadataNode.children)) {
       // <dc:*>
-      if (node.tagName?.startsWith("dc:")) {
-        const name = node.tagName.slice(3); // dc:title → title
-        const value = Metadata.extractText(node);
-        meta.addDC(name, value, node.attributes ?? {});
+      if (node.tagName.startsWith("dc:")) {
+        const name = node.tagName.slice(3).toLowerCase(); // dc:title → title
+        const value = node.textContent || "";
+
+        // Collect attributes
+        const attributes: Record<string, string> = {};
+        for (const attr of Array.from(node.attributes)) {
+          attributes[attr.name] = attr.value;
+        }
+
+        meta.addDC(name, value, attributes);
         continue;
       }
 
       // <meta>
-      if (node.tagName === "meta") {
-        const attrs = node.attributes ?? {};
-        if (!attrs.property) continue; // ignore plain <meta>
+      if (node.tagName.toLowerCase() === "meta") {
+        const property = node.getAttribute("property");
+        if (!property) continue; // ignore plain <meta>
 
         meta.addMeta({
-          property: attrs.property,
-          value: Metadata.extractText(node),
-          id: attrs.id,
-          refines: attrs.refines,
-          scheme: attrs.scheme,
+          property,
+          value: (node.textContent || "").trim(),
+          id: node.getAttribute("id") || undefined,
+          refines: node.getAttribute("refines") || undefined,
+          scheme: node.getAttribute("scheme") || undefined,
         });
       }
     }
 
     return meta;
-  }
-
-  /* ---------- helpers ---------- */
-
-  private static extractText(node: any): string {
-    return stringify(node.children);
   }
 }
