@@ -137,6 +137,17 @@ export class MarkdownTurndownService extends TurndownService {
       replacement: () => "",
     });
 
+    // Remove page-list navigation
+    this.addRule("remove-page-list", {
+      filter: (node) => {
+        return (
+          node.nodeName === "NAV" &&
+          node.getAttribute("epub:type") === "page-list"
+        );
+      },
+      replacement: () => "",
+    });
+
     // Clean up common EPUB structural elements
     this.addRule("clean-structure", {
       filter: (node) => {
