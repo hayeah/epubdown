@@ -38,12 +38,12 @@ export const Image: React.FC<ImageProps> = ({
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
+        for (const entry of entries) {
           if (entry.isIntersecting) {
             setIsInView(true);
             observerRef.current?.unobserve(entry.target);
           }
-        });
+        }
       },
       {
         rootMargin: "50px", // Start loading 50px before entering viewport
@@ -259,12 +259,19 @@ export const Footnote: React.FC<FootnoteProps> = ({
 
   return (
     <>
-      <span
+      <button
         ref={footnoteRef}
+        type="button"
         className={`footnote-link ${className || ""}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
         style={{
           color: "#0066cc",
           cursor: "pointer",
@@ -274,13 +281,14 @@ export const Footnote: React.FC<FootnoteProps> = ({
           borderRadius: "2px",
           padding: "1px 2px",
           backgroundColor: "rgba(0, 102, 204, 0.1)",
+          border: "none",
+          font: "inherit",
+          lineHeight: "inherit",
         }}
-        role="button"
-        tabIndex={0}
         aria-describedby={id ? `footnote-${id}` : undefined}
       >
         {children}
-      </span>
+      </button>
 
       {isPopoverVisible && (
         <div

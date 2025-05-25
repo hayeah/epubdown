@@ -286,51 +286,49 @@ export function useEPubResolver(): EPubResolverContext {
 }
 
 // Utility functions for component implementations
-export class MDXComponentHelpers {
-  static async loadImageData(
-    resolver: XMLFile,
-    href: string,
-  ): Promise<Uint8Array | undefined> {
-    return await resolver.readRaw(href);
+export async function loadImageData(
+  resolver: XMLFile,
+  href: string,
+): Promise<Uint8Array | undefined> {
+  return await resolver.readRaw(href);
+}
+
+export function createImageDataUrl(data: Uint8Array, mimeType: string): string {
+  const base64 = btoa(String.fromCharCode(...data));
+  return `data:${mimeType};base64,${base64}`;
+}
+
+export async function resolveFootnoteContent(
+  resolver: XMLFile,
+  href: string,
+): Promise<string | undefined> {
+  // If href is a fragment identifier, we need to find it in the current document
+  if (href.startsWith("#")) {
+    const id = href.substring(1);
+    const element = resolver.dom.getElementById(id);
+    return element?.textContent?.trim();
   }
 
-  static createImageDataUrl(data: Uint8Array, mimeType: string): string {
-    const base64 = btoa(String.fromCharCode(...data));
-    return `data:${mimeType};base64,${base64}`;
-  }
+  // Otherwise, load the referenced file
+  const content = await resolver.read(href);
+  return content;
+}
 
-  static async resolveFootnoteContent(
-    resolver: XMLFile,
-    href: string,
-  ): Promise<string | undefined> {
-    // If href is a fragment identifier, we need to find it in the current document
-    if (href.startsWith("#")) {
-      const id = href.substring(1);
-      const element = resolver.dom.getElementById(id);
-      return element?.textContent?.trim();
-    }
-
-    // Otherwise, load the referenced file
-    const content = await resolver.read(href);
-    return content;
-  }
-
-  static detectImageMimeType(href: string): string {
-    const ext = href.split(".").pop()?.toLowerCase();
-    switch (ext) {
-      case "jpg":
-      case "jpeg":
-        return "image/jpeg";
-      case "png":
-        return "image/png";
-      case "gif":
-        return "image/gif";
-      case "svg":
-        return "image/svg+xml";
-      case "webp":
-        return "image/webp";
-      default:
-        return "image/jpeg";
-    }
+export function detectImageMimeType(href: string): string {
+  const ext = href.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "gif":
+      return "image/gif";
+    case "svg":
+      return "image/svg+xml";
+    case "webp":
+      return "image/webp";
+    default:
+      return "image/jpeg";
   }
 }

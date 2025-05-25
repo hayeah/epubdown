@@ -85,7 +85,10 @@ export class EPub {
     // a. EPUB 3 navigation document
     for (const item of manifest) {
       if (item.getAttribute("properties")?.includes("nav")) {
-        const href = item.getAttribute("href")!;
+        const href = item.getAttribute("href");
+        if (!href) {
+          continue;
+        }
         const navStr = await this.readHref(href);
         return new Nav(navStr, this.opfDir, this.zip);
       }
@@ -97,7 +100,10 @@ export class EPub {
         item.getAttribute("media-type") === "application/x-dtbncx+xml" ||
         item.getAttribute("href")?.endsWith(".ncx")
       ) {
-        const href = item.getAttribute("href")!;
+        const href = item.getAttribute("href");
+        if (!href) {
+          continue;
+        }
         const ncxStr = await this.readHref(href);
         return new NCX(ncxStr, this.opfDir, this.zip);
       }

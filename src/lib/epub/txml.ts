@@ -42,6 +42,7 @@ export function parse(
   S: string,
   options: TParseOptions = {},
 ): (tNode | string)[] {
+  let currentStr = S;
   let pos = options.pos || 0;
   const keepComments = !!options.keepComments;
   const keepWhitespace = !!options.keepWhitespace;
@@ -223,7 +224,7 @@ export function parse(
           pos++;
           code = S.charCodeAt(pos);
         }
-        let value;
+        let value: string | null;
         if (code === singleQuoteCC || code === doubleQuoteCC) {
           value = parseString();
           if (pos === -1) {
@@ -298,12 +299,13 @@ export function parse(
     options.attrName = options.attrName || "id";
     const out = [];
 
-    while ((pos = findElements()) !== -1) {
-      pos = S.lastIndexOf("<", pos);
+    let foundPos: number;
+    while ((foundPos = findElements()) !== -1) {
+      pos = S.lastIndexOf("<", foundPos);
       if (pos !== -1) {
         out.push(parseNode());
       }
-      S = S.substr(pos);
+      S = S.substring(pos);
       pos = 0;
     }
   } else if (options.parseNode) {
@@ -345,9 +347,9 @@ export function simplify(children) {
     return children[0];
   }
   // map each object
-  children.forEach((child) => {
+  for (const child of children) {
     if (typeof child !== "object") {
-      return;
+      continue;
     }
     if (!out[child.tagName]) out[child.tagName] = [];
     const kids = simplify(child.children);
@@ -355,7 +357,7 @@ export function simplify(children) {
     if (Object.keys(child.attributes).length && typeof kids !== "string") {
       kids._attributes = child.attributes;
     }
-  });
+  }
 
   for (const i in out) {
     if (out[i].length === 1) {
@@ -386,9 +388,9 @@ export function simplifyLostLess(children, parentAttributes = {}) {
       : children[0];
   }
   // map each object
-  children.forEach((child) => {
+  for (const child of children) {
     if (typeof child !== "object") {
-      return;
+      continue;
     }
     if (!out[child.tagName]) out[child.tagName] = [];
     const kids = simplifyLostLess(child.children || [], child.attributes);
@@ -396,7 +398,7 @@ export function simplifyLostLess(children, parentAttributes = {}) {
     if (Object.keys(child.attributes).length) {
       kids._attributes = child.attributes;
     }
-  });
+  }
 
   return out;
 }
@@ -478,10 +480,10 @@ export function stringify(O) {
 export function toContentString(tDom) {
   if (Array.isArray(tDom)) {
     let out = "";
-    tDom.forEach((e) => {
+    for (const e of tDom) {
       out += ` ${toContentString(e)}`;
       out = out.trim();
-    });
+    }
     return out;
   }
   if (typeof tDom === "object") {

@@ -31,7 +31,7 @@ export default function LiveMDX({ source }: { source: string }) {
     return () => {
       ignore = true;
     };
-  }, [source, components]);
+  }, [source]);
 
   return (
     <MDXProvider components={components}>
@@ -272,6 +272,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
         }}
       >
         <button
+          type="button"
           onClick={handlePrevious}
           disabled={!hasPrevious}
           style={{
@@ -291,6 +292,7 @@ export const BookReader: React.FC<BookReaderProps> = ({
         </span>
 
         <button
+          type="button"
           onClick={handleNext}
           disabled={!hasNext}
           style={{
@@ -310,157 +312,156 @@ export const BookReader: React.FC<BookReaderProps> = ({
 };
 
 // Utility functions for integration
-export class EPubMDXUtils {
-  /**
-   * Convert an entire EPub to MDX format and return all chapters
-   */
-  static async convertEPubToMDX(
-    epub: EPub,
-    options?: {
-      imageComponent?: string;
-      footnoteComponent?: string;
-      onProgress?: (current: number, total: number) => void;
-    },
-  ): Promise<MDXResult[]> {
-    const converter = new XMLToMDXConverter({
-      imageComponent: options?.imageComponent || "Image",
-      footnoteComponent: options?.footnoteComponent || "Footnote",
+
+/**
+ * Convert an entire EPub to MDX format and return all chapters
+ */
+export async function convertEPubToMDX(
+  epub: EPub,
+  options?: {
+    imageComponent?: string;
+    footnoteComponent?: string;
+    onProgress?: (current: number, total: number) => void;
+  },
+): Promise<MDXResult[]> {
+  const converter = new XMLToMDXConverter({
+    imageComponent: options?.imageComponent || "Image",
+    footnoteComponent: options?.footnoteComponent || "Footnote",
+  });
+
+  const results: MDXResult[] = [];
+  let current = 0;
+
+  for await (const chapter of epub.getChapters()) {
+    const result = await converter.convertXMLFile(chapter);
+    results.push(result);
+    current++;
+
+    options?.onProgress?.(current, results.length);
+  }
+
+  return results;
+}
+
+/**
+ * Create a complete reading app component
+ */
+export function createReadingApp(
+  epub: EPub,
+  options?: {
+    theme?: "light" | "dark";
+    fontSize?: "small" | "medium" | "large";
+    enableBookmarks?: boolean;
+  },
+) {
+  return function ReadingApp() {
+    const [currentChapter, setCurrentChapter] = React.useState(0);
+    const [settings, setSettings] = React.useState({
+      theme: options?.theme || "light",
+      fontSize: options?.fontSize || "medium",
     });
 
-    const results: MDXResult[] = [];
-    let current = 0;
+    return (
+      <div
+        className={`reading-app theme-${settings.theme} font-${settings.fontSize}`}
+        style={{
+          minHeight: "100vh",
+          backgroundColor: settings.theme === "dark" ? "#1a1a1a" : "#ffffff",
+          color: settings.theme === "dark" ? "#e0e0e0" : "#333333",
+          fontFamily: "Georgia, serif",
+          lineHeight: "1.6",
+        }}
+      >
+        <BookReader
+          epub={epub}
+          currentChapterIndex={currentChapter}
+          onChapterChange={setCurrentChapter}
+          className="main-reader"
+        />
+      </div>
+    );
+  };
+}
 
-    for await (const chapter of epub.getChapters()) {
-      const result = await converter.convertXMLFile(chapter);
-      results.push(result);
-      current++;
+/**
+ * Pre-process an EPub for faster rendering
+ */
+export async function preprocessEPub(epub: EPub): Promise<{
+  metadata: any;
+  chapterCount: number;
+  totalImages: number;
+  totalFootnotes: number;
+  tableOfContents?: Array<{ title: string; index: number }>;
+}> {
+  const metadata = epub.getMetadata();
+  const chapters: Array<{ title: string; index: number }> = [];
+  let totalImages = 0;
+  let totalFootnotes = 0;
+  let chapterIndex = 0;
 
-      options?.onProgress?.(current, results.length);
-    }
+  const converter = new XMLToMDXConverter();
 
-    return results;
+  for await (const chapter of epub.getChapters()) {
+    const result = await converter.convertXMLFile(chapter);
+
+    chapters.push({
+      title: result.title || `Chapter ${chapterIndex + 1}`,
+      index: chapterIndex,
+    });
+
+    totalImages += result.images.length;
+    totalFootnotes += result.footnotes.length;
+    chapterIndex++;
   }
 
-  /**
-   * Create a complete reading app component
-   */
-  static createReadingApp(
-    epub: EPub,
-    options?: {
-      theme?: "light" | "dark";
-      fontSize?: "small" | "medium" | "large";
-      enableBookmarks?: boolean;
-    },
-  ) {
-    return function ReadingApp() {
-      const [currentChapter, setCurrentChapter] = React.useState(0);
-      const [settings, setSettings] = React.useState({
-        theme: options?.theme || "light",
-        fontSize: options?.fontSize || "medium",
-      });
+  return {
+    metadata,
+    chapterCount: chapterIndex,
+    totalImages,
+    totalFootnotes,
+    tableOfContents: chapters,
+  };
+}
 
-      return (
-        <div
-          className={`reading-app theme-${settings.theme} font-${settings.fontSize}`}
-          style={{
-            minHeight: "100vh",
-            backgroundColor: settings.theme === "dark" ? "#1a1a1a" : "#ffffff",
-            color: settings.theme === "dark" ? "#e0e0e0" : "#333333",
-            fontFamily: "Georgia, serif",
-            lineHeight: "1.6",
-          }}
-        >
-          <BookReader
-            epub={epub}
-            currentChapterIndex={currentChapter}
-            onChapterChange={setCurrentChapter}
-            className="main-reader"
-          />
-        </div>
-      );
-    };
+/**
+ * Export chapter as standalone MDX file
+ */
+export async function exportChapterAsMDX(
+  xmlFile: XMLFile,
+  options?: {
+    includeMetadata?: boolean;
+    wrapInProvider?: boolean;
+  },
+): Promise<string> {
+  const converter = new XMLToMDXConverter();
+  const result = await converter.convertXMLFile(xmlFile);
+
+  let mdxContent = "";
+
+  // Add metadata as frontmatter
+  if (options?.includeMetadata && result.title) {
+    mdxContent += "---\n";
+    mdxContent += `title: "${result.title}"\n`;
+    if (result.images.length > 0) {
+      mdxContent += `images: ${JSON.stringify(result.images)}\n`;
+    }
+    if (result.footnotes.length > 0) {
+      mdxContent += `footnotes: ${JSON.stringify(result.footnotes)}\n`;
+    }
+    mdxContent += "---\n\n";
   }
 
-  /**
-   * Pre-process an EPub for faster rendering
-   */
-  static async preprocessEPub(epub: EPub): Promise<{
-    metadata: any;
-    chapterCount: number;
-    totalImages: number;
-    totalFootnotes: number;
-    tableOfContents?: Array<{ title: string; index: number }>;
-  }> {
-    const metadata = epub.getMetadata();
-    const chapters: Array<{ title: string; index: number }> = [];
-    let totalImages = 0;
-    let totalFootnotes = 0;
-    let chapterIndex = 0;
-
-    const converter = new XMLToMDXConverter();
-
-    for await (const chapter of epub.getChapters()) {
-      const result = await converter.convertXMLFile(chapter);
-
-      chapters.push({
-        title: result.title || `Chapter ${chapterIndex + 1}`,
-        index: chapterIndex,
-      });
-
-      totalImages += result.images.length;
-      totalFootnotes += result.footnotes.length;
-      chapterIndex++;
-    }
-
-    return {
-      metadata,
-      chapterCount: chapterIndex,
-      totalImages,
-      totalFootnotes,
-      tableOfContents: chapters,
-    };
+  // Add imports if wrapping in provider
+  if (options?.wrapInProvider) {
+    mdxContent +=
+      'import { EPubResolverProvider, Image, Footnote } from "./MDXComponents";\n\n';
+    mdxContent += "export const components = { Image, Footnote };\n\n";
   }
 
-  /**
-   * Export chapter as standalone MDX file
-   */
-  static async exportChapterAsMDX(
-    xmlFile: XMLFile,
-    options?: {
-      includeMetadata?: boolean;
-      wrapInProvider?: boolean;
-    },
-  ): Promise<string> {
-    const converter = new XMLToMDXConverter();
-    const result = await converter.convertXMLFile(xmlFile);
+  // Add the converted content
+  mdxContent += result.content;
 
-    let mdxContent = "";
-
-    // Add metadata as frontmatter
-    if (options?.includeMetadata && result.title) {
-      mdxContent += "---\n";
-      mdxContent += `title: "${result.title}"\n`;
-      if (result.images.length > 0) {
-        mdxContent += `images: ${JSON.stringify(result.images)}\n`;
-      }
-      if (result.footnotes.length > 0) {
-        mdxContent += `footnotes: ${JSON.stringify(result.footnotes)}\n`;
-      }
-      mdxContent += "---\n\n";
-    }
-
-    // Add imports if wrapping in provider
-    if (options?.wrapInProvider) {
-      mdxContent +=
-        'import { EPubResolverProvider, Image, Footnote } from "./MDXComponents";\n\n';
-      mdxContent += "export const components = { Image, Footnote };\n\n";
-    }
-
-    // Add the converted content
-    mdxContent += result.content;
-
-    return mdxContent;
-  }
+  return mdxContent;
 }
 
 // Example usage in a Next.js or React app

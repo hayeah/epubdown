@@ -250,15 +250,25 @@ export class EPub {
   // Helper to get spine items with their manifest details
   getSpineWithManifest(
     linearOnly = true,
-  ): (SpineItem & { manifestItem?: ManifestItem })[] {
+  ): (SpineItem & { manifestItem: ManifestItem })[] {
     const spine = this.getSpine(linearOnly);
     const manifest = this.getManifest();
     const manifestMap = new Map(manifest.map((item) => [item.id, item]));
 
-    return spine.map((spineItem) => ({
-      ...spineItem,
-      manifestItem: manifestMap.get(spineItem.idref),
-    }));
+    const result: (SpineItem & { manifestItem: ManifestItem })[] = [];
+
+    for (const spineItem of spine) {
+      const manifestItem = manifestMap.get(spineItem.idref);
+      if (!manifestItem) {
+        continue;
+      }
+      result.push({
+        ...spineItem,
+        manifestItem,
+      });
+    }
+
+    return result;
   }
 
   async getChapter(href: string): Promise<XMLFile | undefined> {
@@ -273,12 +283,12 @@ export class EPub {
   async *getChapters(linearOnly = true): AsyncGenerator<XMLFile> {
     const spineItems = this.getSpineWithManifest(linearOnly).filter(
       (item) =>
-        item.manifestItem!.mediaType.includes("xhtml") ||
-        item.manifestItem!.mediaType.includes("html"),
+        item.manifestItem.mediaType.includes("xhtml") ||
+        item.manifestItem.mediaType.includes("html"),
     );
 
     for (const spineItem of spineItems) {
-      const href = spineItem.manifestItem!.href;
+      const href = spineItem.manifestItem.href;
       const chapter = await this.getChapter(href);
       if (!chapter) continue;
       yield chapter;

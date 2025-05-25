@@ -59,7 +59,7 @@ export class Metadata {
     if (!this.propertiesByName.has(name)) {
       this.propertiesByName.set(name, []);
     }
-    this.propertiesByName.get(name)!.push(prop);
+    this.propertiesByName.get(name)?.push(prop);
 
     if (id) this.propertiesById.set(`#${id}`, prop);
   }
@@ -73,7 +73,7 @@ export class Metadata {
     if (!target.refinements.has(key)) {
       target.refinements.set(key, []);
     }
-    target.refinements.get(key)!.push(meta.value);
+    target.refinements.get(key)?.push(meta.value);
   }
 
   getText(name: string): string | undefined {
