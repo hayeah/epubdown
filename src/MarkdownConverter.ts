@@ -24,13 +24,18 @@ export interface MarkdownResult {
   title?: string;
 }
 
+export interface MarkdownConversionOptions {
+  keepIds?: Set<string>;
+}
+
 // Custom Turndown rules for Markdown components
 export class MarkdownTurndownService extends TurndownService {
   private footnoteCounter = 0;
   private footnotes: FootnoteData[] = [];
   private images: ImageData[] = [];
+  private keepIds?: Set<string>;
 
-  constructor() {
+  constructor(options?: { keepIds?: Set<string> }) {
     super({
       headingStyle: "atx",
       codeBlockStyle: "fenced",
@@ -38,9 +43,12 @@ export class MarkdownTurndownService extends TurndownService {
       strongDelimiter: "**",
     });
 
+    this.keepIds = options?.keepIds;
+
     this.setupImageRule("x-image");
     this.setupFootnoteRules("x-footnote");
     this.setupCleanupRules();
+    this.setupIdPreservationRule();
   }
 
   private setupImageRule(componentName: string) {
@@ -143,6 +151,27 @@ export class MarkdownTurndownService extends TurndownService {
     });
   }
 
+  private setupIdPreservationRule() {
+    if (!this.keepIds || this.keepIds.size === 0) {
+      return;
+    }
+
+    // Add rule to preserve IDs that are in the keepIds set
+    this.addRule("preserve-ids", {
+      filter: (node) => {
+        const id = node.getAttribute("id");
+        return !!(id && this.keepIds?.has(id));
+      },
+      replacement: (content, node) => {
+        const id = node.getAttribute("id");
+        if (!id) return content;
+
+        // Insert a span with the ID before the content
+        return `<span id="${id}"></span>${content}`;
+      },
+    });
+  }
+
   getCollectedData() {
     return {
       images: this.images,
@@ -160,14 +189,22 @@ export class MarkdownTurndownService extends TurndownService {
 // Main converter class
 export class MarkdownConverter {
   private turndownService: MarkdownTurndownService;
+  private options?: MarkdownConversionOptions;
 
-  constructor() {
-    this.turndownService = new MarkdownTurndownService();
+  constructor(options?: MarkdownConversionOptions) {
+    this.options = options;
+    this.turndownService = new MarkdownTurndownService(options);
   }
 
-  async convertXMLFile(xmlFile: XMLFile): Promise<MarkdownResult> {
-    // Reset service state
-    this.turndownService.reset();
+  async convertXMLFile(
+    xmlFile: XMLFile,
+    overrideOptions?: MarkdownConversionOptions,
+  ): Promise<MarkdownResult> {
+    // Use override options if provided, otherwise use instance options
+    const options = overrideOptions || this.options;
+
+    // Create a new turndown service for this conversion
+    const turndownService = new MarkdownTurndownService(options);
 
     // Extract title from the document
     const title = this.extractTitle(xmlFile.dom);
@@ -176,10 +213,10 @@ export class MarkdownConverter {
     const bodyContent = this.extractMainContent(xmlFile.dom);
 
     // Convert to markdown with custom components
-    const markdownContent = this.turndownService.turndown(bodyContent);
+    const markdownContent = turndownService.turndown(bodyContent);
 
     // Get collected data
-    const { images, footnotes } = this.turndownService.getCollectedData();
+    const { images, footnotes } = turndownService.getCollectedData();
 
     // Post-process the markdown
     const processedContent = this.postProcessMarkdown(markdownContent);

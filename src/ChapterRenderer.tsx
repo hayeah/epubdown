@@ -5,7 +5,7 @@ import type { EPub, XMLFile } from "./Epub";
 import { EPubResolverProvider, Footnote, Image } from "./MarkdownComponents";
 import { MarkdownConverter, type MarkdownResult } from "./MarkdownConverter";
 
-import htmlToDOM from 'html-dom-parser';
+import htmlToDOM from "html-dom-parser";
 
 // Chapter renderer component that puts everything together
 export interface ChapterRendererProps {

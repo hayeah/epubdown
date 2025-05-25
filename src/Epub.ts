@@ -390,4 +390,38 @@ export class EPub {
       ncxFile.resolver,
     );
   }
+
+  /**
+   * Extract all anchor links from the table of contents
+   * Returns a Map where keys are resolved file paths and values are Sets of anchor IDs
+   */
+  async tocAnchorLinks(): Promise<Map<string, Set<string>>> {
+    const tocFile = await this.toc();
+    if (!tocFile) return new Map();
+
+    const anchorMap = new Map<string, Set<string>>();
+
+    // Find all links in the TOC
+    const links = tocFile.querySelectorAll(`nav[epub\\:type="toc"] a[href]`);
+
+    for (const link of links) {
+      const href = link.getAttribute("href");
+      if (!href) continue;
+
+      // Split href into file path and anchor
+      const [filePath, anchor] = href.split("#");
+      if (!filePath || !anchor) continue;
+
+      // Resolve the file path relative to the TOC file
+      const resolvedPath = join(tocFile.base, filePath);
+
+      // Add anchor to the set for this file
+      if (!anchorMap.has(resolvedPath)) {
+        anchorMap.set(resolvedPath, new Set());
+      }
+      anchorMap.get(resolvedPath)!.add(anchor);
+    }
+
+    return anchorMap;
+  }
 }

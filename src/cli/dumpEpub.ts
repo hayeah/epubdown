@@ -16,6 +16,14 @@ function slug(text: string): string {
   );
 }
 
+function collectTocAnchorIds(
+  tocLinks: Map<string, Set<string>>,
+  chapterPath: string,
+): Set<string> {
+  // Get the anchor IDs for this specific chapter path
+  return tocLinks.get(chapterPath) || new Set();
+}
+
 async function time<T>(msg: string, fn: () => Promise<T>): Promise<T> {
   const startTime = performance.now();
   const result = await fn();
@@ -59,6 +67,10 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
   // Dump container XML and OPF
   await outputFile("container.xml", epub.container.content);
   await outputFile("opf.xml", epub.opf.content);
+
+  // Get TOC anchor links before processing chapters
+  const tocAnchorLinks = await epub.tocAnchorLinks();
+  console.log(`Found ${tocAnchorLinks.size} files with TOC anchors`);
 
   const converter = new MarkdownConverter();
 
@@ -113,7 +125,18 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
     index += 1;
 
     await time(`chapter ${index}`, async () => {
-      const { title } = await converter.convertXMLFile(chapter);
+      // Get the keepIds for this chapter
+      const chapterPath = chapter.path;
+      const keepIds = collectTocAnchorIds(tocAnchorLinks, chapterPath);
+
+      if (keepIds.size > 0) {
+        console.log(`  Chapter ${index} has ${keepIds.size} TOC anchor IDs`);
+      }
+
+      // Convert with keepIds
+      const { title, content } = await converter.convertXMLFile(chapter, {
+        keepIds,
+      });
       const base = `${String(index).padStart(4, "0")}_${slug(
         title || "chapter",
       )}`;
@@ -122,7 +145,6 @@ async function dumpSingle(epubPath: string, dumpDir: string) {
       await outputChapterFile(`${base}.html`, chapter.content);
 
       // Markdown
-      const { content } = await converter.convertXMLFile(chapter);
       await outputChapterFile(`${base}.md`, content);
     });
   }
@@ -140,7 +162,8 @@ async function main() {
     .option("dir", {
       alias: "d",
       type: "string",
-      description: "Directory containing EPUB files",
+      description:
+        "Directory containing EPUB files or path to a single EPUB file",
       default: path.join(import.meta.dir, "../../epubs"),
     })
     .option("output", {
@@ -152,28 +175,50 @@ async function main() {
     .alias("help", "h")
     .parse()) as Args & { output?: string };
 
-  const epubsDir = argv.dir;
-  console.log(`Looking for EPUBs in: ${epubsDir}`);
+  const targetPath = argv.dir;
 
-  let dumpDir = `${epubsDir}.dump`;
-  if (argv.output) {
-    dumpDir = argv.output;
-  }
-
+  // Check if target is a single EPUB file
   try {
-    const entries = await fs.readdir(epubsDir);
+    const stats = await fs.stat(targetPath);
 
-    for (const entry of entries) {
-      if (!entry.toLowerCase().endsWith(".epub")) continue;
-      const fullPath = path.join(epubsDir, entry);
-      try {
-        await dumpSingle(fullPath, dumpDir);
-      } catch (error) {
-        console.error(`Error dumping ${fullPath}:`, error);
+    if (stats.isFile() && targetPath.toLowerCase().endsWith(".epub")) {
+      // Single EPUB file
+      console.log(`Dumping single EPUB: ${targetPath}`);
+
+      let dumpDir = path.dirname(targetPath);
+      if (argv.output) {
+        dumpDir = argv.output;
       }
+
+      await dumpSingle(targetPath, dumpDir);
+    } else if (stats.isDirectory()) {
+      // Directory of EPUBs
+      console.log(`Looking for EPUBs in: ${targetPath}`);
+
+      let dumpDir = `${targetPath}.dump`;
+      if (argv.output) {
+        dumpDir = argv.output;
+      }
+
+      const entries = await fs.readdir(targetPath);
+
+      for (const entry of entries) {
+        if (!entry.toLowerCase().endsWith(".epub")) continue;
+        const fullPath = path.join(targetPath, entry);
+        try {
+          await dumpSingle(fullPath, dumpDir);
+        } catch (error) {
+          console.error(`Error dumping ${fullPath}:`, error);
+        }
+      }
+    } else {
+      console.error(
+        `Error: ${targetPath} is neither a .epub file nor a directory`,
+      );
+      process.exit(1);
     }
   } catch (error) {
-    console.error(`Error reading directory ${epubsDir}:`, error);
+    console.error(`Error accessing ${targetPath}:`, error);
     process.exit(1);
   }
 }

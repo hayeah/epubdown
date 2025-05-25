@@ -89,11 +89,14 @@ export const Image: React.FC<ImageProps> = ({
     loadImage();
   }, [isInView, href, resolver, imageSrc, isLoading]);
 
-  const handleImageError = useCallback((error: Error) => {
-    console.error("img on error:", href, error);
-    setHasError(true);
-    setIsLoading(false);
-  }, [href]);
+  const handleImageError = useCallback(
+    (error: Error) => {
+      console.error("img on error:", href, error);
+      setHasError(true);
+      setIsLoading(false);
+    },
+    [href],
+  );
 
   // Placeholder dimensions
   const placeholderStyle: React.CSSProperties = {
