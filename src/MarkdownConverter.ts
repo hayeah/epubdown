@@ -118,16 +118,16 @@ export class MarkdownTurndownService extends TurndownService {
     });
 
     // Handle footnote content areas (typically <aside> or <div> with epub:type="footnote")
-    this.addRule("footnote-content", {
-      filter: (node) => {
-        return (
-          (node.nodeName === "ASIDE" || node.nodeName === "DIV") &&
-          (node.getAttribute("epub:type") === "footnote" ||
-            node.getAttribute("role") === "doc-footnote")
-        );
-      },
-      replacement: () => "", // Remove footnote content from main text
-    });
+    // this.addRule("footnote-content", {
+    //   filter: (node) => {
+    //     return (
+    //       (node.nodeName === "ASIDE" || node.nodeName === "DIV") &&
+    //       (node.getAttribute("epub:type") === "footnote" ||
+    //         node.getAttribute("role") === "doc-footnote")
+    //     );
+    //   },
+    //   replacement: () => "", // Remove footnote content from main text
+    // });
   }
 
   private setupCleanupRules() {
