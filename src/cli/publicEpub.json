@@ -1,68 +1,68 @@
 [
-	{
-		"title": "Pride and Prejudice",
-		"author": "Jane Austen",
-		"source": "Project Gutenberg",
-		"link": "https://gutenberg.org/ebooks/1342.epub.images"
-	},
-	{
-		"title": "Moby-Dick; or, The Whale",
-		"author": "Herman Melville",
-		"source": "Standard Ebooks",
-		"link": "https://standardebooks.org/ebooks/herman-melville/moby-dick/downloads/herman-melville_moby-dick_advanced.epub"
-	},
-	{
-		"title": "Frankenstein; or, The Modern Prometheus",
-		"author": "Mary Shelley",
-		"source": "Planet eBook",
-		"link": "https://www.planetebook.com/free-ebooks/frankenstein.epub?download"
-	},
-	{
-		"title": "The Scarlet Letter",
-		"author": "Nathaniel Hawthorne",
-		"source": "ManyBooks",
-		"link": "https://manybooks.net/book/142/the-scarlet-letter?download=1&format=epub"
-	},
-	{
-		"title": "Alice's Adventures in Wonderland",
-		"author": "Lewis Carroll",
-		"source": "Internet Archive",
-		"link": "https://archive.org/download/alicesadventures1902carrrich/alicesadventures1902carrrich_text.epub"
-	},
-	{
-		"title": "The Federalist Papers",
-		"author": "Alexander Hamilton, James Madison, John Jay",
-		"source": "Standard Ebooks",
-		"link": "https://standardebooks.org/ebooks/alexander-hamilton_james-madison_john-jay/the-federalist-papers.epub"
-	},
-	{
-		"title": "Introduction to Sociology - 3rd Canadian Edition",
-		"author": "BCcampus",
-		"source": "BCcampus Pressbooks",
-		"link": "https://opentextbc.ca/introductiontosociology3rdcdn/wp-content/uploads/sites/331/2021/04/Introduction-to-Sociology-3rd-Canadian-Edition.epub"
-	},
-	{
-		"title": "Introduction to Philosophy",
-		"author": "OpenStax",
-		"source": "Open Textbook Library",
-		"link": "https://openstax.org/books/introduction-philosophy/pages/45-download-files?format=epub"
-	},
-	{
-		"title": "Keep It Moving? Conserving Kinetic Art",
-		"author": "Getty Conservation Institute",
-		"source": "JSTOR Open Access Books",
-		"link": "https://openaccess.jstor.org/download/10.2307/j.ctv2xsk0sg.epub"
-	},
-	{
-		"title": "The Pleasures of Life",
-		"author": "John Lubbock",
-		"source": "ManyBooks",
-		"link": "https://manybooks.net/sites/default/files/old-files/epub-4544.epub"
-	},
-	{
-		"title": "Pride and Prejudice (Illustrated EPUB 3 Edition)",
-		"author": "Jane Austen",
-		"source": "Project Gutenberg",
-		"link": "https://gutenberg.org/ebooks/1342.epub3.images"
-	}
+  {
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "source": "Project Gutenberg",
+    "link": "https://gutenberg.org/ebooks/1342.epub.images"
+  },
+  {
+    "title": "Moby-Dick; or, The Whale",
+    "author": "Herman Melville",
+    "source": "Standard Ebooks",
+    "link": "https://standardebooks.org/ebooks/herman-melville/moby-dick/downloads/herman-melville_moby-dick_advanced.epub"
+  },
+  {
+    "title": "Frankenstein; or, The Modern Prometheus",
+    "author": "Mary Shelley",
+    "source": "Planet eBook",
+    "link": "https://www.planetebook.com/free-ebooks/frankenstein.epub?download"
+  },
+  {
+    "title": "The Scarlet Letter",
+    "author": "Nathaniel Hawthorne",
+    "source": "ManyBooks",
+    "link": "https://manybooks.net/book/142/the-scarlet-letter?download=1&format=epub"
+  },
+  {
+    "title": "Alice's Adventures in Wonderland",
+    "author": "Lewis Carroll",
+    "source": "Internet Archive",
+    "link": "https://archive.org/download/alicesadventures1902carrrich/alicesadventures1902carrrich_text.epub"
+  },
+  {
+    "title": "The Federalist Papers",
+    "author": "Alexander Hamilton, James Madison, John Jay",
+    "source": "Standard Ebooks",
+    "link": "https://standardebooks.org/ebooks/alexander-hamilton_james-madison_john-jay/the-federalist-papers.epub"
+  },
+  {
+    "title": "Introduction to Sociology - 3rd Canadian Edition",
+    "author": "BCcampus",
+    "source": "BCcampus Pressbooks",
+    "link": "https://opentextbc.ca/introductiontosociology3rdcdn/wp-content/uploads/sites/331/2021/04/Introduction-to-Sociology-3rd-Canadian-Edition.epub"
+  },
+  {
+    "title": "Introduction to Philosophy",
+    "author": "OpenStax",
+    "source": "Open Textbook Library",
+    "link": "https://openstax.org/books/introduction-philosophy/pages/45-download-files?format=epub"
+  },
+  {
+    "title": "Keep It Moving? Conserving Kinetic Art",
+    "author": "Getty Conservation Institute",
+    "source": "JSTOR Open Access Books",
+    "link": "https://openaccess.jstor.org/download/10.2307/j.ctv2xsk0sg.epub"
+  },
+  {
+    "title": "The Pleasures of Life",
+    "author": "John Lubbock",
+    "source": "ManyBooks",
+    "link": "https://manybooks.net/sites/default/files/old-files/epub-4544.epub"
+  },
+  {
+    "title": "Pride and Prejudice (Illustrated EPUB 3 Edition)",
+    "author": "Jane Austen",
+    "source": "Project Gutenberg",
+    "link": "https://gutenberg.org/ebooks/1342.epub3.images"
+  }
 ]

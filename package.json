@@ -1,42 +1,42 @@
 {
-	"name": "epubdown",
-	"module": "index.ts",
-	"type": "module",
-	"scripts": {
-		"format": "biome format --write",
-		"lint": "biome lint --write",
-		"check": "biome check --write"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
-		"@tailwindcss/vite": "^4.1.7",
-		"@types/bun": "latest",
-		"@types/react": "^19.1.5",
-		"@types/react-dom": "^19.1.5",
-		"@vitejs/plugin-react": "^4.5.0",
-		"rollup-plugin-visualizer": "^6.0.0",
-		"tailwindcss": "^4.1.7",
-		"vite": "^6.3.5",
-		"vite-plugin-node-polyfills": "^0.23.0",
-		"vitest": "^3.1.4"
-	},
-	"peerDependencies": {
-		"typescript": "^5"
-	},
-	"dependencies": {
-		"@mdx-js/mdx": "^3.1.0",
-		"@mdx-js/react": "^3.1.0",
-		"@types/turndown": "^5.0.5",
-		"@types/yargs": "^17.0.33",
-		"@types/yauzl": "^2.10.3",
-		"fast-xml-parser": "^5.2.3",
-		"jszip": "^3.10.1",
-		"linkedom": "^0.18.10",
-		"react": "^19.1.0",
-		"react-dom": "^19.1.0",
-		"turndown": "^7.2.0",
-		"yargs": "^17.7.2",
-		"yargs-parser": "^21.1.1",
-		"yauzl": "^3.2.0"
-	}
+  "name": "epubdown",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "format": "biome format --write",
+    "lint": "biome lint --write",
+    "check": "biome check --write"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@tailwindcss/vite": "^4.1.7",
+    "@types/bun": "latest",
+    "@types/react": "^19.1.5",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.5.0",
+    "rollup-plugin-visualizer": "^6.0.0",
+    "tailwindcss": "^4.1.7",
+    "vite": "^6.3.5",
+    "vite-plugin-node-polyfills": "^0.23.0",
+    "vitest": "^3.1.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@mdx-js/mdx": "^3.1.0",
+    "@mdx-js/react": "^3.1.0",
+    "@types/turndown": "^5.0.5",
+    "@types/yargs": "^17.0.33",
+    "@types/yauzl": "^2.10.3",
+    "fast-xml-parser": "^5.2.3",
+    "jszip": "^3.10.1",
+    "linkedom": "^0.18.10",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "turndown": "^7.2.0",
+    "yargs": "^17.7.2",
+    "yargs-parser": "^21.1.1",
+    "yauzl": "^3.2.0"
+  }
 }

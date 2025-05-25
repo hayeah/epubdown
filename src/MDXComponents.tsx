@@ -1,5 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useEPubResolver, MDXComponentHelpers, EPubResolverContext } from './MDXConverter';
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  EPubResolverContext,
+  MDXComponentHelpers,
+  useEPubResolver,
+} from "./MDXConverter";
 
 // Image component with viewport detection and lazy loading
 export interface ImageProps {
@@ -11,13 +16,13 @@ export interface ImageProps {
   className?: string;
 }
 
-export const Image: React.FC<ImageProps> = ({ 
-  href, 
-  alt = '', 
-  title, 
-  width, 
-  height, 
-  className 
+export const Image: React.FC<ImageProps> = ({
+  href,
+  alt = "",
+  title,
+  width,
+  height,
+  className,
 }) => {
   const { resolver } = useEPubResolver();
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -41,9 +46,9 @@ export const Image: React.FC<ImageProps> = ({
         });
       },
       {
-        rootMargin: '50px', // Start loading 50px before entering viewport
-        threshold: 0.1
-      }
+        rootMargin: "50px", // Start loading 50px before entering viewport
+        threshold: 0.1,
+      },
     );
 
     observerRef.current.observe(imgRef.current);
@@ -62,16 +67,22 @@ export const Image: React.FC<ImageProps> = ({
       setHasError(false);
 
       try {
-        const imageData = await MDXComponentHelpers.loadImageData(resolver, href);
+        const imageData = await MDXComponentHelpers.loadImageData(
+          resolver,
+          href,
+        );
         if (imageData) {
           const mimeType = MDXComponentHelpers.detectImageMimeType(href);
-          const dataUrl = MDXComponentHelpers.createImageDataUrl(imageData, mimeType);
+          const dataUrl = MDXComponentHelpers.createImageDataUrl(
+            imageData,
+            mimeType,
+          );
           setImageSrc(dataUrl);
         } else {
           setHasError(true);
         }
       } catch (error) {
-        console.error('Failed to load image:', href, error);
+        console.error("Failed to load image:", href, error);
         setHasError(true);
       } finally {
         setIsLoading(false);
@@ -88,16 +99,16 @@ export const Image: React.FC<ImageProps> = ({
 
   // Placeholder dimensions
   const placeholderStyle: React.CSSProperties = {
-    width: width || 'auto',
-    height: height || '200px',
-    backgroundColor: '#f0f0f0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: '1px dashed #ccc',
-    borderRadius: '4px',
-    color: '#666',
-    fontSize: '14px'
+    width: width || "auto",
+    height: height || "200px",
+    backgroundColor: "#f0f0f0",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "1px dashed #ccc",
+    borderRadius: "4px",
+    color: "#666",
+    fontSize: "14px",
   };
 
   if (hasError) {
@@ -110,12 +121,8 @@ export const Image: React.FC<ImageProps> = ({
 
   if (isLoading || !imageSrc) {
     return (
-      <div 
-        ref={imgRef} 
-        style={placeholderStyle} 
-        className={className}
-      >
-        {isLoading ? 'Loading image...' : 'Image'}
+      <div ref={imgRef} style={placeholderStyle} className={className}>
+        {isLoading ? "Loading image..." : "Image"}
       </div>
     );
   }
@@ -130,7 +137,7 @@ export const Image: React.FC<ImageProps> = ({
       height={height}
       className={className}
       onError={handleImageError}
-      style={{ maxWidth: '100%', height: 'auto' }}
+      style={{ maxWidth: "100%", height: "auto" }}
     />
   );
 };
@@ -143,11 +150,11 @@ export interface FootnoteProps {
   className?: string;
 }
 
-export const Footnote: React.FC<FootnoteProps> = ({ 
-  href, 
-  id, 
-  children, 
-  className 
+export const Footnote: React.FC<FootnoteProps> = ({
+  href,
+  id,
+  children,
+  className,
 }) => {
   const { resolver } = useEPubResolver();
   const [footnoteContent, setFootnoteContent] = useState<string | null>(null);
@@ -164,11 +171,14 @@ export const Footnote: React.FC<FootnoteProps> = ({
 
     setIsLoading(true);
     try {
-      const content = await MDXComponentHelpers.resolveFootnoteContent(resolver, href);
-      setFootnoteContent(content || 'Footnote content not found');
+      const content = await MDXComponentHelpers.resolveFootnoteContent(
+        resolver,
+        href,
+      );
+      setFootnoteContent(content || "Footnote content not found");
     } catch (error) {
-      console.error('Failed to load footnote:', href, error);
-      setFootnoteContent('Failed to load footnote');
+      console.error("Failed to load footnote:", href, error);
+      setFootnoteContent("Failed to load footnote");
     } finally {
       setIsLoading(false);
     }
@@ -180,21 +190,24 @@ export const Footnote: React.FC<FootnoteProps> = ({
 
     const rect = footnoteRef.current.getBoundingClientRect();
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
+
     setPopoverPosition({
       x: rect.left + rect.width / 2,
-      y: rect.top + scrollTop - 10 // Position above the footnote
+      y: rect.top + scrollTop - 10, // Position above the footnote
     });
   }, []);
 
-  const handleMouseEnter = useCallback((event: React.MouseEvent) => {
-    // Delay showing popover to avoid flickering
-    loadTimeoutRef.current = setTimeout(() => {
-      updatePopoverPosition(event);
-      setIsPopoverVisible(true);
-      loadFootnoteContent();
-    }, 300);
-  }, [updatePopoverPosition, loadFootnoteContent]);
+  const handleMouseEnter = useCallback(
+    (event: React.MouseEvent) => {
+      // Delay showing popover to avoid flickering
+      loadTimeoutRef.current = setTimeout(() => {
+        updatePopoverPosition(event);
+        setIsPopoverVisible(true);
+        loadFootnoteContent();
+      }, 300);
+    },
+    [updatePopoverPosition, loadFootnoteContent],
+  );
 
   const handleMouseLeave = useCallback(() => {
     if (loadTimeoutRef.current) {
@@ -204,16 +217,19 @@ export const Footnote: React.FC<FootnoteProps> = ({
   }, []);
 
   // Handle click for mobile/accessibility
-  const handleClick = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    if (!isPopoverVisible) {
-      updatePopoverPosition(event);
-      setIsPopoverVisible(true);
-      loadFootnoteContent();
-    } else {
-      setIsPopoverVisible(false);
-    }
-  }, [isPopoverVisible, updatePopoverPosition, loadFootnoteContent]);
+  const handleClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      if (!isPopoverVisible) {
+        updatePopoverPosition(event);
+        setIsPopoverVisible(true);
+        loadFootnoteContent();
+      } else {
+        setIsPopoverVisible(false);
+      }
+    },
+    [isPopoverVisible, updatePopoverPosition, loadFootnoteContent],
+  );
 
   useEffect(() => {
     return () => {
@@ -224,40 +240,40 @@ export const Footnote: React.FC<FootnoteProps> = ({
   }, []);
 
   const popoverStyle: React.CSSProperties = {
-    position: 'absolute',
+    position: "absolute",
     left: `${popoverPosition.x}px`,
     top: `${popoverPosition.y}px`,
-    transform: 'translateX(-50%) translateY(-100%)',
-    backgroundColor: 'white',
-    border: '1px solid #ccc',
-    borderRadius: '6px',
-    padding: '12px',
-    maxWidth: '300px',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    transform: "translateX(-50%) translateY(-100%)",
+    backgroundColor: "white",
+    border: "1px solid #ccc",
+    borderRadius: "6px",
+    padding: "12px",
+    maxWidth: "300px",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
     zIndex: 1000,
-    fontSize: '14px',
-    lineHeight: '1.4',
-    color: '#333',
-    display: isPopoverVisible ? 'block' : 'none'
+    fontSize: "14px",
+    lineHeight: "1.4",
+    color: "#333",
+    display: isPopoverVisible ? "block" : "none",
   };
 
   return (
     <>
       <span
         ref={footnoteRef}
-        className={`footnote-link ${className || ''}`}
+        className={`footnote-link ${className || ""}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
         style={{
-          color: '#0066cc',
-          cursor: 'pointer',
-          textDecoration: 'underline',
-          fontSize: '0.9em',
-          fontWeight: 'bold',
-          borderRadius: '2px',
-          padding: '1px 2px',
-          backgroundColor: 'rgba(0, 102, 204, 0.1)'
+          color: "#0066cc",
+          cursor: "pointer",
+          textDecoration: "underline",
+          fontSize: "0.9em",
+          fontWeight: "bold",
+          borderRadius: "2px",
+          padding: "1px 2px",
+          backgroundColor: "rgba(0, 102, 204, 0.1)",
         }}
         role="button"
         tabIndex={0}
@@ -265,7 +281,7 @@ export const Footnote: React.FC<FootnoteProps> = ({
       >
         {children}
       </span>
-      
+
       {isPopoverVisible && (
         <div
           ref={popoverRef}
@@ -275,22 +291,22 @@ export const Footnote: React.FC<FootnoteProps> = ({
           aria-live="polite"
         >
           {isLoading ? (
-            <div style={{ color: '#666', fontStyle: 'italic' }}>Loading...</div>
+            <div style={{ color: "#666", fontStyle: "italic" }}>Loading...</div>
           ) : (
             <div>{footnoteContent}</div>
           )}
           {/* Arrow pointing down */}
           <div
             style={{
-              position: 'absolute',
-              bottom: '-6px',
-              left: '50%',
-              transform: 'translateX(-50%)',
+              position: "absolute",
+              bottom: "-6px",
+              left: "50%",
+              transform: "translateX(-50%)",
               width: 0,
               height: 0,
-              borderLeft: '6px solid transparent',
-              borderRight: '6px solid transparent',
-              borderTop: '6px solid white'
+              borderLeft: "6px solid transparent",
+              borderRight: "6px solid transparent",
+              borderTop: "6px solid white",
             }}
           />
         </div>
@@ -305,9 +321,9 @@ export interface EPubResolverProviderProps {
   children: React.ReactNode;
 }
 
-export const EPubResolverProvider: React.FC<EPubResolverProviderProps> = ({ 
-  resolver, 
-  children 
+export const EPubResolverProvider: React.FC<EPubResolverProviderProps> = ({
+  resolver,
+  children,
 }) => {
   const contextValue = {
     resolver,
@@ -327,7 +343,9 @@ export const defaultMDXComponents = {
 };
 
 // Utility for creating a complete MDX component set
-export function createMDXComponents(customComponents: Record<string, React.ComponentType<any>> = {}) {
+export function createMDXComponents(
+  customComponents: Record<string, React.ComponentType<any>> = {},
+) {
   return {
     ...defaultMDXComponents,
     ...customComponents,
