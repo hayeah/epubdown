@@ -2,14 +2,6 @@ import React from "react";
 import TurndownService from "turndown";
 import type { XMLFile } from "./Epub";
 
-// Types for Markdown conversion
-export interface MarkdownConversionOptions {
-  imageComponent?: string;
-  footnoteComponent?: string;
-  enableViewportDetection?: boolean;
-  enableFootnoteHover?: boolean;
-}
-
 export interface ImageData {
   href: string;
   alt?: string;
@@ -38,7 +30,7 @@ export class MarkdownTurndownService extends TurndownService {
   private footnotes: FootnoteData[] = [];
   private images: ImageData[] = [];
 
-  constructor(options: MarkdownConversionOptions = {}) {
+  constructor() {
     super({
       headingStyle: "atx",
       codeBlockStyle: "fenced",
@@ -46,8 +38,8 @@ export class MarkdownTurndownService extends TurndownService {
       strongDelimiter: "**",
     });
 
-    this.setupImageRule(options.imageComponent || "Image");
-    this.setupFootnoteRules(options.footnoteComponent || "Footnote");
+    this.setupImageRule("x-image");
+    this.setupFootnoteRules("x-footnote");
     this.setupCleanupRules();
   }
 
@@ -168,18 +160,9 @@ export class MarkdownTurndownService extends TurndownService {
 // Main converter class
 export class MarkdownConverter {
   private turndownService: MarkdownTurndownService;
-  private options: MarkdownConversionOptions;
 
-  constructor(options: MarkdownConversionOptions = {}) {
-    this.options = {
-      imageComponent: "x-image",
-      footnoteComponent: "x-footnote",
-      enableViewportDetection: true,
-      enableFootnoteHover: true,
-      ...options,
-    };
-
-    this.turndownService = new MarkdownTurndownService(this.options);
+  constructor() {
+    this.turndownService = new MarkdownTurndownService();
   }
 
   async convertXMLFile(xmlFile: XMLFile): Promise<MarkdownResult> {
