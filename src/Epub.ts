@@ -1,6 +1,6 @@
 import { dirname, join, resolve } from "node:path";
 import JSZip from "jszip";
-import { DOMParser } from "linkedom";
+import { parseXml } from "./lib/xmlParser";
 
 // Data resolver abstract class and implementations
 abstract class DataResolver {
@@ -18,8 +18,7 @@ abstract class DataResolver {
   async readXML(href: string): Promise<XMLDocument | undefined> {
     const xml = await this.read(href);
     if (!xml) return undefined;
-    const parser = new DOMParser();
-    return parser.parseFromString(xml, "text/xml") as any;
+    return parseXml(xml) as any;
   }
 
   async readXMLFile(href: string): Promise<XMLFile | undefined> {

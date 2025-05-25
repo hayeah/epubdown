@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { XMLParser } from "fast-xml-parser";
 import JSZip from "jszip";
-import { DOMParser } from "linkedom";
+import { parseXml } from "../xmlParser";
 
 export interface EPubData {
   metadata: EPubMetadata;
@@ -290,8 +290,8 @@ export class EPubParser {
     }
 
     const navContent = await navFile.async("text");
-    // Parse the XML content using linkedom
-    const dom = new DOMParser().parseFromString(navContent, "text/xml");
+    // Parse the XML content
+    const dom = parseXml(navContent);
 
     const tocNav =
       dom.querySelector('nav[epub\\:type~="toc"]') ||

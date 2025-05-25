@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BookReader } from "./ChapterRenderer";
 import { EPub } from "./Epub";

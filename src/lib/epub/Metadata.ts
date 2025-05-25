@@ -15,7 +15,7 @@
     add support as needed.
 
 */
-import { DOMParser } from "linkedom";
+import { parseXml } from "../xmlParser";
 
 export interface DCProperty {
   name: string;
@@ -97,10 +97,9 @@ export class Metadata {
 
   /* ---------- loaders ---------- */
 
-  /** Build a Metadata instance from a raw XML string using linkedom. */
+  /** Build a Metadata instance from a raw XML string. */
   static fromXml(xml: string): Metadata {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(xml, "text/xml");
+    const doc = parseXml(xml);
 
     // <package> is the root in an OPF file
     const pkg = doc.querySelector("package");
@@ -113,7 +112,7 @@ export class Metadata {
     return Metadata.fromDom(metaNode);
   }
 
-  /** Convert the linkedom `<metadata>` Element into a Metadata object. */
+  /** Convert the `<metadata>` Element into a Metadata object. */
   static fromDom(metadataNode: Element): Metadata {
     const meta = new Metadata();
 
