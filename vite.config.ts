@@ -25,4 +25,9 @@ export default defineConfig({
       // "wa-sqlite/dist": path.resolve(__dirname, "./node_modules/wa-sqlite/dist"),
     },
   },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: "./src/test/setup.ts",
+  },
 });

@@ -2,16 +2,25 @@ import { action, makeObservable, observable } from "mobx";
 import type { XMLFile } from "../Epub";
 
 export class ResourceStore {
-  @observable.ref images = new Map<string, string>(); // href -> dataUrl
-  @observable.ref footnotes = new Map<string, string>(); // href -> content
-  @observable loadingResources = new Set<string>();
-  @observable errors = new Map<string, string>();
+  images = new Map<string, string>(); // href -> dataUrl
+  footnotes = new Map<string, string>(); // href -> content
+  loadingResources = new Set<string>();
+  errors = new Map<string, string>();
 
   constructor() {
-    makeObservable(this);
+    makeObservable(this, {
+      images: observable.ref,
+      footnotes: observable.ref,
+      loadingResources: observable,
+      errors: observable,
+      loadImage: action,
+      loadFootnote: action,
+      clearCache: action,
+      clearImagesForChapter: action,
+      clearFootnotesForChapter: action,
+    });
   }
 
-  @action
   async loadImage(resolver: XMLFile, href: string): Promise<string | null> {
     const key = `${resolver.path}:${href}`;
 
@@ -68,7 +77,6 @@ export class ResourceStore {
     }
   }
 
-  @action
   async loadFootnote(resolver: XMLFile, href: string): Promise<string | null> {
     const key = `${resolver.path}:${href}`;
 
@@ -138,7 +146,6 @@ export class ResourceStore {
     }
   }
 
-  @action
   clearCache() {
     this.images.clear();
     this.footnotes.clear();
@@ -146,7 +153,6 @@ export class ResourceStore {
     this.errors.clear();
   }
 
-  @action
   clearImagesForChapter(chapterPath: string) {
     const keysToDelete: string[] = [];
     for (const key of this.images.keys()) {
@@ -160,7 +166,6 @@ export class ResourceStore {
     }
   }
 
-  @action
   clearFootnotesForChapter(chapterPath: string) {
     const keysToDelete: string[] = [];
     for (const key of this.footnotes.keys()) {

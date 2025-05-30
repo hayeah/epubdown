@@ -1,7 +1,7 @@
 import { action, computed, makeObservable, observable } from "mobx";
 import { EPubMarkdownConverter } from "../EPubMarkdownConverter";
 import type { EPub, XMLFile } from "../Epub";
-import { markdownToReact } from "../markdown";
+import { markdownToReact } from "../markdownToReact";
 
 export interface MarkdownResult {
   markdown: string;
@@ -9,22 +9,30 @@ export interface MarkdownResult {
 }
 
 export class ChapterStore {
-  @observable.ref markdownResults = new Map<string, MarkdownResult>();
-  @observable loadingChapters = new Set<string>();
-  @observable errors = new Map<string, string>();
+  markdownResults = new Map<string, MarkdownResult>();
+  loadingChapters = new Set<string>();
+  errors = new Map<string, string>();
 
   converter: EPubMarkdownConverter | null = null;
 
   constructor() {
-    makeObservable(this);
+    makeObservable(this, {
+      markdownResults: observable.ref,
+      loadingChapters: observable,
+      errors: observable,
+      converter: observable,
+      setConverter: action,
+      loadChapter: action,
+      clearCache: action,
+      clearChapter: action,
+      cachedChapterCount: computed,
+    });
   }
 
-  @action
   setConverter(epub: EPub) {
     this.converter = new EPubMarkdownConverter(epub);
   }
 
-  @action
   async loadChapter(xmlFile: XMLFile): Promise<MarkdownResult | null> {
     const key = xmlFile.path;
 
@@ -52,7 +60,7 @@ export class ChapterStore {
         htmlContent,
         xmlFile,
       );
-      const reactTree = markdownToReact(markdown);
+      const reactTree = await markdownToReact(markdown);
 
       const result: MarkdownResult = { markdown, reactTree };
       this.markdownResults.set(key, result);
@@ -68,14 +76,12 @@ export class ChapterStore {
     }
   }
 
-  @action
   clearCache() {
     this.markdownResults.clear();
     this.loadingChapters.clear();
     this.errors.clear();
   }
 
-  @action
   clearChapter(path: string) {
     this.markdownResults.delete(path);
     this.loadingChapters.delete(path);
@@ -94,7 +100,6 @@ export class ChapterStore {
     return this.errors.get(path) || null;
   }
 
-  @computed
   get cachedChapterCount(): number {
     return this.markdownResults.size;
   }
