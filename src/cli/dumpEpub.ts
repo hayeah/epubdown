@@ -3,9 +3,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import { EPubMarkdownConverter } from "../EPubMarkdownConverter";
 import { EPub } from "../Epub";
 import { MarkdownConverter } from "../MarkdownConverter";
-import { EPubMarkdownConverter } from "../EPubMarkdownConverter";
 
 function slug(text: string): string {
   return (
