@@ -430,7 +430,7 @@ export class EPub {
       if (!anchorMap.has(resolvedPath)) {
         anchorMap.set(resolvedPath, new Set());
       }
-      anchorMap.get(resolvedPath)!.add(anchor);
+      anchorMap.get(resolvedPath)?.add(anchor);
     }
 
     // Memoize the result

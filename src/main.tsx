@@ -1,15 +1,16 @@
+import { observer } from "mobx-react-lite";
 import { StrictMode } from "react";
 import type React from "react";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BookReader } from "./ChapterRenderer";
 import { EPub } from "./Epub";
+import { RootStore, StoreProvider, useEpubStore } from "./stores/RootStore";
 
 // Example usage component
-function ExampleUsage() {
-  const [epub, setEpub] = useState<EPub | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentChapter, setCurrentChapter] = useState(0);
+const ExampleUsage = observer(() => {
+  const epubStore = useEpubStore();
+  const { epub, isLoading, currentChapterIndex } = epubStore;
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -17,17 +18,7 @@ function ExampleUsage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsLoading(true);
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const epubInstance = await EPub.fromZip(arrayBuffer);
-      setEpub(epubInstance);
-    } catch (error) {
-      console.error("Failed to load EPUB:", error);
-      alert("Failed to load EPUB file");
-    } finally {
-      setIsLoading(false);
-    }
+    await epubStore.loadEpub(file);
   };
 
   if (isLoading) {
@@ -63,18 +54,23 @@ function ExampleUsage() {
   return (
     <BookReader
       epub={epub}
-      currentChapterIndex={currentChapter}
-      onChapterChange={setCurrentChapter}
+      currentChapterIndex={currentChapterIndex}
+      onChapterChange={(index) => epubStore.setCurrentChapter(index)}
     />
   );
-}
+});
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
   throw new Error("Root element not found");
 }
+// Create root store instance
+const rootStore = new RootStore();
+
 createRoot(rootElement).render(
   <StrictMode>
-    <ExampleUsage />
+    <StoreProvider value={rootStore}>
+      <ExampleUsage />
+    </StoreProvider>
   </StrictMode>,
 );
