@@ -135,7 +135,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-epubs*
 
 dist
 corpus
