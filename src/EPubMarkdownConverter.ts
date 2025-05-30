@@ -48,4 +48,28 @@ export class EPubMarkdownConverter {
     // Convert to markdown with keepIds
     return await this.markdownConverter.convertXMLFile(chapter, { keepIds });
   }
+
+  /**
+   * Convert HTML content to markdown
+   * @param htmlContent The HTML content to convert
+   * @param xmlFile The XMLFile context for resolving references
+   * @returns Promise<string> The markdown content
+   */
+  async convertHtmlToMarkdown(
+    htmlContent: string,
+    xmlFile: XMLFile,
+  ): Promise<string> {
+    // Get TOC anchor links (memoized)
+    const tocLinks = await this.epub.tocAnchorLinks();
+
+    // Get the keepIds for this chapter
+    const chapterPath = xmlFile.path;
+    const keepIds = tocLinks.get(chapterPath) || new Set<string>();
+
+    // Convert to markdown with keepIds
+    const result = await this.markdownConverter.convertXMLFile(xmlFile, {
+      keepIds,
+    });
+    return result.content;
+  }
 }
