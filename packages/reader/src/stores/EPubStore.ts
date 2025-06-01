@@ -1,6 +1,5 @@
+import { EPub, type Metadata, type XMLFile } from "@epubdown/core";
 import { action, makeObservable, observable } from "mobx";
-import { EPub, type XMLFile } from "../Epub";
-import type { Metadata } from "../Metadata";
 
 export class EPubStore {
   epub: EPub | null = null;

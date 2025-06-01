@@ -1,5 +1,5 @@
+import type { XMLFile } from "@epubdown/core";
 import { action, makeObservable, observable } from "mobx";
-import type { XMLFile } from "../Epub";
 
 export class ResourceStore {
   images = new Map<string, string>(); // href -> dataUrl

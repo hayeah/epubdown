@@ -1,11 +1,11 @@
+import { EPub, XMLFile } from "@epubdown/core";
 import { render, screen, waitFor } from "@testing-library/react";
 import { runInAction } from "mobx";
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChapterRenderer } from "../ChapterRenderer";
-import { EPub, XMLFile } from "../Epub";
 import { Footnote, Image } from "../MarkdownComponents";
-import { EPubResolverContext } from "../MarkdownConverter";
+import { EPubResolverContext } from "../contexts/EPubContext";
 import { StoreProvider } from "./RootStore";
 import { RootStore } from "./RootStore";
 

@@ -15,8 +15,8 @@ export function createTurndownService(): TurndownService {
       node.classList.contains("noteref") &&
       node.getAttribute("epub:type") === "noteref",
     replacement: (_content, node) => {
-      const id = node.getAttribute("id") ?? "";
-      const href = node.getAttribute("href") ?? "";
+      const id = (node as Element).getAttribute("id") ?? "";
+      const href = (node as Element).getAttribute("href") ?? "";
       const label = (node.textContent || "").trim();
       return `<Footnote id="${id}" href="${href}">${label}</Footnote>`;
     },

@@ -1,11 +1,9 @@
 #!/usr/bin/env bun
 import fs from "node:fs/promises";
 import path from "node:path";
+import { EPub, EPubMarkdownConverter, MarkdownConverter } from "@epubdown/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { EPubMarkdownConverter } from "../EPubMarkdownConverter";
-import { EPub } from "../Epub";
-import { MarkdownConverter } from "../MarkdownConverter";
 
 function slug(text: string): string {
   return (

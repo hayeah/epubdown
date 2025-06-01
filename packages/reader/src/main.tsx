@@ -1,10 +1,10 @@
+import { EPub } from "@epubdown/core";
 import { observer } from "mobx-react-lite";
 import { StrictMode } from "react";
 import type React from "react";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BookReader } from "./ChapterRenderer";
-import { EPub } from "./Epub";
 import { RootStore, StoreProvider, useEpubStore } from "./stores/RootStore";
 
 // Example usage component

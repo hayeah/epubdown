@@ -1,4 +1,3 @@
-import React from "react";
 import TurndownService from "turndown";
 import type { XMLFile } from "./Epub";
 
@@ -170,11 +169,11 @@ export class MarkdownTurndownService extends TurndownService {
     // Add rule to preserve IDs that are in the keepIds set
     this.addRule("preserve-ids", {
       filter: (node) => {
-        const id = node.getAttribute("id");
+        const id = (node as Element).getAttribute?.("id");
         return !!(id && this.keepIds?.has(id));
       },
       replacement: (content, node) => {
-        const id = node.getAttribute("id");
+        const id = (node as Element).getAttribute?.("id");
         if (!id) return content;
 
         // Insert a span with the ID before the content
@@ -303,18 +302,7 @@ export interface EPubResolverContext {
   baseUrl?: string;
 }
 
-// React Context (to be used in your React components)
-export const EPubResolverContext =
-  React.createContext<EPubResolverContext | null>(null);
-
-// Hook for accessing the resolver in components
-export function useEPubResolver(): EPubResolverContext {
-  const context = React.useContext(EPubResolverContext);
-  if (!context) {
-    throw new Error("useEPubResolver must be used within EPubResolverProvider");
-  }
-  return context;
-}
+// Context and hook are moved to the reader package
 
 // Utility functions for component implementations
 export async function loadImageData(

@@ -1,6 +1,6 @@
+import type { EPub, XMLFile } from "@epubdown/core";
 import { runInAction } from "mobx";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { EPub, XMLFile } from "../Epub";
 import { RootStore } from "./RootStore";
 
 describe("MobX Store Integration - Simple", () => {

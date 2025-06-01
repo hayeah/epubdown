@@ -1,14 +1,13 @@
-import { observer } from "mobx-react-lite";
-import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  EPubResolverContext,
   createImageDataUrl,
   detectImageMimeType,
   loadImageData,
   resolveFootnoteContent,
-  useEPubResolver,
-} from "./MarkdownConverter";
+} from "@epubdown/core";
+import { observer } from "mobx-react-lite";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { EPubResolverContext, useEPubResolver } from "./contexts/EPubContext";
 import { useResourceStore } from "./stores/RootStore";
 
 // Image component with viewport detection and lazy loading

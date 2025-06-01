@@ -1,10 +1,9 @@
+import type { EPub, MarkdownResult, XMLFile } from "@epubdown/core";
 import parse, { domToReact, Element, type DOMNode } from "html-react-parser";
 import { marked } from "marked";
 import { observer } from "mobx-react-lite";
 import React, { useState, useEffect } from "react";
-import type { EPub, XMLFile } from "./Epub";
 import { EPubResolverProvider, Footnote, Image } from "./MarkdownComponents";
-import { MarkdownConverter, type MarkdownResult } from "./MarkdownConverter";
 import { useChapterStore, useEpubStore } from "./stores/RootStore";
 
 import htmlToDOM from "html-dom-parser";

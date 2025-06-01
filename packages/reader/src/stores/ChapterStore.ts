@@ -1,6 +1,5 @@
+import { type EPub, EPubMarkdownConverter, type XMLFile } from "@epubdown/core";
 import { action, computed, makeObservable, observable } from "mobx";
-import { EPubMarkdownConverter } from "../EPubMarkdownConverter";
-import type { EPub, XMLFile } from "../Epub";
 import { markdownToReact } from "../markdownToReact";
 
 export interface MarkdownResult {

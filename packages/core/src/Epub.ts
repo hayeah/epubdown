@@ -415,7 +415,7 @@ export class EPub {
     // Find all links in the TOC
     const links = tocFile.querySelectorAll(`nav[epub\\:type="toc"] a[href]`);
 
-    for (const link of links) {
+    for (const link of Array.from(links)) {
       const href = link.getAttribute("href");
       if (!href) continue;
 

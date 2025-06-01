@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { Metadata } from "./Metadata";
-import { compareOrUpdateFixture } from "./testUtils";
+import { Metadata } from "../src/Metadata";
+import { compareOrUpdateFixture } from "../src/testUtils";
 
 describe("Metadata", () => {
   describe("fromXml()", () => {
