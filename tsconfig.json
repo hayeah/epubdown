@@ -1,7 +1,4 @@
 {
   "extends": "./tsconfig.base.json",
-  "references": [
-    { "path": "./packages/core" },
-    { "path": "./packages/reader" }
-  ]
+  "references": [{ "path": "./packages/core" }, { "path": "./packages/reader" }]
 }
