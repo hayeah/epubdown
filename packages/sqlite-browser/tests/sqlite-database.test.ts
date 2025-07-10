@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createSqliteDatabase } from "../src";
 
 describe("SQLite Database", () => {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type Migration, Migrator, createSqliteDatabase } from "../src";
 
 describe("Migrator", () => {

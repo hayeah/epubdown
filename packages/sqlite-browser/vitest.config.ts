@@ -12,6 +12,5 @@ export default defineConfig({
       provider: "playwright",
       headless: true,
     },
-    globals: true,
   },
 });
