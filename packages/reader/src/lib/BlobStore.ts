@@ -1,15 +1,13 @@
 export interface BlobStoreConfig {
   dbName: string;
   storeName: string;
-  version?: number;
 }
 
 export class BlobStore {
-  private static readonly DEFAULT_DB_VERSION = 1;
+  private static readonly CURRENT_DB_VERSION = 1;
 
   private readonly dbName: string;
   private readonly storeName: string;
-  private readonly version: number;
 
   constructor(
     private readonly db: IDBDatabase,
@@ -17,13 +15,12 @@ export class BlobStore {
   ) {
     this.dbName = config.dbName;
     this.storeName = config.storeName;
-    this.version = config.version || BlobStore.DEFAULT_DB_VERSION;
   }
 
   static async create(config: BlobStoreConfig): Promise<BlobStore> {
     const dbName = config.dbName;
     const storeName = config.storeName;
-    const version = config.version || BlobStore.DEFAULT_DB_VERSION;
+    const version = BlobStore.CURRENT_DB_VERSION;
 
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(dbName, version);

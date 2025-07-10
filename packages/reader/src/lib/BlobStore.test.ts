@@ -6,7 +6,6 @@ describe("BlobStore", () => {
   const testConfig = {
     dbName: "testBlobStorage",
     storeName: "testBlobs",
-    version: 1,
   };
 
   beforeEach(async () => {
@@ -35,17 +34,6 @@ describe("BlobStore", () => {
       expect(store).toBeInstanceOf(BlobStore);
       store.close();
       await indexedDB.deleteDatabase("customDB");
-    });
-
-    it("should use custom version when provided", async () => {
-      const store = await BlobStore.create({
-        dbName: "versionDB",
-        storeName: "versionStore",
-        version: 2,
-      });
-      expect(store).toBeInstanceOf(BlobStore);
-      store.close();
-      await indexedDB.deleteDatabase("versionDB");
     });
 
     it("should handle database creation errors", async () => {
