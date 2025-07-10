@@ -1,0 +1,38 @@
+{
+  "name": "@hayeah/sqlite-browser",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "SQLite for browser with IndexedDB persistence",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "wa-sqlite": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vitest/browser": "^3.1.4",
+    "happy-dom": "^15.0.0",
+    "playwright": "^1.40.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "vitest": "^3.1.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

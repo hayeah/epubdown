@@ -37,7 +37,7 @@ export class Migrator {
         await this.db.exec(migration.up);
 
         // Mark the migration as applied
-        await this.db.query(`INSERT INTO migrations (name) VALUES ($1)`, [
+        await this.db.query("INSERT INTO migrations (name) VALUES ($1)", [
           migration.name,
         ]);
       }

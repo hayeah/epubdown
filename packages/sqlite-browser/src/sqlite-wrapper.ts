@@ -1,64 +1,5 @@
-import SQLiteESMFactory from "wa-sqlite/dist/wa-sqlite-async.mjs";
-import { IDBBatchAtomicVFS } from "wa-sqlite/src/examples/IDBBatchAtomicVFS.js";
 import * as SQLite from "wa-sqlite";
-
-import { Migrator, type Migration, type SQLLikeDB } from "../db/Migrator";
-
-export interface SQLLikeDB {
-  exec(sql: string): Promise<void>;
-  query<R = unknown>(sql: string, params?: unknown[]): Promise<{ rows: R[] }>;
-}
-
-// NOTE: this is example code extracted from another code base, you need to refactor it
-async function initSqliteDB() {
-  // const module = await WebAssembly.instantiateStreaming(fetch(wasmUrl), imports)
-  let esmLoadConfig: any;
-  if (process.env.NODE_ENV === "test") {
-    // const wasmPath = resolve(
-    //   dirname(fileURLToPath(import.meta.url)),
-    //   "../../../node_modules/wa-sqlite/dist/wa-sqlite-async.wasm",
-    // )
-    const { readFile } = await import("fs/promises");
-    const wasmPath = require.resolve("wa-sqlite/dist/wa-sqlite-async.wasm");
-    const wasmBinary = await readFile(wasmPath);
-
-    esmLoadConfig = {
-      wasmBinary,
-    };
-  } else {
-    let wasmUrl: string = (
-      await import("wa-sqlite/dist/wa-sqlite-async.wasm?url")
-    ).default;
-
-    esmLoadConfig = {
-      locateFile: () => wasmUrl,
-    };
-  }
-
-  const module = await SQLiteESMFactory(esmLoadConfig);
-
-  // create the high-level API wrapper
-  const sqlite3 = SQLite.Factory(module);
-
-  if (process.env.NODE_ENV != "test") {
-    // build and register the IndexedDB-backed VFS
-    const vfs = await IDBBatchAtomicVFS.create("epub-store", module, {
-      // lockPolicy: "shared+hint",
-    });
-    sqlite3.vfs_register(vfs, true); // true ⇒ make it the default FS
-  }
-
-  // open (or create) the database via the convenience helper
-  const dbHandle = await sqlite3.open_v2("epub.db");
-  const db = new SQLiteDBWrapper(sqlite3, dbHandle);
-
-  return db;
-
-  // how it might be used
-  //   const store = new EpubSQLiteStore(db);
-  //   const migrator = new Migrator(db);
-  //   await migrator.up(MIGRATIONS);
-}
+import type { SQLLikeDB } from "./migrator";
 
 export class SQLiteDBWrapper implements SQLLikeDB {
   /** promise we chain every call onto */
@@ -69,7 +10,7 @@ export class SQLiteDBWrapper implements SQLLikeDB {
   constructor(
     private readonly sqlite3: ReturnType<typeof SQLite.Factory>,
     private readonly db: number,
-    useQueue = true
+    useQueue = true,
   ) {
     this.useQueue = useQueue;
   }
@@ -104,7 +45,7 @@ export class SQLiteDBWrapper implements SQLLikeDB {
 
   async query<R = Record<string, unknown>>(
     sql: string,
-    params: unknown[] = []
+    params: unknown[] = [],
   ): Promise<{ rows: R[] }> {
     return this.runExclusive(async () => {
       const rows: R[] = [];
