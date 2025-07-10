@@ -12,12 +12,15 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:watch:browser": "vitest --browser.headless=false",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
