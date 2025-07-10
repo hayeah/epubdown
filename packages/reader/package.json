@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@epubdown/core": "workspace:^",
+    "@hayeah/sqlite-browser": "workspace:^",
     "html-dom-parser": "^5.1.1",
     "html-react-parser": "^5",
     "marked": "^5",

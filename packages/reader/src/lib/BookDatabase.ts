@@ -1,5 +1,5 @@
-import type { SqliteDatabase } from "@hayeah/sqlite-browser";
-import { Migrator } from "@hayeah/sqlite-browser/migrator";
+import { Migrator } from "@hayeah/sqlite-browser";
+import type { SQLiteDBWrapper } from "@hayeah/sqlite-browser";
 
 export interface BookMetadata {
   id: string;
@@ -20,10 +20,10 @@ export interface BookMetadata {
 }
 
 export class BookDatabase {
-  private db: SqliteDatabase;
+  private db: SQLiteDBWrapper;
   private migrator: Migrator;
 
-  constructor(db: SqliteDatabase) {
+  constructor(db: SQLiteDBWrapper) {
     this.db = db;
     this.migrator = new Migrator(db);
   }
@@ -45,7 +45,7 @@ export class BookDatabase {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    await this.db.execute(sql, [
+    await this.db.query(sql, [
       book.id,
       book.title,
       book.author || null,
@@ -67,9 +67,9 @@ export class BookDatabase {
       [id],
     );
 
-    if (result.length === 0) return null;
+    if (result.rows.length === 0) return null;
 
-    const row = result[0];
+    const row = result.rows[0];
     return this.rowToBookMetadata(row);
   }
 
@@ -78,11 +78,11 @@ export class BookDatabase {
       "SELECT * FROM books ORDER BY added_at DESC",
     );
 
-    return results.map(this.rowToBookMetadata);
+    return results.rows.map(this.rowToBookMetadata);
   }
 
   async updateLastOpened(id: string): Promise<void> {
-    await this.db.execute("UPDATE books SET last_opened_at = ? WHERE id = ?", [
+    await this.db.query("UPDATE books SET last_opened_at = ? WHERE id = ?", [
       Date.now(),
       id,
     ]);
@@ -93,14 +93,14 @@ export class BookDatabase {
     progress: number,
     currentChapter: number,
   ): Promise<void> {
-    await this.db.execute(
+    await this.db.query(
       "UPDATE books SET reading_progress = ?, current_chapter = ? WHERE id = ?",
       [progress, currentChapter, id],
     );
   }
 
   async deleteBook(id: string): Promise<void> {
-    await this.db.execute("DELETE FROM books WHERE id = ?", [id]);
+    await this.db.query("DELETE FROM books WHERE id = ?", [id]);
   }
 
   private rowToBookMetadata(row: any): BookMetadata {
