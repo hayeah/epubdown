@@ -1,40 +1,55 @@
+export interface BlobStoreConfig {
+  dbName?: string;
+  storeName?: string;
+  version?: number;
+}
+
 export class BlobStore {
-  private static readonly DB_NAME = "blobStorage";
-  private static readonly STORE_NAME = "blobs";
-  private static readonly DB_VERSION = 1;
-  private static instance: BlobStore | null = null;
+  private static readonly DEFAULT_DB_NAME = "blobStorage";
+  private static readonly DEFAULT_STORE_NAME = "blobs";
+  private static readonly DEFAULT_DB_VERSION = 1;
 
-  private constructor(private readonly db: IDBDatabase) {}
+  private readonly dbName: string;
+  private readonly storeName: string;
+  private readonly version: number;
 
-  static async singleton(): Promise<BlobStore> {
-    if (this.instance) {
-      return this.instance;
-    }
+  constructor(
+    private readonly db: IDBDatabase,
+    config: BlobStoreConfig = {},
+  ) {
+    this.dbName = config.dbName || BlobStore.DEFAULT_DB_NAME;
+    this.storeName = config.storeName || BlobStore.DEFAULT_STORE_NAME;
+    this.version = config.version || BlobStore.DEFAULT_DB_VERSION;
+  }
+
+  static async create(config: BlobStoreConfig = {}): Promise<BlobStore> {
+    const dbName = config.dbName || BlobStore.DEFAULT_DB_NAME;
+    const storeName = config.storeName || BlobStore.DEFAULT_STORE_NAME;
+    const version = config.version || BlobStore.DEFAULT_DB_VERSION;
 
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
+      const request = indexedDB.open(dbName, version);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-          db.createObjectStore(this.STORE_NAME);
+        if (!db.objectStoreNames.contains(storeName)) {
+          db.createObjectStore(storeName);
         }
       };
     });
 
-    this.instance = new BlobStore(db);
-    return this.instance;
+    return new BlobStore(db, config);
   }
 
   private async tx<T>(
     mode: IDBTransactionMode,
-    operation: (store: IDBObjectStore) => IDBRequest<T>
+    operation: (store: IDBObjectStore) => IDBRequest<T>,
   ): Promise<T> {
-    const transaction = this.db.transaction([BlobStore.STORE_NAME], mode);
-    const store = transaction.objectStore(BlobStore.STORE_NAME);
+    const transaction = this.db.transaction([this.storeName], mode);
+    const store = transaction.objectStore(this.storeName);
     return new Promise((resolve, reject) => {
       const request = operation(store);
       request.onerror = () => reject(request.error);
@@ -57,5 +72,9 @@ export class BlobStore {
 
   async clear(): Promise<void> {
     await this.tx("readwrite", (store) => store.clear());
+  }
+
+  close(): void {
+    this.db.close();
   }
 }
