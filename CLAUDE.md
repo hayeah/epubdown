@@ -9,6 +9,7 @@
   - For example `export MyComponent` should be named `MyComponent.tsx`.
 - test files (vitest) should be placed in the same directory as the source code.
   - tests for "src/BlobStore.ts" should be "src/BlobStore.test.ts"
+- tests that should run in browser have the naming convention of: "src/BlobStore.test.browser.ts"
 
 # Lint / Format
 
