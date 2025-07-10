@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import "fake-indexeddb/auto";
 
 // Mock DOMParser for Node.js environment
 if (typeof DOMParser === "undefined") {
