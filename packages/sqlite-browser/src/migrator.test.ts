@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { type Migration, Migrator, createSqliteDatabase } from "../src";
+import { type Migration, Migrator, createSqliteDatabase } from "./";
 
 describe("Migrator", () => {
   let db: Awaited<ReturnType<typeof createSqliteDatabase>>;
