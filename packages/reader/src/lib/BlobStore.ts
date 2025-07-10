@@ -3,6 +3,8 @@ export interface BlobStoreConfig {
   storeName: string;
 }
 
+type BufferSource = ArrayBuffer | ArrayBufferView;
+
 export class BlobStore {
   private static readonly CURRENT_DB_VERSION = 1;
 
@@ -52,13 +54,48 @@ export class BlobStore {
     });
   }
 
-  async put(key: string, data: ArrayBuffer): Promise<void> {
+  async put(key: string, data: Blob | BufferSource): Promise<void> {
     await this.tx("readwrite", (store) => store.put(data, key));
   }
 
-  async get(key: string): Promise<ArrayBuffer | null> {
+  async getBytes(key: string): Promise<Uint8Array | null> {
     const result = await this.tx("readonly", (store) => store.get(key));
-    return result === undefined ? null : result;
+    if (result === undefined) return null;
+
+    // Handle Blob
+    if (result instanceof Blob) {
+      return new Uint8Array(await result.arrayBuffer());
+    }
+
+    // Handle ArrayBuffer
+    if (result instanceof ArrayBuffer) {
+      return new Uint8Array(result);
+    }
+
+    // Handle typed array views
+    if (ArrayBuffer.isView(result)) {
+      return new Uint8Array(
+        result.buffer,
+        result.byteOffset,
+        result.byteLength,
+      );
+    }
+
+    // Fallback for other types
+    return new Uint8Array(result);
+  }
+
+  async getBlob(key: string): Promise<Blob | null> {
+    const result = await this.tx("readonly", (store) => store.get(key));
+    if (result === undefined) return null;
+
+    // Return Blob unchanged
+    if (result instanceof Blob) {
+      return result;
+    }
+
+    // Convert ArrayBuffer or typed array to Blob
+    return new Blob([result]);
   }
 
   async delete(key: string): Promise<void> {
