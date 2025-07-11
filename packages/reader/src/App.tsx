@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { BookReader } from "./ChapterRenderer";
 import { BookLibrary } from "./components/BookLibrary";
 import { useBookLibraryStore, useEpubStore } from "./stores/RootStore";
@@ -37,66 +37,17 @@ export const App = observer(() => {
   );
 
   const handleOpenBook = (bookId: string) => {
-    // Update URL
-    const url = new URL(window.location.href);
-    url.searchParams.set("book", bookId);
-    window.history.pushState({}, "", url.toString());
-
     loadBook(bookId);
   };
 
   const closeBook = useCallback(() => {
-    // Save progress before closing
-    if (currentBookId && epub) {
-      const progress = currentChapterIndex / (epub.spine.length - 1);
-      bookLibraryStore.updateReadingProgress(
-        currentBookId,
-        progress,
-        currentChapterIndex,
-      );
-    }
-
-    // Clear URL
-    const url = new URL(window.location.href);
-    url.searchParams.delete("book");
-    window.history.pushState({}, "", url.toString());
-
     // Reset state
     setCurrentBookId(null);
     epubStore.reset();
-  }, [currentBookId, epub, currentChapterIndex, bookLibraryStore, epubStore]);
-
-  // Handle browser navigation
-  useEffect(() => {
-    const handlePopState = () => {
-      const bookId = new URLSearchParams(window.location.search).get("book");
-      if (bookId && bookId !== currentBookId) {
-        loadBook(bookId);
-      } else if (!bookId && currentBookId) {
-        closeBook();
-      }
-    };
-
-    // Check initial URL
-    const initialBookId = new URLSearchParams(window.location.search).get(
-      "book",
-    );
-    if (initialBookId) {
-      loadBook(initialBookId);
-    }
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [currentBookId, loadBook, closeBook]);
+  }, [epubStore]);
 
   const handleChapterChange = (index: number) => {
     epubStore.setCurrentChapter(index);
-
-    // Save progress periodically
-    if (currentBookId && epub) {
-      const progress = index / (epub.spine.length - 1);
-      bookLibraryStore.updateReadingProgress(currentBookId, progress, index);
-    }
   };
 
   if (isLoading) {

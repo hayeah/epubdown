@@ -93,20 +93,6 @@ export class BookLibraryStore {
     };
   }
 
-  // TODO: Implement reading progress tracking
-  async updateReadingProgress(
-    bookId: string,
-    progress: number,
-    currentChapter: number,
-  ) {
-    // Not implemented yet
-    console.log("Reading progress update:", {
-      bookId,
-      progress,
-      currentChapter,
-    });
-  }
-
   // Getter for testing purposes
   get storage(): BookStorage | null {
     return this.bookStorage;
