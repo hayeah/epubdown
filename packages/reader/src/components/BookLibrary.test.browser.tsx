@@ -213,6 +213,112 @@ describe("BookLibrary (Browser)", () => {
     expect(bookLibraryStore.books).toHaveLength(0);
   });
 
+  it("should display multiple books with correct formatting", async () => {
+    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+
+    // Add multiple books
+    const book1 = await createMockEpubFile("First Book", "first.epub");
+    const book2 = await createMockEpubFile("Second Book", "second.epub");
+
+    await bookLibraryStore.addBook(book1);
+    await bookLibraryStore.addBook(book2);
+
+    // Wait for books to appear
+    await waitFor(() => {
+      expect(screen.getByText("First Book")).toBeInTheDocument();
+      expect(screen.getByText("Second Book")).toBeInTheDocument();
+    });
+
+    // Check filenames are displayed
+    expect(screen.getByText("first.epub")).toBeInTheDocument();
+    expect(screen.getByText("second.epub")).toBeInTheDocument();
+
+    // Check file sizes are formatted (both should be similar small size)
+    const fileSizes = screen.getAllByText(/\d+\.\d+ [KM]B/);
+    expect(fileSizes.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("should not delete book when confirm is cancelled", async () => {
+    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+
+    // Add a book
+    const epubContent = await createMockEpubFile("Keep Me", "keep.epub");
+    await bookLibraryStore.addBook(epubContent);
+
+    // Wait for the book to appear
+    await waitFor(() => {
+      expect(screen.getByText("Keep Me")).toBeInTheDocument();
+    });
+
+    // Mock window.confirm to return false
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    // Try to delete
+    const deleteButton = screen.getByText("Delete");
+    fireEvent.click(deleteButton);
+
+    // Book should still be there
+    expect(screen.getByText("Keep Me")).toBeInTheDocument();
+
+    // Verify the book is still in storage
+    const storage = bookLibraryStore.storage;
+    if (storage) {
+      const books = await storage.getAllBooks();
+      expect(books).toHaveLength(1);
+    }
+  });
+
+  it("should handle book click to open", async () => {
+    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+
+    // Add a book
+    const epubContent = await createMockEpubFile("Click Me", "click.epub");
+    const bookId = await bookLibraryStore.addBook(epubContent);
+
+    // Wait for the book to appear
+    await waitFor(() => {
+      expect(screen.getByText("Click Me")).toBeInTheDocument();
+    });
+
+    // Click on the book title
+    const bookTitle = screen.getByText("Click Me");
+    fireEvent.click(bookTitle);
+
+    // Verify callback was called with correct ID
+    expect(mockOnOpenBook).toHaveBeenCalledWith(bookId);
+  });
+
+  it("should format dates correctly", async () => {
+    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+
+    // Add a book
+    const epubContent = await createMockEpubFile(
+      "Date Test Book",
+      "dates.epub",
+    );
+    await bookLibraryStore.addBook(epubContent);
+
+    // Wait for the book to appear
+    await waitFor(() => {
+      expect(screen.getByText("Date Test Book")).toBeInTheDocument();
+    });
+
+    // Check that date fields are displayed
+    expect(screen.getByText(/Added:/)).toBeInTheDocument();
+
+    // Open the book to set lastOpenedAt
+    const bookId = bookLibraryStore.books[0].id;
+    await bookLibraryStore.loadBookForReading(bookId);
+
+    // Reload to see updated dates
+    await bookLibraryStore.loadBooks();
+
+    // Now should show last opened date
+    await waitFor(() => {
+      expect(screen.getByText(/Last opened:/)).toBeInTheDocument();
+    });
+  });
+
   it("should update last opened timestamp when opening a book", async () => {
     renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
 
