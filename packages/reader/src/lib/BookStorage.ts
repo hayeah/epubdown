@@ -38,7 +38,7 @@ export class BookStorage {
     const blobStoreKey = `book-${bookId}`;
 
     // Extract metadata from epub
-    const epubMetadata = epub.metadata;
+    const epubMetadata = epub.getMetadata();
 
     // Create empty metadata array (not saving metadata for now)
     const metadataArray = new Uint8Array(0);
