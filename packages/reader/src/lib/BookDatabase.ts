@@ -29,11 +29,32 @@ export class BookDatabase {
   }
 
   async initialize(): Promise<void> {
-    const migration001 = await fetch(
-      new URL("./migrations/001_create_books_table.sql", import.meta.url),
-    ).then((r) => r.text());
+    const migration001 = `
+      CREATE TABLE IF NOT EXISTS books (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        author TEXT,
+        publisher TEXT,
+        published_date TEXT,
+        language TEXT,
+        identifier TEXT,
+        description TEXT,
+        cover_image_url TEXT,
+        file_size INTEGER,
+        added_at INTEGER NOT NULL,
+        last_opened_at INTEGER,
+        reading_progress REAL DEFAULT 0,
+        current_chapter INTEGER DEFAULT 0,
+        blob_store_key TEXT NOT NULL
+      );
 
-    await this.migrator.migrate([{ version: 1, sql: migration001 }]);
+      CREATE INDEX IF NOT EXISTS idx_books_added_at ON books(added_at);
+      CREATE INDEX IF NOT EXISTS idx_books_last_opened_at ON books(last_opened_at);
+      CREATE INDEX IF NOT EXISTS idx_books_title ON books(title);
+      CREATE INDEX IF NOT EXISTS idx_books_author ON books(author);
+    `;
+
+    await this.migrator.up([{ name: "001_create_books_table", up: migration001 }]);
   }
 
   async addBook(book: Omit<BookMetadata, "addedAt">): Promise<void> {

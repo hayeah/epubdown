@@ -14,7 +14,7 @@ export default defineConfig({
     tailwindcss(),
     // only polyfill what you need to keep the bundle small
     nodePolyfills({
-      include: ["path"],
+      include: ["path", "buffer", "fs"],
       protocolImports: true, // lets “node:path” resolve cleanly
     }),
     visualizer(),
@@ -23,6 +23,8 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       // "wa-sqlite/dist": path.resolve(__dirname, "./node_modules/wa-sqlite/dist"),
+      // Stub out fs/promises for browser
+      "fs/promises": path.resolve(__dirname, "./src/lib/fs-stub.ts"),
     },
   },
   test: {
