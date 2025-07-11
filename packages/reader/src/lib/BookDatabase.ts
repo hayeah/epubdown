@@ -1,5 +1,6 @@
 import { Migrator } from "@hayeah/sqlite-browser";
 import type { SQLiteDBWrapper } from "@hayeah/sqlite-browser";
+import { base64ToUint8Array, uint8ArrayToBase64 } from "./base64";
 
 export interface BookMetadata {
   id: string;
@@ -52,7 +53,7 @@ export class BookDatabase {
     if (book.metadata) {
       const arrayBuffer = await book.metadata.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
-      metadataBase64 = btoa(String.fromCharCode(...uint8Array));
+      metadataBase64 = uint8ArrayToBase64(uint8Array);
     }
 
     await this.db.query(sql, [
@@ -99,11 +100,7 @@ export class BookDatabase {
     // Convert base64 string back to Blob if metadata exists
     let metadataBlob = undefined;
     if (row.metadata) {
-      const binaryString = atob(row.metadata);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
+      const bytes = base64ToUint8Array(row.metadata);
       metadataBlob = new Blob([bytes], { type: "application/json" });
     }
 
