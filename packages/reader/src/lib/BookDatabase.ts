@@ -54,7 +54,9 @@ export class BookDatabase {
       CREATE INDEX IF NOT EXISTS idx_books_author ON books(author);
     `;
 
-    await this.migrator.up([{ name: "001_create_books_table", up: migration001 }]);
+    await this.migrator.up([
+      { name: "001_create_books_table", up: migration001 },
+    ]);
   }
 
   async addBook(book: Omit<BookMetadata, "addedAt">): Promise<void> {

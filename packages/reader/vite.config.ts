@@ -14,7 +14,7 @@ export default defineConfig({
     tailwindcss(),
     // only polyfill what you need to keep the bundle small
     nodePolyfills({
-      include: ["path", "buffer", "fs"],
+      include: ["path"],
       protocolImports: true, // lets “node:path” resolve cleanly
     }),
     visualizer(),
