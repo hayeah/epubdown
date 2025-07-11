@@ -6,15 +6,31 @@ import { BookStorage } from "../lib/BookStorage";
 export class BookLibraryStore {
   books: BookMetadata[] = [];
   isLoading = false;
-  private bookStorage: BookStorage;
+  private bookStorage: BookStorage | null = null;
 
   constructor() {
     makeAutoObservable(this);
-    this.bookStorage = new BookStorage();
-    this.loadBooks();
+    this.init();
+  }
+
+  private async init() {
+    try {
+      this.bookStorage = await BookStorage.create();
+      await this.loadBooks();
+    } catch (error) {
+      console.error("Failed to initialize BookLibraryStore:", error);
+      runInAction(() => {
+        this.isLoading = false;
+      });
+    }
   }
 
   async loadBooks() {
+    if (!this.bookStorage) {
+      console.error("BookStorage not initialized");
+      return;
+    }
+
     this.isLoading = true;
 
     try {
@@ -32,6 +48,10 @@ export class BookLibraryStore {
   }
 
   async addBook(file: File): Promise<string> {
+    if (!this.bookStorage) {
+      throw new Error("BookStorage not initialized");
+    }
+
     // Parse the EPUB to get metadata
     const arrayBuffer = await file.arrayBuffer();
     const epub = await EPub.fromZip(arrayBuffer);
@@ -46,6 +66,10 @@ export class BookLibraryStore {
   }
 
   async deleteBook(bookId: string) {
+    if (!this.bookStorage) {
+      throw new Error("BookStorage not initialized");
+    }
+
     await this.bookStorage.deleteBook(bookId);
     await this.loadBooks();
   }
@@ -53,6 +77,10 @@ export class BookLibraryStore {
   async loadBookForReading(
     bookId: string,
   ): Promise<{ blob: Blob; metadata: BookMetadata } | null> {
+    if (!this.bookStorage) {
+      throw new Error("BookStorage not initialized");
+    }
+
     const storedBook = await this.bookStorage.getBook(bookId);
     if (!storedBook || !storedBook.blob) return null;
 
@@ -77,5 +105,10 @@ export class BookLibraryStore {
       progress,
       currentChapter,
     });
+  }
+
+  // Getter for testing purposes
+  get storage(): BookStorage | null {
+    return this.bookStorage;
   }
 }
