@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "wa-sqlite": "^1.0.0"
+    "wa-sqlite": "https://github.com/rhashimoto/wa-sqlite#a883e224392667d45d2a0c42e2c0dcc1f6abcf29"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

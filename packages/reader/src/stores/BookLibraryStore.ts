@@ -5,7 +5,7 @@ import { BookStorage } from "../lib/BookStorage";
 
 export class BookLibraryStore {
   books: BookMetadata[] = [];
-  isLoading = false;
+  isLoading = true; // Start as loading since we initialize in constructor
   private bookStorage: BookStorage | null = null;
 
   constructor() {

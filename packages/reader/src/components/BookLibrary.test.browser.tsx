@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import JSZip from "jszip";
 import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BookMetadata } from "../lib/BookDatabase";
@@ -360,7 +361,6 @@ async function createMockEpubFile(
   title: string,
   filename: string,
 ): Promise<File> {
-  const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
 
   // Add mimetype

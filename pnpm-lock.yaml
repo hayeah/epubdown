@@ -110,6 +110,9 @@ importers:
       '@types/bun':
         specifier: latest
         version: 1.2.18(@types/react@19.1.5)
+      '@types/jszip':
+        specifier: ^3.4.1
+        version: 3.4.1
       '@types/node':
         specifier: ^22.10.2
         version: 22.15.21
@@ -131,6 +134,9 @@ importers:
       jsdom:
         specifier: ^25.0.1
         version: 25.0.1
+      jszip:
+        specifier: ^3
+        version: 3.10.1
       rollup-plugin-visualizer:
         specifier: ^6.0.0
         version: 6.0.0(rollup@4.41.0)
@@ -147,8 +153,8 @@ importers:
   packages/sqlite-browser:
     dependencies:
       wa-sqlite:
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: https://github.com/rhashimoto/wa-sqlite#a883e224392667d45d2a0c42e2c0dcc1f6abcf29
+        version: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/a883e224392667d45d2a0c42e2c0dcc1f6abcf29
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -941,6 +947,10 @@ packages:
 
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
+
+  '@types/jszip@3.4.1':
+    resolution: {integrity: sha512-TezXjmf3lj+zQ651r6hPqvSScqBLvyPI9FxdXBqpEwBijNGQ2NXpaFW/7joGzveYkKQUil7iiDHLo6LV71Pc0A==}
+    deprecated: This is a stub types definition. jszip provides its own type definitions, so you do not need this installed.
 
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
@@ -2820,8 +2830,9 @@ packages:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
     engines: {node: '>=18'}
 
-  wa-sqlite@1.0.0:
-    resolution: {integrity: sha512-Kyybo5/BaJp76z7gDWGk2J6Hthl4NIPsE+swgraEjy3IY6r5zIR02wAs1OJH4XtJp1y3puj3Onp5eMGS0z7nUA==}
+  wa-sqlite@https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/a883e224392667d45d2a0c42e2c0dcc1f6abcf29:
+    resolution: {tarball: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/a883e224392667d45d2a0c42e2c0dcc1f6abcf29}
+    version: 1.0.7
 
   webidl-conversions@4.0.2:
     resolution: {integrity: sha512-YQ+BmxuTgd6UXZW3+ICGfyqRyHXVlD5GtQr5+qjiNW7bF0cqrzX500HVXPBOvgXb5YnzDd+h0zqyv61KUD7+Sg==}
@@ -3512,6 +3523,10 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
 
+  '@types/jszip@3.4.1':
+    dependencies:
+      jszip: 3.10.1
+
   '@types/mdast@4.0.4':
     dependencies:
       '@types/unist': 3.0.3
@@ -3588,7 +3603,7 @@ snapshots:
       magic-string: 0.30.17
       sirv: 3.0.1
       tinyrainbow: 2.0.0
-      vitest: 3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(@vitest/browser@3.1.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.30.1)
+      vitest: 3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(@vitest/browser@3.1.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)
       ws: 8.18.2
     optionalDependencies:
       playwright: 1.53.2
@@ -5943,7 +5958,7 @@ snapshots:
     dependencies:
       xml-name-validator: 5.0.0
 
-  wa-sqlite@1.0.0: {}
+  wa-sqlite@https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/a883e224392667d45d2a0c42e2c0dcc1f6abcf29: {}
 
   webidl-conversions@4.0.2: {}
 
