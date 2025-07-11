@@ -8,7 +8,11 @@
     "outDir": "dist",
     "rootDir": "src",
     "jsx": "react-jsx",
-    "types": ["node", "react", "react-dom", "bun", "yargs"]
+    "types": ["node", "react", "react-dom", "bun", "yargs"],
+    "paths": {
+      "@epubdown/core": ["../core/src"],
+      "@epubdown/core/*": ["../core/src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"],
