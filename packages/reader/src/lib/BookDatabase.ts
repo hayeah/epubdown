@@ -47,12 +47,20 @@ export class BookDatabase {
       ) VALUES (?, ?, ?, ?, ?)
     `;
 
+    // Convert Blob to base64 string for SQLite storage
+    let metadataBase64 = null;
+    if (book.metadata) {
+      const arrayBuffer = await book.metadata.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      metadataBase64 = btoa(String.fromCharCode(...uint8Array));
+    }
+
     await this.db.query(sql, [
       book.id,
       book.title,
       book.fileSize,
       Date.now(),
-      book.metadata || null,
+      metadataBase64,
     ]);
   }
 
@@ -88,13 +96,24 @@ export class BookDatabase {
   }
 
   private rowToBookMetadata(row: any): BookMetadata {
+    // Convert base64 string back to Blob if metadata exists
+    let metadataBlob = undefined;
+    if (row.metadata) {
+      const binaryString = atob(row.metadata);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      metadataBlob = new Blob([bytes], { type: "application/json" });
+    }
+
     return {
       id: row.id,
       title: row.title,
       fileSize: row.file_size,
       createdAt: row.created_at,
       lastOpenedAt: row.last_opened_at,
-      metadata: row.metadata,
+      metadata: metadataBlob,
     };
   }
 }
