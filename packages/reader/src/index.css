@@ -4,31 +4,36 @@
 
 /* Table of Contents styles */
 .epubtoc {
-  @apply text-sm;
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.25rem; /* 20px */
 }
 
 .epubtoc ul {
-  @apply space-y-1 pl-4;
+  padding-left: 1rem; /* 16px */
+}
+
+.epubtoc ul > li {
+  margin-bottom: 0.25rem; /* 4px */
 }
 
 .epubtoc li {
-  @apply list-none;
+  list-style: none;
 }
 
 .epubtoc > ul {
-  @apply pl-0;
+  padding-left: 0;
 }
 
-.epubtoc nav[epub\\:type="toc"] > ul {
-  @apply pl-0;
+.epubtoc nav[epub\:type="toc"] > ul {
+  padding-left: 0;
 }
 
 /* Nested list indentation */
 .epubtoc ul ul {
-  @apply mt-1;
+  margin-top: 0.25rem; /* 4px */
 }
 
 /* Remove default nav styles */
 .epubtoc nav {
-  @apply block;
+  display: block;
 }
