@@ -8,9 +8,15 @@
     "outDir": "dist",
     "rootDir": "src",
     "jsx": "react-jsx",
-    "types": ["node", "react", "react-dom", "bun", "yargs"]
+    "types": ["node", "react", "react-dom", "bun", "yargs"],
+    "paths": {
+      "@epubdown/core": ["../core/src"],
+      "@epubdown/core/*": ["../core/src/*"],
+      "@hayeah/sqlite-browser": ["../sqlite-browser/src"],
+      "@hayeah/sqlite-browser/*": ["../sqlite-browser/src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../core" }]
+  "references": [{ "path": "../core" }, { "path": "../sqlite-browser" }]
 }
