@@ -24,7 +24,6 @@ describe("BookStorage", () => {
     } as any;
 
     mockBookDb = {
-      initialize: vi.fn(),
       addBook: vi.fn(),
       getBook: vi.fn(),
       getAllBooks: vi.fn(),
@@ -38,7 +37,7 @@ describe("BookStorage", () => {
     } as any);
 
     vi.mocked(BlobStore.create).mockResolvedValue(mockBlobStore);
-    vi.mocked(BookDatabase).mockReturnValue(mockBookDb);
+    vi.mocked(BookDatabase.create).mockResolvedValue(mockBookDb);
   });
 
   describe("create", () => {
@@ -56,7 +55,7 @@ describe("BookStorage", () => {
         storeName: "books",
       });
 
-      expect(mockBookDb.initialize).toHaveBeenCalled();
+      expect(BookDatabase.create).toHaveBeenCalledWith(expect.any(Object));
       expect(bookStorage).toBeInstanceOf(BookStorage);
     });
   });

@@ -23,12 +23,11 @@ export class BookStorage {
       useIndexedDB: true,
     });
 
-    const bookDb = new BookDatabase(sqliteDb.db);
+    const bookDb = await BookDatabase.create(sqliteDb.db);
     const blobStore = await BlobStore.create({
       dbName: "epubdown-books",
       storeName: "books",
     });
-    await bookDb.initialize();
 
     return new BookStorage(blobStore, bookDb);
   }

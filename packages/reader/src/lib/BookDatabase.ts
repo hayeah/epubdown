@@ -21,14 +21,14 @@ export interface BookMetadata {
 
 export class BookDatabase {
   private db: SQLiteDBWrapper;
-  private migrator: Migrator;
 
-  constructor(db: SQLiteDBWrapper) {
+  private constructor(db: SQLiteDBWrapper) {
     this.db = db;
-    this.migrator = new Migrator(db);
   }
 
-  async initialize(): Promise<void> {
+  static async create(db: SQLiteDBWrapper): Promise<BookDatabase> {
+    const migrator = new Migrator(db);
+
     const migration001 = `
       CREATE TABLE IF NOT EXISTS books (
         id TEXT PRIMARY KEY,
@@ -54,9 +54,9 @@ export class BookDatabase {
       CREATE INDEX IF NOT EXISTS idx_books_author ON books(author);
     `;
 
-    await this.migrator.up([
-      { name: "001_create_books_table", up: migration001 },
-    ]);
+    await migrator.up([{ name: "001_create_books_table", up: migration001 }]);
+
+    return new BookDatabase(db);
   }
 
   async addBook(book: Omit<BookMetadata, "addedAt">): Promise<void> {
