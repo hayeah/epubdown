@@ -9,7 +9,7 @@ export interface BookMetadata {
   fileSize: number;
   createdAt: number;
   lastOpenedAt?: number;
-  metadata?: Blob;
+  metadata?: Uint8Array;
 }
 
 export class BookDatabase {
@@ -56,12 +56,10 @@ export class BookDatabase {
       ) VALUES (?, ?, ?, ?, ?, ?)
     `;
 
-    // Convert Blob to base64 string for SQLite storage
+    // Convert Uint8Array to base64 string for SQLite storage
     let metadataBase64 = null;
     if (book.metadata) {
-      const arrayBuffer = await book.metadata.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      metadataBase64 = uint8ArrayToBase64(uint8Array);
+      metadataBase64 = uint8ArrayToBase64(book.metadata);
     }
 
     await this.db.query(sql, [
@@ -106,11 +104,10 @@ export class BookDatabase {
   }
 
   private rowToBookMetadata(row: any): BookMetadata {
-    // Convert base64 string back to Blob if metadata exists
-    let metadataBlob = undefined;
+    // Convert base64 string back to Uint8Array if metadata exists
+    let metadataBytes = undefined;
     if (row.metadata) {
-      const bytes = base64ToUint8Array(row.metadata);
-      metadataBlob = new Blob([bytes], { type: "application/json" });
+      metadataBytes = base64ToUint8Array(row.metadata);
     }
 
     return {
@@ -120,7 +117,7 @@ export class BookDatabase {
       fileSize: row.file_size,
       createdAt: row.created_at,
       lastOpenedAt: row.last_opened_at,
-      metadata: metadataBlob,
+      metadata: metadataBytes,
     };
   }
 }

@@ -40,19 +40,8 @@ export class BookStorage {
     // Extract metadata from epub
     const epubMetadata = epub.metadata;
 
-    // Create metadata blob with all additional information
-    const metadataContent = {
-      author: epubMetadata.creator,
-      publisher: epubMetadata.publisher,
-      publishedDate: epubMetadata.date,
-      language: epubMetadata.language,
-      identifier: epubMetadata.identifier,
-      description: epubMetadata.description,
-      coverImageUrl: epubMetadata.cover,
-    };
-    const metadataBlob = new Blob([JSON.stringify(metadataContent)], {
-      type: "application/json",
-    });
+    // Create empty metadata array (not saving metadata for now)
+    const metadataArray = new Uint8Array(0);
 
     // Store the book file
     await this.blobStore.put(blobStoreKey, file);
@@ -63,7 +52,7 @@ export class BookStorage {
       title: epubMetadata.title || file.name,
       filename: file.name,
       fileSize: file.size,
-      metadata: metadataBlob,
+      metadata: metadataArray,
     });
 
     return bookId;
