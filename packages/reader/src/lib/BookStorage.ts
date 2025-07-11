@@ -8,13 +8,9 @@ export interface StoredBook extends BookMetadata {
 }
 
 export class BookStorage {
-  private blobStore: BlobStore;
+  private blobStore: BlobStore | null = null;
   private bookDb: BookDatabase | null = null;
   private initialized = false;
-
-  constructor() {
-    this.blobStore = new BlobStore("epubdown-books");
-  }
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -26,13 +22,17 @@ export class BookStorage {
     });
 
     this.bookDb = new BookDatabase(sqliteDb.db);
-    await this.blobStore.initialize();
+    this.blobStore = await BlobStore.create({
+      dbName: "epubdown-books",
+      storeName: "books",
+    });
     await this.bookDb.initialize();
     this.initialized = true;
   }
 
   async addBook(file: File, epub: EPub): Promise<string> {
     await this.initialize();
+    if (!this.blobStore) throw new Error("BlobStore not initialized");
 
     // Generate a clean ID from filename
     const bookId = this.generateBookId(file.name);
@@ -64,6 +64,7 @@ export class BookStorage {
 
   async getBook(id: string): Promise<StoredBook | null> {
     await this.initialize();
+    if (!this.blobStore) throw new Error("BlobStore not initialized");
 
     const metadata = await this.bookDb?.getBook(id);
     if (!metadata) return null;
@@ -86,6 +87,7 @@ export class BookStorage {
 
   async deleteBook(id: string): Promise<void> {
     await this.initialize();
+    if (!this.blobStore) throw new Error("BlobStore not initialized");
 
     const book = await this.bookDb?.getBook(id);
     if (!book) return;
