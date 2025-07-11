@@ -8,32 +8,32 @@ export interface StoredBook extends BookMetadata {
 }
 
 export class BookStorage {
-  private blobStore: BlobStore | null = null;
-  private bookDb: BookDatabase | null = null;
-  private initialized = false;
+  private blobStore: BlobStore;
+  private bookDb: BookDatabase;
 
-  async initialize(): Promise<void> {
-    if (this.initialized) return;
+  private constructor(blobStore: BlobStore, bookDb: BookDatabase) {
+    this.blobStore = blobStore;
+    this.bookDb = bookDb;
+  }
 
+  static async create(): Promise<BookStorage> {
     const sqliteDb = await createSqliteDatabase({
       databaseName: "epubdown.db",
       storeName: "epubdown-sqlite",
       useIndexedDB: true,
     });
 
-    this.bookDb = new BookDatabase(sqliteDb.db);
-    this.blobStore = await BlobStore.create({
+    const bookDb = new BookDatabase(sqliteDb.db);
+    const blobStore = await BlobStore.create({
       dbName: "epubdown-books",
       storeName: "books",
     });
-    await this.bookDb.initialize();
-    this.initialized = true;
+    await bookDb.initialize();
+
+    return new BookStorage(blobStore, bookDb);
   }
 
   async addBook(file: File, epub: EPub): Promise<string> {
-    await this.initialize();
-    if (!this.blobStore) throw new Error("BlobStore not initialized");
-
     // Generate a clean ID from filename
     const bookId = this.generateBookId(file.name);
     const blobStoreKey = `book-${bookId}`;
@@ -45,7 +45,7 @@ export class BookStorage {
     await this.blobStore.put(blobStoreKey, file);
 
     // Store metadata in SQLite
-    await this.bookDb?.addBook({
+    await this.bookDb.addBook({
       id: bookId,
       title: metadata.title || file.name,
       author: metadata.creator,
@@ -63,16 +63,13 @@ export class BookStorage {
   }
 
   async getBook(id: string): Promise<StoredBook | null> {
-    await this.initialize();
-    if (!this.blobStore) throw new Error("BlobStore not initialized");
-
-    const metadata = await this.bookDb?.getBook(id);
+    const metadata = await this.bookDb.getBook(id);
     if (!metadata) return null;
 
     const blob = await this.blobStore.getBlob(metadata.blobStoreKey);
     if (!blob) {
       // Book blob is missing, clean up metadata
-      await this.bookDb?.deleteBook(id);
+      await this.bookDb.deleteBook(id);
       return null;
     }
 
@@ -80,28 +77,22 @@ export class BookStorage {
   }
 
   async getAllBooks(): Promise<BookMetadata[]> {
-    await this.initialize();
-    if (!this.bookDb) throw new Error("BookDatabase not initialized");
     return this.bookDb.getAllBooks();
   }
 
   async deleteBook(id: string): Promise<void> {
-    await this.initialize();
-    if (!this.blobStore) throw new Error("BlobStore not initialized");
-
-    const book = await this.bookDb?.getBook(id);
+    const book = await this.bookDb.getBook(id);
     if (!book) return;
 
     // Delete blob first
     await this.blobStore.delete(book.blobStoreKey);
 
     // Then delete metadata
-    await this.bookDb?.deleteBook(id);
+    await this.bookDb.deleteBook(id);
   }
 
   async updateLastOpened(id: string): Promise<void> {
-    await this.initialize();
-    await this.bookDb?.updateLastOpened(id);
+    await this.bookDb.updateLastOpened(id);
   }
 
   async updateReadingProgress(
@@ -109,8 +100,7 @@ export class BookStorage {
     progress: number,
     currentChapter: number,
   ): Promise<void> {
-    await this.initialize();
-    await this.bookDb?.updateReadingProgress(id, progress, currentChapter);
+    await this.bookDb.updateReadingProgress(id, progress, currentChapter);
   }
 
   private generateBookId(filename: string): string {
