@@ -1,3 +1,34 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Table of Contents styles */
+.epubtoc {
+  @apply text-sm;
+}
+
+.epubtoc ul {
+  @apply space-y-1 pl-4;
+}
+
+.epubtoc li {
+  @apply list-none;
+}
+
+.epubtoc > ul {
+  @apply pl-0;
+}
+
+.epubtoc nav[epub\\:type="toc"] > ul {
+  @apply pl-0;
+}
+
+/* Nested list indentation */
+.epubtoc ul ul {
+  @apply mt-1;
+}
+
+/* Remove default nav styles */
+.epubtoc nav {
+  @apply block;
+}
