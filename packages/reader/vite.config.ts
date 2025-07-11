@@ -23,6 +23,10 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@epubdown/core": path.resolve(__dirname, "../core/src"),
+      "@hayeah/sqlite-browser": path.resolve(
+        __dirname,
+        "../sqlite-browser/src",
+      ),
       // "wa-sqlite/dist": path.resolve(__dirname, "./node_modules/wa-sqlite/dist"),
       // Stub out fs/promises for browser
       "fs/promises": path.resolve(__dirname, "./src/lib/fs-stub.ts"),
