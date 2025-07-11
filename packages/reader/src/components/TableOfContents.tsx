@@ -139,7 +139,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
 
   return (
     <div className="h-full flex flex-col bg-white">
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b bg-white">
         <h2 className="text-lg font-semibold">Table of Contents</h2>
         {onClose && (
           <button
@@ -152,7 +152,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
           </button>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 epubtoc">{tocContent}</div>
+      <div className="flex-1 overflow-y-auto p-4 epubtoc bg-white">{tocContent}</div>
     </div>
   );
 };

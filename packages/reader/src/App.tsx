@@ -95,7 +95,7 @@ export const App = observer(() => {
       <div className="flex h-screen bg-gray-50">
         {/* Sidebar */}
         <div
-          className={`fixed lg:static inset-y-0 left-0 z-20 w-80 bg-white shadow-lg transform transition-transform duration-200 ease-in-out ${
+          className={`fixed lg:relative inset-y-0 left-0 z-30 w-80 bg-white shadow-lg transform transition-transform duration-200 ease-in-out ${
             isSidebarOpen
               ? "translate-x-0"
               : "-translate-x-full lg:translate-x-0"
@@ -149,7 +149,7 @@ export const App = observer(() => {
         {isSidebarOpen && (
           <button
             type="button"
-            className="fixed inset-0 bg-black bg-opacity-50 z-10 lg:hidden"
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
             aria-label="Close sidebar"
           />
