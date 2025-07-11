@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type React from "react";
+import { useDropzone } from "react-dropzone";
 import type { BookMetadata } from "../lib/BookDatabase";
 import { useBookLibraryStore } from "../stores/RootStore";
 
@@ -12,21 +13,33 @@ export const BookLibrary = observer(({ onOpenBook }: BookLibraryProps) => {
   const bookLibraryStore = useBookLibraryStore();
   const { books, isLoading } = bookLibraryStore;
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleFiles = async (files: File[]) => {
+    const epubFiles = files.filter((file) =>
+      file.name.toLowerCase().endsWith(".epub"),
+    );
 
-    try {
-      await bookLibraryStore.addBook(file);
-      // Clear the input
-      event.target.value = "";
-    } catch (error) {
-      console.error("Failed to add book:", error);
-      alert(`Failed to add book: ${(error as Error).message}`);
+    if (epubFiles.length === 0) {
+      alert("Please select or drop EPUB files only");
+      return;
+    }
+
+    for (const file of epubFiles) {
+      try {
+        await bookLibraryStore.addBook(file);
+      } catch (error) {
+        console.error("Failed to add book:", error);
+        alert(`Failed to add "${file.name}": ${(error as Error).message}`);
+      }
     }
   };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: handleFiles,
+    accept: {
+      "application/epub+zip": [".epub"],
+    },
+    multiple: true,
+  });
 
   const handleDelete = async (bookId: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -51,18 +64,29 @@ export const BookLibrary = observer(({ onOpenBook }: BookLibraryProps) => {
       <h1 className="text-3xl font-bold mb-6">My Library</h1>
 
       <div className="mb-8">
-        <label className="block">
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 cursor-pointer transition-colors">
-            <Plus className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-gray-600">Click to upload an EPUB file</p>
-            <input
-              type="file"
-              accept=".epub"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </div>
-        </label>
+        <div
+          {...getRootProps()}
+          className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+            isDragActive
+              ? "border-blue-500 bg-blue-50"
+              : "border-gray-300 hover:border-gray-400"
+          }`}
+        >
+          <input {...getInputProps()} />
+          <Plus className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          {isDragActive ? (
+            <p className="text-blue-600">Drop EPUB files here...</p>
+          ) : (
+            <>
+              <p className="text-gray-600">
+                Click to select or drag and drop EPUB files
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                You can upload multiple files at once
+              </p>
+            </>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
