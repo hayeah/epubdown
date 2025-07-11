@@ -38,24 +38,31 @@ export class BookStorage {
     const blobStoreKey = `book-${bookId}`;
 
     // Extract metadata from epub
-    const metadata = epub.metadata;
+    const epubMetadata = epub.metadata;
 
-    // Store the blob
+    // Create metadata blob with all additional information
+    const metadataContent = {
+      author: epubMetadata.creator,
+      publisher: epubMetadata.publisher,
+      publishedDate: epubMetadata.date,
+      language: epubMetadata.language,
+      identifier: epubMetadata.identifier,
+      description: epubMetadata.description,
+      coverImageUrl: epubMetadata.cover,
+    };
+    const metadataBlob = new Blob([JSON.stringify(metadataContent)], {
+      type: "application/json",
+    });
+
+    // Store the book file
     await this.blobStore.put(blobStoreKey, file);
 
     // Store metadata in SQLite
     await this.bookDb.addBook({
       id: bookId,
-      title: metadata.title || file.name,
-      author: metadata.creator,
-      publisher: metadata.publisher,
-      publishedDate: metadata.date,
-      language: metadata.language,
-      identifier: metadata.identifier,
-      description: metadata.description,
-      coverImageUrl: metadata.cover,
+      title: epubMetadata.title || file.name,
       fileSize: file.size,
-      blobStoreKey,
+      metadata: metadataBlob,
     });
 
     return bookId;
@@ -65,7 +72,8 @@ export class BookStorage {
     const metadata = await this.bookDb.getBook(id);
     if (!metadata) return null;
 
-    const blob = await this.blobStore.getBlob(metadata.blobStoreKey);
+    const blobStoreKey = `book-${id}`;
+    const blob = await this.blobStore.getBlob(blobStoreKey);
     if (!blob) {
       // Book blob is missing, clean up metadata
       await this.bookDb.deleteBook(id);
@@ -84,7 +92,8 @@ export class BookStorage {
     if (!book) return;
 
     // Delete blob first
-    await this.blobStore.delete(book.blobStoreKey);
+    const blobStoreKey = `book-${id}`;
+    await this.blobStore.delete(blobStoreKey);
 
     // Then delete metadata
     await this.bookDb.deleteBook(id);
@@ -92,14 +101,6 @@ export class BookStorage {
 
   async updateLastOpened(id: string): Promise<void> {
     await this.bookDb.updateLastOpened(id);
-  }
-
-  async updateReadingProgress(
-    id: string,
-    progress: number,
-    currentChapter: number,
-  ): Promise<void> {
-    await this.bookDb.updateReadingProgress(id, progress, currentChapter);
   }
 
   private generateBookId(filename: string): string {

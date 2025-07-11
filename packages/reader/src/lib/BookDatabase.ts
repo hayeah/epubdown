@@ -4,19 +4,10 @@ import type { SQLiteDBWrapper } from "@hayeah/sqlite-browser";
 export interface BookMetadata {
   id: string;
   title: string;
-  author?: string;
-  publisher?: string;
-  publishedDate?: string;
-  language?: string;
-  identifier?: string;
-  description?: string;
-  coverImageUrl?: string;
-  fileSize?: number;
-  addedAt: number;
+  fileSize: number;
+  createdAt: number;
   lastOpenedAt?: number;
-  readingProgress?: number;
-  currentChapter?: number;
-  blobStoreKey: string;
+  metadata?: Blob;
 }
 
 export class BookDatabase {
@@ -33,25 +24,15 @@ export class BookDatabase {
       CREATE TABLE IF NOT EXISTS books (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
-        author TEXT,
-        publisher TEXT,
-        published_date TEXT,
-        language TEXT,
-        identifier TEXT,
-        description TEXT,
-        cover_image_url TEXT,
-        file_size INTEGER,
-        added_at INTEGER NOT NULL,
+        file_size INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
         last_opened_at INTEGER,
-        reading_progress REAL DEFAULT 0,
-        current_chapter INTEGER DEFAULT 0,
-        blob_store_key TEXT NOT NULL
+        metadata BLOB
       );
 
-      CREATE INDEX IF NOT EXISTS idx_books_added_at ON books(added_at);
+      CREATE INDEX IF NOT EXISTS idx_books_created_at ON books(created_at);
       CREATE INDEX IF NOT EXISTS idx_books_last_opened_at ON books(last_opened_at);
       CREATE INDEX IF NOT EXISTS idx_books_title ON books(title);
-      CREATE INDEX IF NOT EXISTS idx_books_author ON books(author);
     `;
 
     await migrator.up([{ name: "001_create_books_table", up: migration001 }]);
@@ -59,28 +40,19 @@ export class BookDatabase {
     return new BookDatabase(db);
   }
 
-  async addBook(book: Omit<BookMetadata, "addedAt">): Promise<void> {
+  async addBook(book: Omit<BookMetadata, "createdAt">): Promise<void> {
     const sql = `
       INSERT INTO books (
-        id, title, author, publisher, published_date, language,
-        identifier, description, cover_image_url, file_size,
-        added_at, blob_store_key
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, title, file_size, created_at, metadata
+      ) VALUES (?, ?, ?, ?, ?)
     `;
 
     await this.db.query(sql, [
       book.id,
       book.title,
-      book.author || null,
-      book.publisher || null,
-      book.publishedDate || null,
-      book.language || null,
-      book.identifier || null,
-      book.description || null,
-      book.coverImageUrl || null,
-      book.fileSize || null,
+      book.fileSize,
       Date.now(),
-      book.blobStoreKey,
+      book.metadata || null,
     ]);
   }
 
@@ -98,7 +70,7 @@ export class BookDatabase {
 
   async getAllBooks(): Promise<BookMetadata[]> {
     const results = await this.db.query<any>(
-      "SELECT * FROM books ORDER BY added_at DESC",
+      "SELECT * FROM books ORDER BY created_at DESC",
     );
 
     return results.rows.map(this.rowToBookMetadata);
@@ -111,17 +83,6 @@ export class BookDatabase {
     ]);
   }
 
-  async updateReadingProgress(
-    id: string,
-    progress: number,
-    currentChapter: number,
-  ): Promise<void> {
-    await this.db.query(
-      "UPDATE books SET reading_progress = ?, current_chapter = ? WHERE id = ?",
-      [progress, currentChapter, id],
-    );
-  }
-
   async deleteBook(id: string): Promise<void> {
     await this.db.query("DELETE FROM books WHERE id = ?", [id]);
   }
@@ -130,19 +91,10 @@ export class BookDatabase {
     return {
       id: row.id,
       title: row.title,
-      author: row.author,
-      publisher: row.publisher,
-      publishedDate: row.published_date,
-      language: row.language,
-      identifier: row.identifier,
-      description: row.description,
-      coverImageUrl: row.cover_image_url,
       fileSize: row.file_size,
-      addedAt: row.added_at,
+      createdAt: row.created_at,
       lastOpenedAt: row.last_opened_at,
-      readingProgress: row.reading_progress,
-      currentChapter: row.current_chapter,
-      blobStoreKey: row.blob_store_key,
+      metadata: row.metadata,
     };
   }
 }

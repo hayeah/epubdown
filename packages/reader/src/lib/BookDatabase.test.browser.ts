@@ -37,12 +37,11 @@ describe("BookDatabase", () => {
       const indexResult = await db.query(
         "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_books_%'",
       );
-      expect(indexResult.rows.length).toBe(4);
+      expect(indexResult.rows.length).toBe(3);
       const indexNames = indexResult.rows.map((row: any) => row.name);
-      expect(indexNames).toContain("idx_books_added_at");
+      expect(indexNames).toContain("idx_books_created_at");
       expect(indexNames).toContain("idx_books_last_opened_at");
       expect(indexNames).toContain("idx_books_title");
-      expect(indexNames).toContain("idx_books_author");
     });
   });
 
@@ -73,23 +72,16 @@ describe("BookDatabase", () => {
       const insertedBook = result.rows[0];
       expect(insertedBook.id).toBe("test-book");
       expect(insertedBook.title).toBe("Test Book");
-      expect(insertedBook.author).toBe("Test Author");
-      expect(insertedBook.publisher).toBe("Test Publisher");
-      expect(insertedBook.published_date).toBe("2024-01-01");
-      expect(insertedBook.language).toBe("en");
-      expect(insertedBook.identifier).toBe("ISBN123");
-      expect(insertedBook.description).toBe("A test book");
-      expect(insertedBook.cover_image_url).toBe("cover.jpg");
       expect(insertedBook.file_size).toBe(1024);
-      expect(insertedBook.blob_store_key).toBe("book-test-book");
-      expect(insertedBook.added_at).toBeGreaterThan(0);
+      expect(insertedBook.created_at).toBeGreaterThan(0);
+      expect(insertedBook.metadata).toBeDefined();
     });
 
-    it("should handle optional fields as null", async () => {
+    it("should handle book without metadata blob", async () => {
       const book = {
         id: "minimal-book",
         title: "Minimal Book",
-        blobStoreKey: "book-minimal-book",
+        fileSize: 512,
       };
 
       await bookDatabase.addBook(book);
@@ -100,14 +92,8 @@ describe("BookDatabase", () => {
       const insertedBook = result.rows[0];
 
       expect(insertedBook.title).toBe("Minimal Book");
-      expect(insertedBook.author).toBeNull();
-      expect(insertedBook.publisher).toBeNull();
-      expect(insertedBook.published_date).toBeNull();
-      expect(insertedBook.language).toBeNull();
-      expect(insertedBook.identifier).toBeNull();
-      expect(insertedBook.description).toBeNull();
-      expect(insertedBook.cover_image_url).toBeNull();
-      expect(insertedBook.file_size).toBeNull();
+      expect(insertedBook.file_size).toBe(512);
+      expect(insertedBook.metadata).toBeNull();
     });
   });
 
@@ -117,8 +103,7 @@ describe("BookDatabase", () => {
       await bookDatabase.addBook({
         id: "test-book",
         title: "Test Book",
-        author: "Test Author",
-        blobStoreKey: "book-test-book",
+        fileSize: 1024,
       });
     });
 
@@ -128,10 +113,7 @@ describe("BookDatabase", () => {
       expect(result).not.toBeNull();
       expect(result?.id).toBe("test-book");
       expect(result?.title).toBe("Test Book");
-      expect(result?.author).toBe("Test Author");
-      expect(result?.blobStoreKey).toBe("book-test-book");
-      expect(result?.readingProgress).toBe(0);
-      expect(result?.currentChapter).toBe(0);
+      expect(result?.fileSize).toBe(1024);
     });
 
     it("should return null if book not found", async () => {
@@ -146,7 +128,7 @@ describe("BookDatabase", () => {
       await bookDatabase.addBook({
         id: "book1",
         title: "Book 1",
-        blobStoreKey: "book-book1",
+        fileSize: 1024,
       });
 
       // Small delay to ensure different timestamps
@@ -155,11 +137,11 @@ describe("BookDatabase", () => {
       await bookDatabase.addBook({
         id: "book2",
         title: "Book 2",
-        blobStoreKey: "book-book2",
+        fileSize: 2048,
       });
     });
 
-    it("should retrieve all books ordered by addedAt desc", async () => {
+    it("should retrieve all books ordered by createdAt desc", async () => {
       const result = await bookDatabase.getAllBooks();
 
       expect(result).toHaveLength(2);
@@ -176,7 +158,7 @@ describe("BookDatabase", () => {
       await bookDatabase.addBook({
         id: "test-book",
         title: "Test Book",
-        blobStoreKey: "book-test-book",
+        fileSize: 1024,
       });
     });
 
@@ -192,30 +174,12 @@ describe("BookDatabase", () => {
     });
   });
 
-  describe("updateReadingProgress", () => {
-    beforeEach(async () => {
-      await bookDatabase.addBook({
-        id: "test-book",
-        title: "Test Book",
-        blobStoreKey: "book-test-book",
-      });
-    });
-
-    it("should update reading progress and current chapter", async () => {
-      await bookDatabase.updateReadingProgress("test-book", 0.75, 5);
-
-      const book = await bookDatabase.getBook("test-book");
-      expect(book?.readingProgress).toBe(0.75);
-      expect(book?.currentChapter).toBe(5);
-    });
-  });
-
   describe("deleteBook", () => {
     beforeEach(async () => {
       await bookDatabase.addBook({
         id: "test-book",
         title: "Test Book",
-        blobStoreKey: "book-test-book",
+        fileSize: 1024,
       });
     });
 

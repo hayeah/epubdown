@@ -29,7 +29,6 @@ describe("BookStorage", () => {
       getAllBooks: vi.fn(),
       deleteBook: vi.fn(),
       updateLastOpened: vi.fn(),
-      updateReadingProgress: vi.fn(),
     } as any;
 
     vi.mocked(createSqliteDatabase).mockResolvedValue({
@@ -92,15 +91,8 @@ describe("BookStorage", () => {
       expect(mockBookDb.addBook).toHaveBeenCalledWith({
         id: bookId,
         title: "Test Book",
-        author: "Test Author",
-        publisher: "Test Publisher",
-        publishedDate: "2024-01-01",
-        language: "en",
-        identifier: "ISBN123",
-        description: "Test description",
-        coverImageUrl: "cover.jpg",
         fileSize: mockFile.size,
-        blobStoreKey,
+        metadata: expect.any(Blob),
       });
     });
 
@@ -115,6 +107,8 @@ describe("BookStorage", () => {
       expect(mockBookDb.addBook).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "my-ebook.epub",
+          fileSize: mockFile.size,
+          metadata: expect.any(Blob),
         }),
       );
     });
@@ -129,7 +123,8 @@ describe("BookStorage", () => {
       const mockMetadata = {
         id: "test-id",
         title: "Test Book",
-        blobStoreKey: "book-test-id",
+        fileSize: 1024,
+        createdAt: Date.now(),
       };
       const mockBlob = new Blob(["content"]);
 
@@ -158,7 +153,9 @@ describe("BookStorage", () => {
     it("should clean up metadata if blob is missing", async () => {
       const mockMetadata = {
         id: "test-id",
-        blobStoreKey: "book-test-id",
+        title: "Test Book",
+        fileSize: 1024,
+        createdAt: Date.now(),
       };
 
       vi.mocked(mockBookDb.getBook).mockResolvedValue(mockMetadata as any);
@@ -199,7 +196,9 @@ describe("BookStorage", () => {
     it("should delete both blob and metadata", async () => {
       const mockBook = {
         id: "test-id",
-        blobStoreKey: "book-test-id",
+        title: "Test Book",
+        fileSize: 1024,
+        createdAt: Date.now(),
       };
 
       vi.mocked(mockBookDb.getBook).mockResolvedValue(mockBook as any);
@@ -229,22 +228,6 @@ describe("BookStorage", () => {
       await bookStorage.updateLastOpened("test-id");
 
       expect(mockBookDb.updateLastOpened).toHaveBeenCalledWith("test-id");
-    });
-  });
-
-  describe("updateReadingProgress", () => {
-    beforeEach(async () => {
-      bookStorage = await BookStorage.create();
-    });
-
-    it("should update reading progress", async () => {
-      await bookStorage.updateReadingProgress("test-id", 0.5, 3);
-
-      expect(mockBookDb.updateReadingProgress).toHaveBeenCalledWith(
-        "test-id",
-        0.5,
-        3,
-      );
     });
   });
 });
