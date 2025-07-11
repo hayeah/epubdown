@@ -61,6 +61,7 @@ export class BookStorage {
     await this.bookDb.addBook({
       id: bookId,
       title: epubMetadata.title || file.name,
+      filename: file.name,
       fileSize: file.size,
       metadata: metadataBlob,
     });

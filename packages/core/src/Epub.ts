@@ -194,10 +194,10 @@ export class EPub {
     return await EPub.init(resolver);
   }
 
-  static async fromDirectory(directoryPath: string): Promise<EPub> {
-    const resolver = new FileDataResolver(directoryPath);
-    return await EPub.init(resolver);
-  }
+  // static async fromDirectory(directoryPath: string): Promise<EPub> {
+  //   const resolver = new FileDataResolver(directoryPath);
+  //   return await EPub.init(resolver);
+  // }
 
   getMetadata(): EPubMetadata {
     const metadata = this.opf.querySelector("metadata");

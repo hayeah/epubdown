@@ -6,7 +6,6 @@ import { BookStorage } from "../lib/BookStorage";
 export class BookLibraryStore {
   books: BookMetadata[] = [];
   isLoading = false;
-  error: string | null = null;
   private bookStorage: BookStorage;
 
   constructor() {
@@ -17,7 +16,6 @@ export class BookLibraryStore {
 
   async loadBooks() {
     this.isLoading = true;
-    this.error = null;
 
     try {
       const books = await this.bookStorage.getAllBooks();
@@ -27,87 +25,57 @@ export class BookLibraryStore {
       });
     } catch (error) {
       runInAction(() => {
-        this.error =
-          error instanceof Error ? error.message : "Failed to load books";
         this.isLoading = false;
       });
+      throw error;
     }
   }
 
-  async addBook(file: File): Promise<string | null> {
-    this.error = null;
+  async addBook(file: File): Promise<string> {
+    // Parse the EPUB to get metadata
+    const arrayBuffer = await file.arrayBuffer();
+    const epub = await EPub.fromZip(arrayBuffer);
 
-    try {
-      // Parse the EPUB to get metadata
-      const arrayBuffer = await file.arrayBuffer();
-      const epub = await EPub.parse(arrayBuffer);
+    // Add to storage
+    const bookId = await this.bookStorage.addBook(file, epub);
 
-      // Add to storage
-      const bookId = await this.bookStorage.addBook(file, epub);
+    // Reload books list
+    await this.loadBooks();
 
-      // Reload books list
-      await this.loadBooks();
-
-      return bookId;
-    } catch (error) {
-      runInAction(() => {
-        this.error =
-          error instanceof Error ? error.message : "Failed to add book";
-      });
-      return null;
-    }
+    return bookId;
   }
 
   async deleteBook(bookId: string) {
-    this.error = null;
-
-    try {
-      await this.bookStorage.deleteBook(bookId);
-      await this.loadBooks();
-    } catch (error) {
-      runInAction(() => {
-        this.error =
-          error instanceof Error ? error.message : "Failed to delete book";
-      });
-    }
+    await this.bookStorage.deleteBook(bookId);
+    await this.loadBooks();
   }
 
   async loadBookForReading(
     bookId: string,
   ): Promise<{ blob: Blob; metadata: BookMetadata } | null> {
-    try {
-      const storedBook = await this.bookStorage.getBook(bookId);
-      if (!storedBook || !storedBook.blob) return null;
+    const storedBook = await this.bookStorage.getBook(bookId);
+    if (!storedBook || !storedBook.blob) return null;
 
-      // Update last opened timestamp
-      await this.bookStorage.updateLastOpened(bookId);
+    // Update last opened timestamp
+    await this.bookStorage.updateLastOpened(bookId);
 
-      return {
-        blob: storedBook.blob,
-        metadata: storedBook,
-      };
-    } catch (error) {
-      runInAction(() => {
-        this.error =
-          error instanceof Error ? error.message : "Failed to load book";
-      });
-      return null;
-    }
+    return {
+      blob: storedBook.blob,
+      metadata: storedBook,
+    };
   }
 
+  // TODO: Implement reading progress tracking
   async updateReadingProgress(
     bookId: string,
     progress: number,
     currentChapter: number,
   ) {
-    try {
-      await this.bookStorage.updateReadingProgress(
-        bookId,
-        progress,
-        currentChapter,
-      );
-    } catch (error) {
-      console.error("Failed to update reading progress:", error);
-    }
+    // Not implemented yet
+    console.log("Reading progress update:", {
+      bookId,
+      progress,
+      currentChapter,
+    });
   }
 }

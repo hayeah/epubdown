@@ -10,7 +10,7 @@ interface BookLibraryProps {
 
 export const BookLibrary = observer(({ onOpenBook }: BookLibraryProps) => {
   const bookLibraryStore = useBookLibraryStore();
-  const { books, isLoading, error } = bookLibraryStore;
+  const { books, isLoading } = bookLibraryStore;
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -18,10 +18,13 @@ export const BookLibrary = observer(({ onOpenBook }: BookLibraryProps) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const bookId = await bookLibraryStore.addBook(file);
-    if (bookId) {
+    try {
+      await bookLibraryStore.addBook(file);
       // Clear the input
       event.target.value = "";
+    } catch (error) {
+      console.error("Failed to add book:", error);
+      alert(`Failed to add book: ${(error as Error).message}`);
     }
   };
 
@@ -61,10 +64,6 @@ export const BookLibrary = observer(({ onOpenBook }: BookLibraryProps) => {
           </div>
         </label>
       </div>
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>
-      )}
 
       {isLoading ? (
         <div className="text-center py-8">Loading library...</div>
@@ -117,28 +116,13 @@ const BookCard = ({
           <h3 className="font-semibold text-lg mb-2 line-clamp-2">
             {book.title}
           </h3>
-          {book.author && (
-            <p className="text-gray-600 text-sm mb-2">{book.author}</p>
-          )}
+          <p className="text-gray-600 text-sm mb-2">{book.filename}</p>
         </button>
         <div className="text-xs text-gray-500 space-y-1">
-          {book.fileSize && <p>{formatFileSize(book.fileSize)}</p>}
-          <p>Added: {formatDate(book.addedAt)}</p>
+          <p>{formatFileSize(book.fileSize)}</p>
+          <p>Added: {formatDate(book.createdAt)}</p>
           {book.lastOpenedAt && (
             <p>Last opened: {formatDate(book.lastOpenedAt)}</p>
-          )}
-          {book.readingProgress !== undefined && book.readingProgress > 0 && (
-            <div className="mt-2">
-              <div className="bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full"
-                  style={{ width: `${book.readingProgress * 100}%` }}
-                />
-              </div>
-              <p className="mt-1">
-                {Math.round(book.readingProgress * 100)}% read
-              </p>
-            </div>
           )}
         </div>
         <button

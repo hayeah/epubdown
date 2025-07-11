@@ -5,6 +5,7 @@ import { base64ToUint8Array, uint8ArrayToBase64 } from "./base64";
 export interface BookMetadata {
   id: string;
   title: string;
+  filename: string;
   fileSize: number;
   createdAt: number;
   lastOpenedAt?: number;
@@ -36,7 +37,14 @@ export class BookDatabase {
       CREATE INDEX IF NOT EXISTS idx_books_title ON books(title);
     `;
 
-    await migrator.up([{ name: "001_create_books_table", up: migration001 }]);
+    const migration002 = `
+      ALTER TABLE books ADD COLUMN filename TEXT;
+    `;
+
+    await migrator.up([
+      { name: "001_create_books_table", up: migration001 },
+      { name: "002_add_filename_column", up: migration002 },
+    ]);
 
     return new BookDatabase(db);
   }
@@ -44,8 +52,8 @@ export class BookDatabase {
   async addBook(book: Omit<BookMetadata, "createdAt">): Promise<void> {
     const sql = `
       INSERT INTO books (
-        id, title, file_size, created_at, metadata
-      ) VALUES (?, ?, ?, ?, ?)
+        id, title, filename, file_size, created_at, metadata
+      ) VALUES (?, ?, ?, ?, ?, ?)
     `;
 
     // Convert Blob to base64 string for SQLite storage
@@ -59,6 +67,7 @@ export class BookDatabase {
     await this.db.query(sql, [
       book.id,
       book.title,
+      book.filename,
       book.fileSize,
       Date.now(),
       metadataBase64,
@@ -107,6 +116,7 @@ export class BookDatabase {
     return {
       id: row.id,
       title: row.title,
+      filename: row.filename,
       fileSize: row.file_size,
       createdAt: row.created_at,
       lastOpenedAt: row.last_opened_at,
