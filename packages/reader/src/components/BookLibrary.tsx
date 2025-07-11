@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type React from "react";
 import type { BookMetadata } from "../lib/BookDatabase";
@@ -49,20 +50,7 @@ export const BookLibrary = observer(({ onOpenBook }: BookLibraryProps) => {
       <div className="mb-8">
         <label className="block">
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 cursor-pointer transition-colors">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400 mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
+            <Plus className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <p className="text-gray-600">Click to upload an EPUB file</p>
             <input
               type="file"
