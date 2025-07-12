@@ -8,6 +8,12 @@ export default defineConfig({
       protocolImports: true, // lets "node:path" resolve cleanly
     }),
   ],
+  server: {
+    fs: {
+      allow: ["../../epubs"],
+    },
+  },
+  publicDir: "../../epubs",
   test: {
     browser: {
       enabled: true,
