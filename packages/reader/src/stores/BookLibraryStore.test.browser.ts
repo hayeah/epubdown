@@ -16,21 +16,22 @@ describe("BookLibraryStore", () => {
     store = await BookLibraryStore.create();
   });
 
+  async function loadEpubAsFile(url: string, filename: string): Promise<File> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new File([blob], filename, { type: "application/epub+zip" });
+  }
+
   it("should initialize with empty books array", () => {
     expect(store.books).toEqual([]);
     expect(store.isLoading).toBe(false);
   });
 
   it("should add a book from epub file", async () => {
-    // Load test epub file
-    const response = await fetch(
+    const file = await loadEpubAsFile(
       "/epubs/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
     );
-    const blob = await response.blob();
-    const file = new File([blob], "alice.epub", {
-      type: "application/epub+zip",
-    });
-
     const bookId = await store.addBook(file);
 
     expect(bookId).toBeTruthy();
@@ -39,20 +40,14 @@ describe("BookLibraryStore", () => {
   });
 
   it("should add multiple books", async () => {
-    // Load both test epub files
-    const aliceResponse = await fetch(
+    const aliceFile = await loadEpubAsFile(
       "/epubs/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
     );
-    const aliceBlob = await aliceResponse.blob();
-    const aliceFile = new File([aliceBlob], "alice.epub", {
-      type: "application/epub+zip",
-    });
-
-    const proposalResponse = await fetch("/epubs/A Modest Proposal.epub");
-    const proposalBlob = await proposalResponse.blob();
-    const proposalFile = new File([proposalBlob], "proposal.epub", {
-      type: "application/epub+zip",
-    });
+    const proposalFile = await loadEpubAsFile(
+      "/epubs/A Modest Proposal.epub",
+      "proposal.epub",
+    );
 
     await store.addBook(aliceFile);
     await store.addBook(proposalFile);
@@ -64,36 +59,24 @@ describe("BookLibraryStore", () => {
   });
 
   it("should delete a book", async () => {
-    // Add a book first
-    const response = await fetch(
+    const file = await loadEpubAsFile(
       "/epubs/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
     );
-    const blob = await response.blob();
-    const file = new File([blob], "alice.epub", {
-      type: "application/epub+zip",
-    });
-
     const bookId = await store.addBook(file);
     expect(store.books.length).toBe(1);
 
-    // Delete the book
     await store.deleteBook(bookId);
     expect(store.books.length).toBe(0);
   });
 
   it("should load book for reading", async () => {
-    // Add a book first
-    const response = await fetch(
+    const file = await loadEpubAsFile(
       "/epubs/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
     );
-    const blob = await response.blob();
-    const file = new File([blob], "alice.epub", {
-      type: "application/epub+zip",
-    });
-
     const bookId = await store.addBook(file);
 
-    // Load the book for reading
     const result = await store.loadBookForReading(bookId);
 
     expect(result).not.toBeNull();
@@ -103,22 +86,16 @@ describe("BookLibraryStore", () => {
   });
 
   it("should update last opened timestamp when loading book", async () => {
-    // Add a book
-    const response = await fetch(
+    const file = await loadEpubAsFile(
       "/epubs/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
     );
-    const blob = await response.blob();
-    const file = new File([blob], "alice.epub", {
-      type: "application/epub+zip",
-    });
-
     const bookId = await store.addBook(file);
     const originalLastOpened = store.books[0].lastOpened;
 
     // Wait a bit to ensure timestamp difference
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    // Load the book
     await store.loadBookForReading(bookId);
 
     // Reload books to get updated metadata
