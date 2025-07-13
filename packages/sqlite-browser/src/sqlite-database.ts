@@ -6,7 +6,7 @@ import { SQLiteDBWrapper } from "./sqlite-wrapper";
 export interface SqliteDatabaseOptions {
   /**
    * Name of the database file
-   * @default "database.db"
+   * @default ":memory:"
    */
   databaseName?: string;
 
@@ -77,7 +77,7 @@ async function loadSqlite(options: { indexedDBStore?: string } = {}) {
 export async function createSqliteDatabase(
   options: SqliteDatabaseOptions = {},
 ): Promise<SQLiteDatabase> {
-  const { databaseName = "database.db", indexedDBStore } = options;
+  const { databaseName = ":memory:", indexedDBStore } = options;
 
   const { sqlite3 } = await loadSqlite({ indexedDBStore });
   const dbHandle = await sqlite3.open_v2(databaseName);

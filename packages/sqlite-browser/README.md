@@ -97,10 +97,8 @@ await migrator.up(migrations);
 Creates a new SQLite database instance.
 
 Options:
-- `databaseName`: Name of the database file (default: "database.db")
+- `databaseName`: Name of the database file (default: ":memory:")
 - `indexedDBStore`: Name of the IndexedDB store for persistence. If not provided, IndexedDB will not be used.
-- `wasmBinary`: Custom WASM binary as ArrayBuffer
-- `wasmUrl`: Custom URL to load WASM from
 
 ### SQLiteDBWrapper
 
