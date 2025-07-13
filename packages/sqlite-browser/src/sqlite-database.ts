@@ -69,13 +69,14 @@ async function loadSqlite(options: { indexedDBStore?: string } = {}) {
   const module = await loadAsyncModule();
   const sqlite3 = SQLite.Factory(module);
 
+  let vfs: any;
   if (options.indexedDBStore) {
     // Register IndexedDB-backed VFS for persistence
-    const vfs = await IDBBatchAtomicVFS.create(options.indexedDBStore, module);
+    vfs = await IDBBatchAtomicVFS.create(options.indexedDBStore, module);
     sqlite3.vfs_register(vfs, true);
   }
 
-  return { sqlite3, module };
+  return { sqlite3, module, vfs };
 }
 
 /**
@@ -86,7 +87,7 @@ export async function createSqliteDatabase(
 ): Promise<SQLiteDatabase> {
   const { databaseName = ":memory:", indexedDBStore } = options;
 
-  const { sqlite3 } = await loadSqlite({ indexedDBStore });
+  const { sqlite3, vfs } = await loadSqlite({ indexedDBStore });
   const dbHandle = await sqlite3.open_v2(databaseName);
   const db = new SQLiteDBWrapper(sqlite3, dbHandle);
 
@@ -94,6 +95,9 @@ export async function createSqliteDatabase(
     db,
     close: async () => {
       await sqlite3.close(dbHandle);
+      if (vfs) {
+        await vfs.close();
+      }
     },
   };
 }
