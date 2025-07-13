@@ -1,6 +1,7 @@
 export interface SQLLikeDB {
   exec(sql: string): Promise<void>;
   query<R = unknown>(sql: string, params?: unknown[]): Promise<{ rows: R[] }>;
+  close?(): Promise<void>;
 }
 
 export interface Migration {

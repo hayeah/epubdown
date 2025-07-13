@@ -1,25 +1,39 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BookLibraryStore } from "./BookLibraryStore";
+import { nukeIndexedDBDatabases } from "./testUtils";
 
 describe("BookLibraryStore", () => {
   let store: BookLibraryStore;
 
   beforeEach(async () => {
     // Clear IndexedDB before each test
-    const databases = await indexedDB.databases();
-    for (const db of databases) {
-      if (db.name) {
-        indexedDB.deleteDatabase(db.name);
-      }
-    }
+    await nukeIndexedDBDatabases();
 
     store = await BookLibraryStore.create();
+  }, 1000);
+
+  afterEach(async () => {
+    // Close the store to release database connections
+    if (store) {
+      await store.close();
+    }
   });
 
   async function loadEpubAsFile(url: string, filename: string): Promise<File> {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new File([blob], filename, { type: "application/epub+zip" });
+    // Add 3s timeout to the fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      const blob = await response.blob();
+      return new File([blob], filename, { type: "application/epub+zip" });
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
   }
 
   it("should initialize with empty books array", () => {
@@ -29,8 +43,8 @@ describe("BookLibraryStore", () => {
 
   it("should add a book from epub file", async () => {
     const file = await loadEpubAsFile(
-      "/epubs/Alice's Adventures in Wonderland.epub",
-      "alice.epub"
+      "/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
     );
     const bookId = await store.addBook(file);
 

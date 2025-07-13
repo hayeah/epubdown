@@ -75,4 +75,8 @@ export class BookLibraryStore {
   get storage(): BookStorage {
     return this.bookStorage;
   }
+
+  async close(): Promise<void> {
+    await this.bookStorage.close();
+  }
 }

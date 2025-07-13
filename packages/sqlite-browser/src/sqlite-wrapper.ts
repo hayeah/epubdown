@@ -86,4 +86,10 @@ export class SQLiteDBWrapper implements SQLLikeDB {
       }
     });
   }
+
+  async close(): Promise<void> {
+    return this.runExclusive(async () => {
+      await this.sqlite3.close(this.db);
+    });
+  }
 }
