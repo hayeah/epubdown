@@ -152,7 +152,9 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
           </button>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 epubtoc bg-white">{tocContent}</div>
+      <div className="flex-1 overflow-y-auto p-4 epubtoc bg-white">
+        {tocContent}
+      </div>
     </div>
   );
 };

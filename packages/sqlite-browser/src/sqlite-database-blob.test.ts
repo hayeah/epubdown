@@ -1,23 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createSqliteDatabase } from "./";
+import { Driver } from "./";
 
 describe("SQLite Database - Uint8Array BLOB Storage", () => {
-  let db: Awaited<ReturnType<typeof createSqliteDatabase>>;
+  let driver: Driver;
+  let db: Awaited<ReturnType<Driver["open"]>>;
 
   beforeEach(async () => {
-    db = await createSqliteDatabase({
-      databaseName: ":memory:",
-      useIndexedDB: false,
-    });
+    driver = await Driver.open();
+    db = await driver.open(":memory:");
   });
 
   afterEach(async () => {
     await db.close();
+    await driver.close();
   });
 
   it("should store and retrieve Uint8Array data in BLOB column", async () => {
     // Create table with BLOB column
-    await db.db.exec(`
+    await db.exec(`
       CREATE TABLE files (
         id INTEGER PRIMARY KEY,
         name TEXT,
@@ -27,17 +27,17 @@ describe("SQLite Database - Uint8Array BLOB Storage", () => {
 
     // Test data with various byte values
     const testData = new Uint8Array([0, 1, 2, 3, 127, 128, 255]);
-    
+
     // Insert Uint8Array into BLOB column
-    await db.db.query(
-      "INSERT INTO files (name, data) VALUES ($1, $2)",
-      ["test.bin", testData]
-    );
+    await db.query("INSERT INTO files (name, data) VALUES ($1, $2)", [
+      "test.bin",
+      testData,
+    ]);
 
     // Retrieve the data
-    const result = await db.db.query<{ name: string; data: Uint8Array }>(
+    const result = await db.query<{ name: string; data: Uint8Array }>(
       "SELECT * FROM files WHERE name = $1",
-      ["test.bin"]
+      ["test.bin"],
     );
 
     // Verify the result

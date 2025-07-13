@@ -1,5 +1,8 @@
 import type { EPub } from "@epubdown/core";
-import { createSqliteDatabase } from "@hayeah/sqlite-browser";
+import {
+  type SQLiteDatabase,
+  createSqliteDatabase,
+} from "@hayeah/sqlite-browser";
 import { BlobStore } from "./BlobStore";
 import { BookDatabase, type BookMetadata } from "./BookDatabase";
 
@@ -10,17 +13,22 @@ export interface StoredBook extends BookMetadata {
 export class BookStorage {
   private blobStore: BlobStore;
   private bookDb: BookDatabase;
+  private sqliteDb: SQLiteDatabase;
 
-  private constructor(blobStore: BlobStore, bookDb: BookDatabase) {
+  private constructor(
+    blobStore: BlobStore,
+    bookDb: BookDatabase,
+    sqliteDb: SQLiteDatabase,
+  ) {
     this.blobStore = blobStore;
     this.bookDb = bookDb;
+    this.sqliteDb = sqliteDb;
   }
 
   static async create(): Promise<BookStorage> {
     const sqliteDb = await createSqliteDatabase({
       databaseName: "epubdown.db",
-      storeName: "epubdown-sqlite",
-      useIndexedDB: true,
+      indexedDBStore: "epubdown-sqlite",
     });
 
     const bookDb = await BookDatabase.create(sqliteDb.db);
@@ -29,7 +37,7 @@ export class BookStorage {
       storeName: "books",
     });
 
-    return new BookStorage(blobStore, bookDb);
+    return new BookStorage(blobStore, bookDb, sqliteDb);
   }
 
   async addBook(file: File, epub: EPub): Promise<string> {
@@ -105,5 +113,10 @@ export class BookStorage {
     // Add timestamp to ensure uniqueness
     const timestamp = Date.now().toString(36);
     return `${cleaned}-${timestamp}`;
+  }
+
+  async close(): Promise<void> {
+    this.blobStore.close();
+    await this.sqliteDb.close();
   }
 }

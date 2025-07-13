@@ -5,32 +5,22 @@ import { BookStorage } from "../lib/BookStorage";
 
 export class BookLibraryStore {
   books: BookMetadata[] = [];
-  isLoading = true; // Start as loading since we initialize in constructor
-  private bookStorage: BookStorage | null = null;
+  isLoading = false;
+  private bookStorage: BookStorage;
 
-  constructor() {
+  private constructor(bookStorage: BookStorage) {
+    this.bookStorage = bookStorage;
     makeAutoObservable(this);
-    this.init();
   }
 
-  private async init() {
-    try {
-      this.bookStorage = await BookStorage.create();
-      await this.loadBooks();
-    } catch (error) {
-      console.error("Failed to initialize BookLibraryStore:", error);
-      runInAction(() => {
-        this.isLoading = false;
-      });
-    }
+  static async create(): Promise<BookLibraryStore> {
+    const bookStorage = await BookStorage.create();
+    const store = new BookLibraryStore(bookStorage);
+    await store.loadBooks();
+    return store;
   }
 
   async loadBooks() {
-    if (!this.bookStorage) {
-      console.error("BookStorage not initialized");
-      return;
-    }
-
     this.isLoading = true;
 
     try {
@@ -48,10 +38,6 @@ export class BookLibraryStore {
   }
 
   async addBook(file: File): Promise<string> {
-    if (!this.bookStorage) {
-      throw new Error("BookStorage not initialized");
-    }
-
     // Parse the EPUB to get metadata
     const arrayBuffer = await file.arrayBuffer();
     const epub = await EPub.fromZip(arrayBuffer);
@@ -66,10 +52,6 @@ export class BookLibraryStore {
   }
 
   async deleteBook(bookId: string) {
-    if (!this.bookStorage) {
-      throw new Error("BookStorage not initialized");
-    }
-
     await this.bookStorage.deleteBook(bookId);
     await this.loadBooks();
   }
@@ -77,10 +59,6 @@ export class BookLibraryStore {
   async loadBookForReading(
     bookId: string,
   ): Promise<{ blob: Blob; metadata: BookMetadata } | null> {
-    if (!this.bookStorage) {
-      throw new Error("BookStorage not initialized");
-    }
-
     const storedBook = await this.bookStorage.getBook(bookId);
     if (!storedBook || !storedBook.blob) return null;
 
@@ -94,7 +72,11 @@ export class BookLibraryStore {
   }
 
   // Getter for testing purposes
-  get storage(): BookStorage | null {
+  get storage(): BookStorage {
     return this.bookStorage;
+  }
+
+  async close(): Promise<void> {
+    await this.bookStorage.close();
   }
 }

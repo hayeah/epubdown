@@ -17,8 +17,6 @@ describe("BookStorage", () => {
 
     const sqliteDb = await createSqliteDatabase({
       databaseName: ":memory:",
-      storeName: `test-db-${testId}`,
-      useIndexedDB: false,
     });
 
     const bookDb = await BookDatabase.create(sqliteDb.db);

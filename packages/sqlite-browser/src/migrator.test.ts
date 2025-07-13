@@ -1,27 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { type Migration, Migrator, createSqliteDatabase } from "./";
+import { Driver, type Migration, Migrator } from "./";
 
 describe("Migrator", () => {
-  let db: Awaited<ReturnType<typeof createSqliteDatabase>>;
+  let driver: Driver;
+  let db: Awaited<ReturnType<Driver["open"]>>;
   let migrator: Migrator;
 
   beforeEach(async () => {
     // Create a fresh in-memory database for each test
-    db = await createSqliteDatabase({
-      databaseName: ":memory:",
-      useIndexedDB: false,
-    });
-    migrator = new Migrator(db.db);
+    driver = await Driver.open();
+    db = await driver.open(":memory:");
+    migrator = new Migrator(db);
   });
 
   afterEach(async () => {
     await db.close();
+    await driver.close();
   });
 
   it("should create migrations table on first run", async () => {
     await migrator.up([]);
 
-    const result = await db.db.query<{ name: string }>(`
+    const result = await db.query<{ name: string }>(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name='migrations'
     `);
@@ -59,7 +59,7 @@ describe("Migrator", () => {
     await migrator.up(migrations);
 
     // Check that both tables were created
-    const tables = await db.db.query<{ name: string }>(`
+    const tables = await db.query<{ name: string }>(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name IN ('users', 'posts')
       ORDER BY name
@@ -70,7 +70,7 @@ describe("Migrator", () => {
     expect(tables.rows[1].name).toBe("users");
 
     // Check that migrations were recorded
-    const appliedMigrations = await db.db.query<{ name: string }>(`
+    const appliedMigrations = await db.query<{ name: string }>(`
       SELECT name FROM migrations ORDER BY name
     `);
 
@@ -98,7 +98,7 @@ describe("Migrator", () => {
     await migrator.up([migration]);
 
     // Check that the insert only happened once
-    const result = await db.db.query<{ count: number }>(`
+    const result = await db.query<{ count: number }>(`
       SELECT COUNT(*) as count FROM test_table
     `);
 
@@ -118,7 +118,7 @@ describe("Migrator", () => {
     await expect(migrator.up([badMigration])).rejects.toThrow();
 
     // Check that the migration was not recorded
-    const appliedMigrations = await db.db.query<{ name: string }>(`
+    const appliedMigrations = await db.query<{ name: string }>(`
       SELECT name FROM migrations
     `);
 
@@ -152,7 +152,7 @@ describe("Migrator", () => {
     await migrator.up(secondBatch);
 
     // Check that all tables were created
-    const tables = await db.db.query<{ name: string }>(`
+    const tables = await db.query<{ name: string }>(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name IN ('initial', 'second', 'third')
       ORDER BY name
@@ -161,7 +161,7 @@ describe("Migrator", () => {
     expect(tables.rows).toHaveLength(3);
 
     // Check that all migrations were recorded
-    const appliedMigrations = await db.db.query<{ name: string }>(`
+    const appliedMigrations = await db.query<{ name: string }>(`
       SELECT name FROM migrations ORDER BY name
     `);
 

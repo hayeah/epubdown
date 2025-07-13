@@ -28,7 +28,7 @@ import { createSqliteDatabase } from '@hayeah/sqlite-browser';
 // Create a database instance
 const { db, close } = await createSqliteDatabase({
   databaseName: 'myapp.db',
-  storeName: 'myapp-store'
+  indexedDBStore: 'myapp-store'
 });
 
 // Create tables
@@ -97,11 +97,8 @@ await migrator.up(migrations);
 Creates a new SQLite database instance.
 
 Options:
-- `databaseName`: Name of the database file (default: "database.db")
-- `storeName`: Name of the IndexedDB store for persistence (default: "sqlite-store")
-- `useIndexedDB`: Whether to use IndexedDB for persistence (default: true, false in test environment)
-- `wasmBinary`: Custom WASM binary as ArrayBuffer
-- `wasmUrl`: Custom URL to load WASM from
+- `databaseName`: Name of the database file (default: ":memory:")
+- `indexedDBStore`: Name of the IndexedDB store for persistence. If not provided, IndexedDB will not be used.
 
 ### SQLiteDBWrapper
 
