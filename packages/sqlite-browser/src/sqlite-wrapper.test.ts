@@ -7,7 +7,6 @@ describe("SQLiteDBWrapper", () => {
   beforeEach(async () => {
     db = await createSqliteDatabase({
       databaseName: ":memory:",
-      useIndexedDB: false,
     });
   });
 

@@ -7,7 +7,6 @@ describe("SQLite Database - Uint8Array BLOB Storage", () => {
   beforeEach(async () => {
     db = await createSqliteDatabase({
       databaseName: ":memory:",
-      useIndexedDB: false,
     });
   });
 

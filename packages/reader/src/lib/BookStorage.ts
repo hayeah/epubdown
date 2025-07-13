@@ -28,8 +28,7 @@ export class BookStorage {
   static async create(): Promise<BookStorage> {
     const sqliteDb = await createSqliteDatabase({
       databaseName: "epubdown.db",
-      storeName: "epubdown-sqlite",
-      useIndexedDB: true,
+      indexedDBStore: "epubdown-sqlite",
     });
 
     const bookDb = await BookDatabase.create(sqliteDb.db);

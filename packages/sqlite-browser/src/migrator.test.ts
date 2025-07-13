@@ -9,7 +9,6 @@ describe("Migrator", () => {
     // Create a fresh in-memory database for each test
     db = await createSqliteDatabase({
       databaseName: ":memory:",
-      useIndexedDB: false,
     });
     migrator = new Migrator(db.db);
   });

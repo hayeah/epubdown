@@ -14,24 +14,61 @@ export interface SqliteDatabaseOptions {
    * Name of the IndexedDB store for persistence
    * @default "sqlite-store"
    */
-  storeName?: string;
-
-  /**
-   * Whether to use IndexedDB for persistence
-   * @default true (false in test environment)
-   */
-  useIndexedDB?: boolean;
-
-  /**
-   * Custom WASM binary or URL
-   */
-  wasmBinary?: ArrayBuffer;
-  wasmUrl?: string;
+  indexedDBStore?: string;
 }
 
 export interface SQLiteDatabase {
   db: SQLiteDBWrapper;
   close: () => Promise<void>;
+}
+
+// Memoized module loading
+let cachedModule: any = null;
+
+/**
+ * Load the SQLite WASM module with memoization
+ */
+async function loadAsyncModule() {
+  if (cachedModule) {
+    return cachedModule;
+  }
+
+  let esmLoadConfig: any;
+
+  if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+    // In test environment, load from node_modules
+    const fs = await import("node:fs/promises");
+    const wasmPath = require.resolve("wa-sqlite/dist/wa-sqlite-async.wasm");
+    const binary = await fs.readFile(wasmPath);
+    esmLoadConfig = { wasmBinary: binary };
+  } else {
+    // In browser, use dynamic import with Vite's ?url suffix
+    const url: string = (
+      await import("wa-sqlite/dist/wa-sqlite-async.wasm?url")
+    ).default;
+    esmLoadConfig = {
+      locateFile: () => url,
+    };
+  }
+
+  cachedModule = await SQLiteESMFactory(esmLoadConfig);
+  return cachedModule;
+}
+
+/**
+ * Load SQLite with optional IndexedDB store
+ */
+async function loadSqlite(options: { indexedDBStore?: string } = {}) {
+  const module = await loadAsyncModule();
+  const sqlite3 = SQLite.Factory(module);
+
+  if (options.indexedDBStore) {
+    // Register IndexedDB-backed VFS for persistence
+    const vfs = await IDBBatchAtomicVFS.create(options.indexedDBStore, module);
+    sqlite3.vfs_register(vfs, true);
+  }
+
+  return { sqlite3, module };
 }
 
 /**
@@ -40,66 +77,9 @@ export interface SQLiteDatabase {
 export async function createSqliteDatabase(
   options: SqliteDatabaseOptions = {},
 ): Promise<SQLiteDatabase> {
-  const {
-    databaseName = "database.db",
-    storeName = "sqlite-store",
-    useIndexedDB = typeof process !== "undefined" &&
-      process.env?.NODE_ENV !== "test",
-    wasmBinary,
-    wasmUrl,
-  } = options;
+  const { databaseName = "database.db", indexedDBStore } = options;
 
-  let esmLoadConfig: any;
-
-  if (wasmBinary) {
-    esmLoadConfig = { wasmBinary };
-  } else if (wasmUrl) {
-    esmLoadConfig = {
-      locateFile: () => wasmUrl,
-    };
-  } else if (
-    typeof process !== "undefined" &&
-    process.env?.NODE_ENV === "test"
-  ) {
-    // In test environment, try to load from node_modules
-    try {
-      // Dynamic import for Node.js environment only
-      const fs = await import("node:fs/promises").catch(() => null);
-      if (fs && typeof require !== "undefined") {
-        const wasmPath = require.resolve("wa-sqlite/dist/wa-sqlite-async.wasm");
-        const binary = await fs.readFile(wasmPath);
-        esmLoadConfig = { wasmBinary: binary };
-      } else {
-        esmLoadConfig = {};
-      }
-    } catch (e) {
-      // Fallback to default loading
-      esmLoadConfig = {};
-    }
-  } else {
-    // In browser, use dynamic import with Vite's ?url suffix
-    try {
-      const url: string = (
-        await import("wa-sqlite/dist/wa-sqlite-async.wasm?url")
-      ).default;
-      esmLoadConfig = {
-        locateFile: () => url,
-      };
-    } catch (e) {
-      // Fallback to default loading
-      esmLoadConfig = {};
-    }
-  }
-
-  const module = await SQLiteESMFactory(esmLoadConfig);
-  const sqlite3 = SQLite.Factory(module);
-
-  if (useIndexedDB) {
-    // Register IndexedDB-backed VFS for persistence
-    const vfs = await IDBBatchAtomicVFS.create(storeName, module);
-    sqlite3.vfs_register(vfs, true);
-  }
-
+  const { sqlite3 } = await loadSqlite({ indexedDBStore });
   const dbHandle = await sqlite3.open_v2(databaseName);
   const db = new SQLiteDBWrapper(sqlite3, dbHandle);
 

@@ -11,8 +11,6 @@ describe("BookDatabase", () => {
     // Create a fresh in-memory database for each test
     const sqliteDb = await createSqliteDatabase({
       databaseName: ":memory:",
-      storeName: "test-db",
-      useIndexedDB: false,
     });
     db = sqliteDb.db;
     bookDatabase = await BookDatabase.create(db);
