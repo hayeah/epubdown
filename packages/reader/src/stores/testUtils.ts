@@ -5,6 +5,7 @@ export async function nukeIndexedDBDatabases() {
     if (!db.name) {
       throw new Error("Database name is undefined");
     }
+    console.log(`delete database: ${db.name}`);
     const deleteReq = indexedDB.deleteDatabase(db.name);
 
     return new Promise<void>((resolve, reject) => {
