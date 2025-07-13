@@ -27,17 +27,17 @@ describe("SQLite Database - Uint8Array BLOB Storage", () => {
 
     // Test data with various byte values
     const testData = new Uint8Array([0, 1, 2, 3, 127, 128, 255]);
-    
+
     // Insert Uint8Array into BLOB column
-    await db.db.query(
-      "INSERT INTO files (name, data) VALUES ($1, $2)",
-      ["test.bin", testData]
-    );
+    await db.db.query("INSERT INTO files (name, data) VALUES ($1, $2)", [
+      "test.bin",
+      testData,
+    ]);
 
     // Retrieve the data
     const result = await db.db.query<{ name: string; data: Uint8Array }>(
       "SELECT * FROM files WHERE name = $1",
-      ["test.bin"]
+      ["test.bin"],
     );
 
     // Verify the result

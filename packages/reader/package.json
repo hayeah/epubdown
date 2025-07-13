@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:browser": "vitest --config vitest.config.browser.ts"
+    "test:browser": "vitest run --config vitest.config.browser.ts"
   },
   "dependencies": {
     "@epubdown/core": "workspace:^",
