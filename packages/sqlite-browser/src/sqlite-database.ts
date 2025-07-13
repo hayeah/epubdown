@@ -33,6 +33,14 @@ async function loadAsyncModule() {
     return cachedModule;
   }
 
+  cachedModule = await loadAsyncModuleUncached();
+  return cachedModule;
+}
+
+/**
+ * Load the SQLite WASM module without caching
+ */
+async function loadAsyncModuleUncached() {
   let esmLoadConfig: any;
 
   if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
@@ -51,8 +59,7 @@ async function loadAsyncModule() {
     };
   }
 
-  cachedModule = await SQLiteESMFactory(esmLoadConfig);
-  return cachedModule;
+  return await SQLiteESMFactory(esmLoadConfig);
 }
 
 /**
@@ -90,3 +97,6 @@ export async function createSqliteDatabase(
     },
   };
 }
+
+// Export for benchmarking
+export { loadSqlite, loadAsyncModuleUncached };
