@@ -62,7 +62,14 @@ export class SQLiteDBWrapper implements SQLLikeDB {
 
           for (let i = 0; i < colCount; i++) {
             const name = this.sqlite3.column_name(stmt, i);
-            row[name] = this.sqlite3.column(stmt, i);
+            const value = this.sqlite3.column(stmt, i);
+            // BLOB data returned by column() is a view into WASM memory that becomes
+            // invalid after the next SQLite operation. We need to copy it.
+            if (value instanceof Uint8Array) {
+              row[name] = value.slice();
+            } else {
+              row[name] = value;
+            }
           }
           rows.push(row as R);
         }
