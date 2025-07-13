@@ -1,13 +1,19 @@
 import { bench, describe } from "vitest";
-import { loadAsyncModuleUncached, loadSqlite } from "./sqlite-database";
+import { Driver, loadAsyncModuleUncached } from "./sqlite-database";
 
 describe("SQLite loading benchmarks", () => {
-  bench("loadSqlite (with caching)", async () => {
-    await loadSqlite();
+  bench("Driver.open and open database (with caching)", async () => {
+    const driver = await Driver.open();
+    const db = await driver.open();
+    await db.close();
+    await driver.close();
   });
 
-  bench("loadSqlite with IndexedDB store", async () => {
-    await loadSqlite({ indexedDBStore: "bench-test-store" });
+  bench("Driver.open with IndexedDB store", async () => {
+    const driver = await Driver.open({ indexedDBStore: "bench-test-store" });
+    const db = await driver.open();
+    await db.close();
+    await driver.close();
   });
 
   bench("loadAsyncModuleUncached", async () => {

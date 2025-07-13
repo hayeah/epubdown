@@ -15,6 +15,9 @@ importers:
       '@biomejs/biome':
         specifier: 1.9.4
         version: 1.9.4
+      '@tailwindcss/vite':
+        specifier: ^4.1.7
+        version: 4.1.7(vite@6.3.5(@types/node@22.15.21)(jiti@2.4.2)(lightningcss@1.30.1))
       vitest:
         specifier: ^3.1.4
         version: 3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(@vitest/browser@3.1.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)
@@ -3633,7 +3636,7 @@ snapshots:
       magic-string: 0.30.17
       sirv: 3.0.1
       tinyrainbow: 2.0.0
-      vitest: 3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(@vitest/browser@3.1.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.30.1)
+      vitest: 3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(@vitest/browser@3.1.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)
       ws: 8.18.2
     optionalDependencies:
       playwright: 1.53.2

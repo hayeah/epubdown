@@ -3,23 +3,43 @@ import SQLiteESMFactory from "wa-sqlite/dist/wa-sqlite-async.mjs";
 import { IDBBatchAtomicVFS } from "wa-sqlite/src/examples/IDBBatchAtomicVFS.js";
 import { SQLiteDBWrapper } from "./sqlite-wrapper";
 
-export interface SqliteDatabaseOptions {
-  /**
-   * Name of the database file
-   * @default ":memory:"
-   */
-  databaseName?: string;
+export class Driver {
+  constructor(
+    public readonly sqlite3: ReturnType<typeof SQLite.Factory>,
+    public readonly module: any,
+    public readonly vfs: any,
+  ) {}
 
-  /**
-   * Name of the IndexedDB store for persistence
-   * @default "sqlite-store"
-   */
-  indexedDBStore?: string;
-}
+  async close(): Promise<void> {
+    if (this.vfs) {
+      await this.vfs.close();
+    }
+  }
 
-export interface SQLiteDatabase {
-  db: SQLiteDBWrapper;
-  close: () => Promise<void>;
+  async openHandle(databaseName: string): Promise<number> {
+    return await this.sqlite3.open_v2(databaseName);
+  }
+
+  async open(databaseName = ":memory:"): Promise<SQLiteDBWrapper> {
+    const dbHandle = await this.openHandle(databaseName);
+    return new SQLiteDBWrapper(this.sqlite3, dbHandle);
+  }
+
+  static async open(
+    options: { indexedDBStore?: string } = {},
+  ): Promise<Driver> {
+    const module = await loadAsyncModule();
+    const sqlite3 = SQLite.Factory(module);
+
+    let vfs: any;
+    if (options.indexedDBStore) {
+      // Register IndexedDB-backed VFS for persistence
+      vfs = await IDBBatchAtomicVFS.create(options.indexedDBStore, module);
+      sqlite3.vfs_register(vfs, true);
+    }
+
+    return new Driver(sqlite3, module, vfs);
+  }
 }
 
 // Memoized module loading
@@ -62,45 +82,5 @@ async function loadAsyncModuleUncached() {
   return await SQLiteESMFactory(esmLoadConfig);
 }
 
-/**
- * Load SQLite with optional IndexedDB store
- */
-async function loadSqlite(options: { indexedDBStore?: string } = {}) {
-  const module = await loadAsyncModule();
-  const sqlite3 = SQLite.Factory(module);
-
-  let vfs: any;
-  if (options.indexedDBStore) {
-    // Register IndexedDB-backed VFS for persistence
-    vfs = await IDBBatchAtomicVFS.create(options.indexedDBStore, module);
-    sqlite3.vfs_register(vfs, true);
-  }
-
-  return { sqlite3, module, vfs };
-}
-
-/**
- * Creates a SQLite database instance for browser usage with optional IndexedDB persistence
- */
-export async function createSqliteDatabase(
-  options: SqliteDatabaseOptions = {},
-): Promise<SQLiteDatabase> {
-  const { databaseName = ":memory:", indexedDBStore } = options;
-
-  const { sqlite3, vfs } = await loadSqlite({ indexedDBStore });
-  const dbHandle = await sqlite3.open_v2(databaseName);
-  const db = new SQLiteDBWrapper(sqlite3, dbHandle);
-
-  return {
-    db,
-    close: async () => {
-      await sqlite3.close(dbHandle);
-      if (vfs) {
-        await vfs.close();
-      }
-    },
-  };
-}
-
 // Export for benchmarking
-export { loadSqlite, loadAsyncModuleUncached };
+export { loadAsyncModuleUncached };
