@@ -33,7 +33,7 @@ describe("SQLite Database", () => {
     expect(tables.rows[0].name).toBe("test");
   });
 
-  it("should handle parameterized queries with $n syntax", async () => {
+  it("should handle parameterized queries with ? placeholders", async () => {
     await db.exec(`
       CREATE TABLE users (
         id INTEGER PRIMARY KEY,
@@ -42,17 +42,14 @@ describe("SQLite Database", () => {
       )
     `);
 
-    await db.query("INSERT INTO users (name, age) VALUES ($1, $2)", [
+    await db.query("INSERT INTO users (name, age) VALUES (?, ?)", [
       "Alice",
       30,
     ]);
-    await db.query("INSERT INTO users (name, age) VALUES ($1, $2)", [
-      "Bob",
-      25,
-    ]);
+    await db.query("INSERT INTO users (name, age) VALUES (?, ?)", ["Bob", 25]);
 
     const result = await db.query<{ name: string; age: number }>(
-      "SELECT * FROM users WHERE age > $1 ORDER BY name",
+      "SELECT * FROM users WHERE age > ? ORDER BY name",
       [24],
     );
 

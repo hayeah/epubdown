@@ -36,11 +36,6 @@ export class SQLiteDB implements SQLLikeDB {
     return new SQLiteDB(driver);
   }
 
-  private static toPositional(sql: string): string {
-    // convert $1, $2 … -> ? so we can use array-binding
-    return sql.replace(/\$\d+/g, "?");
-  }
-
   /** run fn exclusively, queuing when needed */
   private runExclusive<T>(fn: () => Promise<T>): Promise<T> {
     if (!this.useQueue) {
@@ -57,7 +52,7 @@ export class SQLiteDB implements SQLLikeDB {
 
   /** raw exec without queuing (only call from runExclusive) */
   private async execRaw(sql: string): Promise<void> {
-    await this.sqlite3.exec(this.db, SQLiteDB.toPositional(sql));
+    await this.sqlite3.exec(this.db, sql);
   }
 
   async exec(sql: string): Promise<void> {
@@ -70,9 +65,8 @@ export class SQLiteDB implements SQLLikeDB {
   ): Promise<{ rows: R[] }> {
     return this.runExclusive(async () => {
       const rows: R[] = [];
-      const positional = SQLiteDB.toPositional(sql);
 
-      for await (const stmt of this.sqlite3.statements(this.db, positional)) {
+      for await (const stmt of this.sqlite3.statements(this.db, sql)) {
         if (params.length) {
           this.sqlite3.bind_collection(stmt, params as unknown[]);
         }

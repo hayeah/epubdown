@@ -42,16 +42,16 @@ await db.exec(`
   );
 `);
 
-await db.exec(`INSERT INTO tasks (text) VALUES ($1)`, ["Write guide"]);
+await db.exec(`INSERT INTO tasks (text) VALUES (?)`, ["Write guide"]);
 ```
 
-### Positional parameters
+### Parameters
 
-`SQLiteDB` rewrites `$1`, `$2`, … into `?` so you can keep familiar `$n` style:
+Use standard SQLite `?` placeholders for parameters:
 
 ```ts
 const { rows } = await db.query(
-  "SELECT * FROM tasks WHERE done = $1 LIMIT $2",
+  "SELECT * FROM tasks WHERE done = ? LIMIT ?",
   [0, 10]
 );
 ```
@@ -71,8 +71,8 @@ All public methods are queued so operations never collide. For atomic work, wrap
 
 ```ts
 await db.transaction(async (tx) => {
-  await tx.exec("INSERT INTO tasks (text) VALUES ($1)", ["Add tests"]);
-  await tx.exec("INSERT INTO tasks (text) VALUES ($1)", ["Ship release"]);
+  await tx.exec("INSERT INTO tasks (text) VALUES (?)", ["Add tests"]);
+  await tx.exec("INSERT INTO tasks (text) VALUES (?)", ["Ship release"]);
 });
 ```
 
@@ -149,11 +149,11 @@ Useful when you need wa-sqlite APIs that `SQLiteDB` does not expose.
 
 ```ts
 // store raw Uint8Array
-await db.exec(`INSERT INTO files (name, data) VALUES ($1, $2)`,
+await db.exec(`INSERT INTO files (name, data) VALUES (?, ?)`,
               ["logo.png", new Uint8Array([...])]);
 
 // retrieve
-const { rows } = await db.query(`SELECT data FROM files WHERE id = $1`, [1]);
+const { rows } = await db.query(`SELECT data FROM files WHERE id = ?`, [1]);
 const blob = rows[0].data as Uint8Array;
 ```
 
