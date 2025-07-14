@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SQLiteDB } from "./";
+import { SQLiteDB, destroy } from "./";
 import { deleteIndexedDB, indexedDBExists } from "./indexeddb-helpers";
 
 describe("SQLite Database - Browser Tests", () => {
@@ -25,8 +25,8 @@ describe("SQLite Database - Browser Tests", () => {
       // Verify the store still exists
       expect(await indexedDBExists(indexedDBStore)).toBe(true);
 
-      // Clean up
-      await db.close();
+      // Clean up - using destroy to ensure IndexedDB is also removed
+      await destroy(db);
     });
 
     it("should allow IndexedDB deletion after connection is closed", async () => {
