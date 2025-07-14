@@ -1,24 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Driver } from "./";
+import { SQLiteDB } from "./";
 
 describe("SQLite Database", () => {
-  let driver: Driver;
-  let db: Awaited<ReturnType<Driver["open"]>>;
+  let db: SQLiteDB;
 
   beforeEach(async () => {
-    driver = await Driver.open();
-    db = await driver.open(":memory:");
+    db = await SQLiteDB.open(":memory:");
   });
 
   afterEach(async () => {
     await db.close();
-    await driver.close();
   });
 
   it("should create a database instance", async () => {
     expect(db).toBeDefined();
     expect(db.close).toBeDefined();
-    expect(driver).toBeDefined();
   });
 
   it("should execute SQL commands", async () => {

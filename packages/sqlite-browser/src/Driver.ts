@@ -7,38 +7,42 @@ export class Driver {
   constructor(
     public readonly sqlite3: ReturnType<typeof SQLite.Factory>,
     public readonly module: any,
-    public readonly vfs: any
+    public readonly vfs: any | null,
+    public readonly handle: number,
+    private readonly databaseName: string,
   ) {}
 
+  get indexedDBStore(): string | null {
+    if (this.vfs && this.databaseName !== ":memory:") {
+      return `sqlite://${this.databaseName}`;
+    }
+    return null;
+  }
+
   async close(): Promise<void> {
+    await this.sqlite3.close(this.handle);
     if (this.vfs) {
       await this.vfs.close();
     }
   }
 
-  async openHandle(databaseName: string): Promise<number> {
-    return await this.sqlite3.open_v2(databaseName);
-  }
-
-  async open(databaseName = ":memory:"): Promise<SQLiteDB> {
-    const dbHandle = await this.openHandle(databaseName);
-    return new SQLiteDB(this.sqlite3, dbHandle);
-  }
-
-  static async open(
-    options: { indexedDBStore?: string } = {}
-  ): Promise<Driver> {
+  static async open(databaseName = ":memory:"): Promise<Driver> {
     const module = await loadAsyncModule();
     const sqlite3 = SQLite.Factory(module);
 
-    let vfs: any;
-    if (options.indexedDBStore) {
+    let vfs: any | null = null;
+    if (databaseName !== ":memory:") {
       // Register IndexedDB-backed VFS for persistence
-      vfs = await IDBBatchAtomicVFS.create(options.indexedDBStore, module);
+      // There is a 1:1 mapping between SQLite databases and IndexedDB stores:
+      // Each SQLite database (except :memory:) gets its own IndexedDB store
+      // with the naming scheme: sqlite://{databaseName}
+      const storeName = `sqlite://${databaseName}`;
+      vfs = await IDBBatchAtomicVFS.create(storeName, module);
       sqlite3.vfs_register(vfs, true);
     }
 
-    return new Driver(sqlite3, module, vfs);
+    const handle = await sqlite3.open_v2(databaseName);
+    return new Driver(sqlite3, module, vfs, handle, databaseName);
   }
 }
 

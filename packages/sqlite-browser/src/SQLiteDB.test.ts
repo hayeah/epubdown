@@ -1,20 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Driver } from "./Driver";
+import { SQLiteDB } from "./SQLiteDB";
 
 describe("SQLiteDBWrapper", () => {
-  let driver: Driver;
-  let db: Awaited<ReturnType<Driver["open"]>>;
+  let db: SQLiteDB;
 
   beforeEach(async () => {
-    driver = await Driver.open();
-    db = await driver.open(":memory:");
+    db = await SQLiteDB.open(":memory:");
   });
 
   afterEach(async () => {
     // Clean up
     try {
       await db.close();
-      await driver.close();
     } catch (e) {
       // Database might already be closed
     }
@@ -27,7 +24,7 @@ describe("SQLiteDBWrapper", () => {
 
       // Verify we can query it
       const result1 = await db.query(
-        "SELECT name FROM sqlite_master WHERE type='table'"
+        "SELECT name FROM sqlite_master WHERE type='table'",
       );
       expect(result1.rows).toHaveLength(1);
 
@@ -36,7 +33,7 @@ describe("SQLiteDBWrapper", () => {
 
       // Verify that operations fail after closing
       await expect(
-        db.exec("CREATE TABLE test2 (id INTEGER PRIMARY KEY)")
+        db.exec("CREATE TABLE test2 (id INTEGER PRIMARY KEY)"),
       ).rejects.toThrow();
     });
 
@@ -53,7 +50,7 @@ describe("SQLiteDBWrapper", () => {
 
       // Create a table
       await db.exec(
-        "CREATE TABLE counter (id INTEGER PRIMARY KEY, value INTEGER)"
+        "CREATE TABLE counter (id INTEGER PRIMARY KEY, value INTEGER)",
       );
       await db.query("INSERT INTO counter (id, value) VALUES (1, 0)");
 
@@ -71,7 +68,7 @@ describe("SQLiteDBWrapper", () => {
 
       // Verify final value before closing
       const result = await db.query<{ value: number }>(
-        "SELECT value FROM counter WHERE id = 1"
+        "SELECT value FROM counter WHERE id = 1",
       );
       expect(result.rows[0].value).toBe(5);
 
@@ -105,7 +102,7 @@ describe("SQLiteDBWrapper", () => {
 
       // Verify operations fail
       await expect(
-        db.exec("CREATE TABLE test2 (id INTEGER PRIMARY KEY)")
+        db.exec("CREATE TABLE test2 (id INTEGER PRIMARY KEY)"),
       ).rejects.toThrow();
     });
   });
@@ -113,7 +110,7 @@ describe("SQLiteDBWrapper", () => {
   describe("runExclusive", () => {
     it("should serialize operations correctly", async () => {
       await db.exec(
-        "CREATE TABLE test (id INTEGER PRIMARY KEY, value INTEGER)"
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value INTEGER)",
       );
       await db.query("INSERT INTO test (id, value) VALUES (1, 0)");
 
@@ -132,7 +129,7 @@ describe("SQLiteDBWrapper", () => {
 
       // Verify final value
       const result = await db.query<{ value: number }>(
-        "SELECT value FROM test WHERE id = 1"
+        "SELECT value FROM test WHERE id = 1",
       );
       expect(result.rows[0].value).toBe(10);
     });

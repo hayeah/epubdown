@@ -1,18 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Driver } from "./";
+import { SQLiteDB } from "./";
 
 describe("SQLite Database - Uint8Array BLOB Storage", () => {
-  let driver: Driver;
-  let db: Awaited<ReturnType<Driver["open"]>>;
+  let db: SQLiteDB;
 
   beforeEach(async () => {
-    driver = await Driver.open();
-    db = await driver.open(":memory:");
+    db = await SQLiteDB.open(":memory:");
   });
 
   afterEach(async () => {
     await db.close();
-    await driver.close();
   });
 
   it("should store and retrieve Uint8Array data in BLOB column", async () => {
