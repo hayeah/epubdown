@@ -159,6 +159,38 @@ const blob = rows[0].data as Uint8Array;
 
 Because the wrapper copies every Uint8Array, it is safe to keep `blob` after the query returns.
 
+## Binary snapshots
+
+Export and import databases as binary files using SQLite's native serialization:
+
+```ts
+import { serialize, deserialize } from "@hayeah/sqlite-browser";
+
+// Export database to binary
+const bytes = await serialize(db);
+
+// Create Blob for download
+const blob = new Blob([bytes], { type: 'application/x-sqlite3' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'database.sqlite';
+a.click();
+URL.revokeObjectURL(url);
+
+// Import from file
+const file = event.target.files[0];
+const importBytes = new Uint8Array(await file.arrayBuffer());
+const db = await SQLiteDB.open();
+await deserialize(db, importBytes);
+```
+
+The exported file is a standard SQLite database that can be opened by any SQLite tool. The snapshot is consistent because `sqlite3_serialize` creates an implicit transaction.
+
+Note: `deserialize` replaces all existing data in the database with the imported content.
+
+Binary serialization is much faster than text-based `.dump` commands and preserves the exact page structure of your database.
+
 ## Browser versus test environment
 
 During Vitest runs (`process.env.NODE_ENV === "test"`):

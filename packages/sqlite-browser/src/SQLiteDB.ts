@@ -1,6 +1,6 @@
 import * as SQLite from "wa-sqlite";
 import { Driver } from "./Driver";
-import type { SQLLikeDB } from "./Migrator";
+import type { SQLLikeDB } from "./migrator";
 
 export class SQLiteDB implements SQLLikeDB {
   /** promise we chain every call onto */
