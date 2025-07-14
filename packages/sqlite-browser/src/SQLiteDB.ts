@@ -9,31 +9,31 @@ export class SQLiteDB implements SQLLikeDB {
   private readonly useQueue: boolean;
 
   constructor(
-    private readonly sqlite3: ReturnType<typeof SQLite.Factory>,
-    private readonly db: number,
+    readonly driver: Driver,
     useQueue = true,
-    private readonly vfs: any | null = null,
-    private readonly databaseName: string = ":memory:",
   ) {
     this.useQueue = useQueue;
   }
 
+  get db(): number {
+    return this.driver.handle;
+  }
+
+  get sqlite3(): ReturnType<typeof SQLite.Factory> {
+    return this.driver.sqlite3;
+  }
+
+  get vfs(): any | null {
+    return this.driver.vfs;
+  }
+
   get indexedDBStore(): string | null {
-    if (this.vfs && this.databaseName !== ":memory:") {
-      return `sqlite://${this.databaseName}`;
-    }
-    return null;
+    return this.driver.indexedDBStore;
   }
 
   static async open(databaseName = ":memory:"): Promise<SQLiteDB> {
     const driver = await Driver.open(databaseName);
-    return new SQLiteDB(
-      driver.sqlite3,
-      driver.handle,
-      true,
-      driver.vfs,
-      databaseName,
-    );
+    return new SQLiteDB(driver);
   }
 
   private static toPositional(sql: string): string {
@@ -104,13 +104,7 @@ export class SQLiteDB implements SQLLikeDB {
       await this.execRaw("BEGIN");
       try {
         // inner wrapper skips the queue, staying inside this BEGIN…COMMIT pair
-        const txWrapper = new SQLiteDB(
-          this.sqlite3,
-          this.db,
-          false,
-          this.vfs,
-          this.databaseName,
-        );
+        const txWrapper = new SQLiteDB(this.driver, false);
         const result = await fn(txWrapper);
         await this.execRaw("COMMIT");
         return result;
@@ -123,10 +117,7 @@ export class SQLiteDB implements SQLLikeDB {
 
   async close(): Promise<void> {
     return this.runExclusive(async () => {
-      await this.sqlite3.close(this.db);
-      if (this.vfs) {
-        await this.vfs.close();
-      }
+      await this.driver.close();
     });
   }
 }

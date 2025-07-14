@@ -31,20 +31,13 @@ import { SQLiteDB } from "./SQLiteDB";
 export async function destroy(target: Driver): Promise<void>;
 export async function destroy(target: SQLiteDB): Promise<void>;
 export async function destroy(target: Driver | SQLiteDB): Promise<void> {
-  if (target instanceof Driver) {
+  if (target instanceof SQLiteDB) {
+    // SQLiteDB case - recurse with the driver
+    await destroy(target.driver);
+  } else if (target instanceof Driver) {
     const indexedDBStore = target.indexedDBStore;
 
     // First close the driver
-    await target.close();
-
-    // Then delete the IndexedDB store if it exists
-    if (indexedDBStore) {
-      await deleteIndexedDB(indexedDBStore);
-    }
-  } else if (target instanceof SQLiteDB) {
-    const indexedDBStore = target.indexedDBStore;
-
-    // First close the database
     await target.close();
 
     // Then delete the IndexedDB store if it exists
