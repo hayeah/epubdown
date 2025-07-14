@@ -145,4 +145,54 @@ describe("SQLite Database", () => {
 
     expect(result.rows).toHaveLength(0);
   });
+
+  it("should handle exec with parameters", async () => {
+    await db.exec(`
+      CREATE TABLE items (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        quantity INTEGER
+      )
+    `);
+
+    // Test exec with parameters
+    await db.exec("INSERT INTO items (name, quantity) VALUES (?, ?)", [
+      "Widget",
+      100,
+    ]);
+    await db.exec("INSERT INTO items (name, quantity) VALUES (?, ?)", [
+      "Gadget",
+      50,
+    ]);
+
+    // Verify the data was inserted
+    const result = await db.query<{ name: string; quantity: number }>(
+      "SELECT * FROM items ORDER BY name",
+    );
+
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[0]).toEqual({ id: 2, name: "Gadget", quantity: 50 });
+    expect(result.rows[1]).toEqual({ id: 1, name: "Widget", quantity: 100 });
+  });
+
+  it("should handle exec with UPDATE and parameters", async () => {
+    await db.exec(`
+      CREATE TABLE products (
+        id INTEGER PRIMARY KEY,
+        price REAL
+      )
+    `);
+
+    await db.exec("INSERT INTO products (id, price) VALUES (1, 10.99)");
+    await db.exec("INSERT INTO products (id, price) VALUES (2, 20.99)");
+
+    // Update with parameters
+    await db.exec("UPDATE products SET price = ? WHERE id = ?", [15.99, 1]);
+
+    const result = await db.query<{ id: number; price: number }>(
+      "SELECT * FROM products WHERE id = 1",
+    );
+
+    expect(result.rows[0].price).toBe(15.99);
+  });
 });

@@ -50,13 +50,58 @@ export class SQLiteDB implements SQLLikeDB {
     return task;
   }
 
+  /**
+   * Execute a prepared statement with the given parameters.
+   * @param sql - The SQL statement to execute
+   * @param params - Parameters to bind to the statement
+   * @param onRow - Optional callback to process each row (for query)
+   */
+  private async executePrepared(
+    sql: string,
+    params: unknown[],
+    onRow?: (stmt: number) => void,
+  ): Promise<void> {
+    for await (const stmt of this.sqlite3.statements(this.db, sql)) {
+      if (params.length) {
+        this.sqlite3.bind_collection(stmt, params);
+      }
+
+      // always run exactly one step
+      let rc = await this.sqlite3.step(stmt);
+
+      if (!onRow) {
+        // no row callback.
+        // automatic finalise when SQLITE_DONE reached
+        continue;
+      }
+
+      // user wants rows
+      if (rc === SQLite.SQLITE_ROW) {
+        onRow(stmt);
+      }
+
+      while (rc !== SQLite.SQLITE_DONE) {
+        rc = await this.sqlite3.step(stmt);
+        if (rc === SQLite.SQLITE_ROW) {
+          onRow(stmt);
+        }
+      }
+      // automatic finalise when SQLITE_DONE reached
+    }
+  }
   /** raw exec without queuing (only call from runExclusive) */
-  private async execRaw(sql: string): Promise<void> {
-    await this.sqlite3.exec(this.db, sql);
+  private async execRaw(sql: string, params: unknown[] = []): Promise<void> {
+    if (params.length === 0) {
+      // Use simple exec for statements without parameters
+      await this.sqlite3.exec(this.db, sql);
+    } else {
+      // Use prepared statements for parameterized queries
+      await this.executePrepared(sql, params);
+    }
   }
 
-  async exec(sql: string): Promise<void> {
-    return this.runExclusive(() => this.execRaw(sql));
+  async exec(sql: string, params: unknown[] = []): Promise<void> {
+    return this.runExclusive(() => this.execRaw(sql, params));
   }
 
   async query<R = Record<string, unknown>>(
@@ -66,29 +111,24 @@ export class SQLiteDB implements SQLLikeDB {
     return this.runExclusive(async () => {
       const rows: R[] = [];
 
-      for await (const stmt of this.sqlite3.statements(this.db, sql)) {
-        if (params.length) {
-          this.sqlite3.bind_collection(stmt, params as unknown[]);
-        }
+      await this.executePrepared(sql, params, (stmt) => {
+        const colCount = this.sqlite3.column_count(stmt);
+        const row: Record<string, unknown> = {};
 
-        while ((await this.sqlite3.step(stmt)) === SQLite.SQLITE_ROW) {
-          const colCount = this.sqlite3.column_count(stmt);
-          const row: Record<string, unknown> = {};
-
-          for (let i = 0; i < colCount; i++) {
-            const name = this.sqlite3.column_name(stmt, i);
-            const value = this.sqlite3.column(stmt, i);
-            // BLOB data returned by column() is a view into WASM memory that becomes
-            // invalid after the next SQLite operation. We need to copy it.
-            if (value instanceof Uint8Array) {
-              row[name] = value.slice();
-            } else {
-              row[name] = value;
-            }
+        for (let i = 0; i < colCount; i++) {
+          const name = this.sqlite3.column_name(stmt, i);
+          const value = this.sqlite3.column(stmt, i);
+          // BLOB data returned by column() is a view into WASM memory that becomes
+          // invalid after the next SQLite operation. We need to copy it.
+          if (value instanceof Uint8Array) {
+            row[name] = value.slice();
+          } else {
+            row[name] = value;
           }
-          rows.push(row as R);
         }
-      }
+        rows.push(row as R);
+      });
+
       return { rows };
     });
   }

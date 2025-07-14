@@ -1,5 +1,5 @@
 export interface SQLLikeDB {
-  exec(sql: string): Promise<void>;
+  exec(sql: string, params?: unknown[]): Promise<void>;
   query<R = unknown>(sql: string, params?: unknown[]): Promise<{ rows: R[] }>;
   close?(): Promise<void>;
 }
