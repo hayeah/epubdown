@@ -1,8 +1,5 @@
 import type { EPub } from "@epubdown/core";
-import {
-  type SQLiteDatabase,
-  createSqliteDatabase,
-} from "@hayeah/sqlite-browser";
+import { SQLiteDB } from "@hayeah/sqlite-browser";
 import { BlobStore } from "./BlobStore";
 import { BookDatabase, type BookMetadata } from "./BookDatabase";
 
@@ -13,12 +10,12 @@ export interface StoredBook extends BookMetadata {
 export class BookStorage {
   private blobStore: BlobStore;
   private bookDb: BookDatabase;
-  private sqliteDb: SQLiteDatabase;
+  private sqliteDb: SQLiteDB;
 
   private constructor(
     blobStore: BlobStore,
     bookDb: BookDatabase,
-    sqliteDb: SQLiteDatabase,
+    sqliteDb: SQLiteDB,
   ) {
     this.blobStore = blobStore;
     this.bookDb = bookDb;
@@ -26,12 +23,9 @@ export class BookStorage {
   }
 
   static async create(): Promise<BookStorage> {
-    const sqliteDb = await createSqliteDatabase({
-      databaseName: "epubdown.db",
-      indexedDBStore: "epubdown-sqlite",
-    });
+    const sqliteDb = await SQLiteDB.open("epubdown");
 
-    const bookDb = await BookDatabase.create(sqliteDb.db);
+    const bookDb = await BookDatabase.create(sqliteDb);
     const blobStore = await BlobStore.create({
       dbName: "epubdown-books",
       storeName: "books",

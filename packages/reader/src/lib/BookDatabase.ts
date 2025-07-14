@@ -1,5 +1,4 @@
-import { Migrator } from "@hayeah/sqlite-browser";
-import type { SQLiteDBWrapper } from "@hayeah/sqlite-browser";
+import { Migrator, type SQLiteDB } from "@hayeah/sqlite-browser";
 import { base64ToUint8Array, uint8ArrayToBase64 } from "./base64";
 
 export interface BookMetadata {
@@ -13,13 +12,13 @@ export interface BookMetadata {
 }
 
 export class BookDatabase {
-  private db: SQLiteDBWrapper;
+  private db: SQLiteDB;
 
-  private constructor(db: SQLiteDBWrapper) {
+  private constructor(db: SQLiteDB) {
     this.db = db;
   }
 
-  static async create(db: SQLiteDBWrapper): Promise<BookDatabase> {
+  static async create(db: SQLiteDB): Promise<BookDatabase> {
     const migrator = new Migrator(db);
 
     const migration001 = `
@@ -73,10 +72,9 @@ export class BookDatabase {
   }
 
   async getBook(id: string): Promise<BookMetadata | null> {
-    const result = await this.db.query<any>(
-      "SELECT * FROM books WHERE id = ?",
-      [id],
-    );
+    const result = await this.db.query("SELECT * FROM books WHERE id = ?", [
+      id,
+    ]);
 
     if (result.rows.length === 0) return null;
 
@@ -85,7 +83,7 @@ export class BookDatabase {
   }
 
   async getAllBooks(): Promise<BookMetadata[]> {
-    const results = await this.db.query<any>(
+    const results = await this.db.query(
       "SELECT * FROM books ORDER BY created_at DESC",
     );
 
