@@ -1,5 +1,5 @@
 import { bench, describe } from "vitest";
-import { Driver, loadAsyncModuleUncached } from "./sqlite-database";
+import { Driver, loadAsyncModuleUncached } from "./Driver";
 
 describe("SQLite loading benchmarks", () => {
   bench("Driver.open and open database (with caching)", async () => {

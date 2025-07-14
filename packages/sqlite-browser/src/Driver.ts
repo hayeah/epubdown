@@ -1,13 +1,13 @@
 import * as SQLite from "wa-sqlite";
 import SQLiteESMFactory from "wa-sqlite/dist/wa-sqlite-async.mjs";
 import { IDBBatchAtomicVFS } from "wa-sqlite/src/examples/IDBBatchAtomicVFS.js";
-import { SQLiteDBWrapper } from "./sqlite-wrapper";
+import { SQLiteDB } from "./SQLiteDB";
 
 export class Driver {
   constructor(
     public readonly sqlite3: ReturnType<typeof SQLite.Factory>,
     public readonly module: any,
-    public readonly vfs: any,
+    public readonly vfs: any
   ) {}
 
   async close(): Promise<void> {
@@ -20,13 +20,13 @@ export class Driver {
     return await this.sqlite3.open_v2(databaseName);
   }
 
-  async open(databaseName = ":memory:"): Promise<SQLiteDBWrapper> {
+  async open(databaseName = ":memory:"): Promise<SQLiteDB> {
     const dbHandle = await this.openHandle(databaseName);
-    return new SQLiteDBWrapper(this.sqlite3, dbHandle);
+    return new SQLiteDB(this.sqlite3, dbHandle);
   }
 
   static async open(
-    options: { indexedDBStore?: string } = {},
+    options: { indexedDBStore?: string } = {}
   ): Promise<Driver> {
     const module = await loadAsyncModule();
     const sqlite3 = SQLite.Factory(module);

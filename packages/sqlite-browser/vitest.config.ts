@@ -12,6 +12,6 @@ export default defineConfig({
       provider: "playwright",
       headless: true,
     },
-    include: ["**/*.test.browser.{js,ts,jsx,tsx}", "**/*.test.{js,ts,jsx,tsx}"],
+    include: ["**/*.test.{js,ts,jsx,tsx}"],
   },
 });

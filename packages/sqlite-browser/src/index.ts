@@ -1,3 +1,3 @@
-export { Driver } from "./sqlite-database";
-export { SQLiteDBWrapper } from "./sqlite-wrapper";
-export { Migrator, type Migration, type SQLLikeDB } from "./migrator";
+export { Driver } from "./Driver";
+export { SQLiteDB as SQLiteDBWrapper } from "./SQLiteDB";
+export { Migrator, type Migration, type SQLLikeDB } from "./Migrator";

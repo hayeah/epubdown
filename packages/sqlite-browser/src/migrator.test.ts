@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Driver, type Migration, Migrator } from "./";
+import { Driver, type Migration, Migrator } from ".";
 
 describe("Migrator", () => {
   let driver: Driver;

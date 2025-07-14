@@ -1,7 +1,7 @@
 import * as SQLite from "wa-sqlite";
-import type { SQLLikeDB } from "./migrator";
+import type { SQLLikeDB } from "./Migrator";
 
-export class SQLiteDBWrapper implements SQLLikeDB {
+export class SQLiteDB implements SQLLikeDB {
   /** promise we chain every call onto */
   private queue: Promise<unknown> = Promise.resolve();
   /** when false, public methods run immediately (used inside a txn) */
@@ -10,7 +10,7 @@ export class SQLiteDBWrapper implements SQLLikeDB {
   constructor(
     private readonly sqlite3: ReturnType<typeof SQLite.Factory>,
     private readonly db: number,
-    useQueue = true,
+    useQueue = true
   ) {
     this.useQueue = useQueue;
   }
@@ -36,7 +36,7 @@ export class SQLiteDBWrapper implements SQLLikeDB {
 
   /** raw exec without queuing (only call from runExclusive) */
   private async execRaw(sql: string): Promise<void> {
-    await this.sqlite3.exec(this.db, SQLiteDBWrapper.toPositional(sql));
+    await this.sqlite3.exec(this.db, SQLiteDB.toPositional(sql));
   }
 
   async exec(sql: string): Promise<void> {
@@ -45,11 +45,11 @@ export class SQLiteDBWrapper implements SQLLikeDB {
 
   async query<R = Record<string, unknown>>(
     sql: string,
-    params: unknown[] = [],
+    params: unknown[] = []
   ): Promise<{ rows: R[] }> {
     return this.runExclusive(async () => {
       const rows: R[] = [];
-      const positional = SQLiteDBWrapper.toPositional(sql);
+      const positional = SQLiteDB.toPositional(sql);
 
       for await (const stmt of this.sqlite3.statements(this.db, positional)) {
         if (params.length) {
@@ -78,12 +78,12 @@ export class SQLiteDBWrapper implements SQLLikeDB {
     });
   }
 
-  async transaction<T>(fn: (tx: SQLiteDBWrapper) => Promise<T>): Promise<T> {
+  async transaction<T>(fn: (tx: SQLiteDB) => Promise<T>): Promise<T> {
     return this.runExclusive(async () => {
       await this.execRaw("BEGIN");
       try {
         // inner wrapper skips the queue, staying inside this BEGIN…COMMIT pair
-        const txWrapper = new SQLiteDBWrapper(this.sqlite3, this.db, false);
+        const txWrapper = new SQLiteDB(this.sqlite3, this.db, false);
         const result = await fn(txWrapper);
         await this.execRaw("COMMIT");
         return result;
