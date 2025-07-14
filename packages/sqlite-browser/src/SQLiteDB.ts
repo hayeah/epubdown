@@ -99,11 +99,59 @@ export class SQLiteDB implements SQLLikeDB {
     });
   }
 
+  /**
+   * Execute a database transaction with automatic BEGIN/COMMIT/ROLLBACK handling.
+   *
+   * ## How useQueue works
+   *
+   * `useQueue` is the on/off switch for the **promise-chain that serialises every call**
+   * to `exec`, `query`, or `transaction`:
+   *
+   * - When **true** (default) → each public method attaches its work to `this.queue`,
+   *   so any concurrent callers line up one-after-another
+   * - When **false** → the method runs immediately, trusting the surrounding code
+   *   to have already guaranteed exclusivity
+   *
+   * ## Transaction implementation
+   *
+   * The library turns useQueue *off* only inside the implementation of `transaction`:
+   *
+   * 1. `transaction()` itself acquires the queue's lock with `runExclusive` and issues `BEGIN`
+   * 2. It creates a **child** wrapper with `useQueue = false` and hands that to the user's callback
+   *    - All statements executed through this child run straight away, because the outer
+   *      `transaction()` is *already* holding the lock
+   *    - This avoids building a second, pointless promise chain and keeps the whole
+   *      `BEGIN … COMMIT` block truly atomic
+   *
+   * ## Why not leave it always true?
+   *
+   * - If inner statements re-queued themselves they would be scheduled **after** the outer
+   *   `transaction()` finishes (their promises would attach to a *new* queue tail) – they
+   *   would run *outside* the open transaction and the `COMMIT` would happen first
+   * - Even if you reused the same queue, constantly re-queuing inside tight loops would
+   *   add noticeable overhead and memory pressure
+   * - Turning it off only while already under the lock preserves correctness and improves
+   *   performance without sacrificing safety
+   *
+   * ## Usage
+   *
+   * In practice you never toggle `useQueue` yourself; simply call:
+   *
+   * ```ts
+   * await db.transaction(async (tx) => {
+   *   await tx.exec("INSERT …");
+   *   await tx.query("SELECT …");
+   * });
+   * ```
+   *
+   * The wrapper handles the switch for you. Everywhere else the queue should remain
+   * enabled so that independent calls on the same `SQLiteDB` instance stay serialized.
+   */
   async transaction<T>(fn: (tx: SQLiteDB) => Promise<T>): Promise<T> {
     return this.runExclusive(async () => {
       await this.execRaw("BEGIN");
       try {
-        // inner wrapper skips the queue, staying inside this BEGIN…COMMIT pair
+        // Create child wrapper with useQueue=false since we already hold the exclusive lock
         const txWrapper = new SQLiteDB(this.driver, false);
         const result = await fn(txWrapper);
         await this.execRaw("COMMIT");
