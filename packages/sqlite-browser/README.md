@@ -1,119 +1,190 @@
-# @hayeah/sqlite-browser
+# SQLite Browser
 
-SQLite for browser with IndexedDB persistence using wa-sqlite.
+A lightweight, promise-based wrapper around **wa-sqlite** that makes it simple to run SQLite entirely inside the browser – with optional persistence to IndexedDB for long-lived databases.
 
-## Features
+- Thin wrapper `Driver` that boots a WASM build of SQLite and wires up an **IndexedDB-backed VFS** when you want persistence
+- Thin ORM-style helper `SQLiteDB` that gives you async `exec`, `query`, and `transaction` with automatic queuing so you do not have to worry about overlap
+- A migration helper `Migrator` inspired by server frameworks
+- A `destroy` helper that closes the connection **and** cleans up the backing IndexedDB store (handy for tests)
 
-- SQLite in the browser using WebAssembly
-- Automatic persistence to IndexedDB
-- Transaction support with proper rollback
-- Queue-based execution for thread safety
-- TypeScript support
-- Parameterized queries with `$1, $2` syntax
-- Database migrations
-
-## Installation
+## Installing
 
 ```bash
 npm install @hayeah/sqlite-browser wa-sqlite
+# or
+pnpm add @hayeah/sqlite-browser wa-sqlite
 ```
 
-## Usage
+## Opening a database
 
-### Basic Usage
+```ts
+import { SQLiteDB } from "@hayeah/sqlite-browser";
 
-```typescript
-import { createSqliteDatabase } from '@hayeah/sqlite-browser';
+const db = await SQLiteDB.open(); // in-memory (fast, volatile)
+const persistent = await SQLiteDB.open("todo-app"); // persists to IndexedDB
+```
 
-// Create a database instance
-const { db, close } = await createSqliteDatabase({
-  databaseName: 'myapp.db',
-  indexedDBStore: 'myapp-store'
-});
+`SQLiteDB.open(name?)`
 
-// Create tables
+- `":memory:"` (default) keeps everything in RAM
+- Any other string becomes an **IndexedDB store** named `sqlite://<name>`
+
+You can later discover the store through `db.indexedDBStore`.
+
+## Running simple statements
+
+```ts
 await db.exec(`
-  CREATE TABLE users (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE
-  )
+  CREATE TABLE tasks (
+    id   INTEGER PRIMARY KEY,
+    text TEXT NOT NULL,
+    done INTEGER DEFAULT 0
+  );
 `);
 
-// Insert data
-await db.query(
-  'INSERT INTO users (name, email) VALUES ($1, $2)',
-  ['John Doe', 'john@example.com']
-);
-
-// Query data
-const result = await db.query<{ id: number; name: string; email: string }>(
-  'SELECT * FROM users WHERE email = $1',
-  ['john@example.com']
-);
-
-console.log(result.rows[0]); // { id: 1, name: 'John Doe', email: 'john@example.com' }
-
-// Close the database when done
-await close();
+await db.exec(`INSERT INTO tasks (text) VALUES ($1)`, ["Write guide"]);
 ```
 
-### Transactions
+### Positional parameters
 
-```typescript
+`SQLiteDB` rewrites `$1`, `$2`, … into `?` so you can keep familiar `$n` style:
+
+```ts
+const { rows } = await db.query(
+  "SELECT * FROM tasks WHERE done = $1 LIMIT $2",
+  [0, 10]
+);
+```
+
+Returned shape:
+
+```ts
+// rows is an array of plain objects
+[{ id: 1, text: "Write guide", done: 0 }];
+```
+
+Binary `BLOB`s are copied out of WASM memory for safety – you can store ArrayBuffers without leaks.
+
+## Transactions
+
+All public methods are queued so operations never collide. For atomic work, wrap a function in `transaction`:
+
+```ts
 await db.transaction(async (tx) => {
-  await tx.query('UPDATE accounts SET balance = balance - $1 WHERE id = $2', [100, 1]);
-  await tx.query('UPDATE accounts SET balance = balance + $1 WHERE id = $2', [100, 2]);
+  await tx.exec("INSERT INTO tasks (text) VALUES ($1)", ["Add tests"]);
+  await tx.exec("INSERT INTO tasks (text) VALUES ($1)", ["Ship release"]);
 });
 ```
 
-### Migrations
+- `BEGIN` and `COMMIT` are issued automatically
+- Inside the callback, operations **skip** the outer queue so they run inside the same transaction
 
-```typescript
-import { Migrator } from '@hayeah/sqlite-browser';
+Nested transactions? Just start another `transaction` inside; SQLite gives you savepoints.
 
-const migrations = [
+## Migrations
+
+Create an array of `Migration` objects, then run them once on startup:
+
+```ts
+import { Migrator, type Migration } from "@hayeah/sqlite-browser";
+
+const migrations: Migration[] = [
   {
-    name: '001_create_users',
-    up: `CREATE TABLE users (
-      id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL
-    )`
+    name: "001-create-tasks",
+    up: `
+      CREATE TABLE tasks (
+        id   INTEGER PRIMARY KEY,
+        text TEXT NOT NULL,
+        done INTEGER DEFAULT 0
+      );
+    `,
   },
   {
-    name: '002_add_email',
-    up: `ALTER TABLE users ADD COLUMN email TEXT`
-  }
+    name: "002-add-priority",
+    up: `ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 0;`,
+  },
 ];
 
-const migrator = new Migrator(db);
-await migrator.up(migrations);
+const db = await SQLiteDB.open("todo-app");
+await new Migrator(db).up(migrations);
 ```
 
-## API
+- A meta table `migrations` tracks what has already run
+- Migrations are **idempotent**: only new entries execute
+- Runs inside one overarching transaction to guarantee atomicity
 
-### createSqliteDatabase(options?)
+## Cleaning up in tests
 
-Creates a new SQLite database instance.
+```ts
+import { destroy } from "@hayeah/sqlite-browser";
 
-Options:
-- `databaseName`: Name of the database file (default: ":memory:")
-- `indexedDBStore`: Name of the IndexedDB store for persistence. If not provided, IndexedDB will not be used.
+let db: SQLiteDB;
 
-### SQLiteDBWrapper
+beforeEach(async () => {
+  db = await SQLiteDB.open("test-db");
+});
 
-The main database interface with the following methods:
+afterEach(async () => {
+  await destroy(db); // closes connection and deletes IndexedDB store
+});
+```
 
-- `exec(sql: string)`: Execute SQL statements without returning results
-- `query<T>(sql: string, params?: unknown[])`: Execute queries and return results
-- `transaction<T>(fn: (tx: SQLiteDBWrapper) => Promise<T>)`: Run operations in a transaction
+`destroy` accepts either a `SQLiteDB` or a raw `Driver`.
 
-### Migrator
+## Accessing low-level Driver
 
-Database migration tool:
+```ts
+import { Driver } from "@hayeah/sqlite-browser";
 
-- `up(migrations: Migration[])`: Apply all pending migrations
+const driver = await Driver.open("analytics");
+driver.sqlite3.exec(driver.handle, "VACUUM");
+await driver.close();
+```
 
-## License
+Useful when you need wa-sqlite APIs that `SQLiteDB` does not expose.
 
-MIT
+---
+
+## Working with BLOBs
+
+```ts
+// store raw Uint8Array
+await db.exec(`INSERT INTO files (name, data) VALUES ($1, $2)`,
+              ["logo.png", new Uint8Array([...])]);
+
+// retrieve
+const { rows } = await db.query(`SELECT data FROM files WHERE id = $1`, [1]);
+const blob = rows[0].data as Uint8Array;
+```
+
+Because the wrapper copies every Uint8Array, it is safe to keep `blob` after the query returns.
+
+## Browser versus test environment
+
+During Vitest runs (`process.env.NODE_ENV === "test"`):
+
+- The WASM binary loads from `node_modules/wa-sqlite/dist/wa-sqlite-async.wasm`
+- No IndexedDB, unless you provide a polyfill such as `fake-indexeddb`
+
+In real browsers:
+
+- Vite injects a URL for the `.wasm` file with `?url`
+- If you pass a `databaseName` other than `":memory:"`, a new IndexedDB store is created automatically
+
+## Common pitfalls
+
+- **Do not** mix `db.exec` with direct `driver.sqlite3` calls inside the same operation unless you fully understand the queuing model.
+- Remember that some browsers block IndexedDB in private windows.
+- WASM instantiation is asynchronous; always await `SQLiteDB.open`.
+- For schema changes use migrations; skipping them often leaves users with divergent schemas.
+
+## FAQ
+
+- **Q: Can I share one database between multiple tabs?**
+  A: Yes, IndexedDB is shared. Each tab runs its own WASM instance, but the VFS coordinates access through atomic batches.
+
+- **Q: How big can the database grow?**
+  A: IndexedDB limits vary, but hundreds of megabytes are usually fine; the biggest limit is user quota.
+
+- **Q: Can I bundle this in a service worker?**
+  A: Yes – just ensure you await `SQLiteDB.open` before handling fetch events.
