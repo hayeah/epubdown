@@ -1,24 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Driver } from "./";
+import { SQLiteDB } from "./";
 
 describe("SQLite Database", () => {
-  let driver: Driver;
-  let db: Awaited<ReturnType<Driver["open"]>>;
+  let db: SQLiteDB;
 
   beforeEach(async () => {
-    driver = await Driver.open();
-    db = await driver.open(":memory:");
+    db = await SQLiteDB.open(":memory:");
   });
 
   afterEach(async () => {
     await db.close();
-    await driver.close();
   });
 
   it("should create a database instance", async () => {
     expect(db).toBeDefined();
     expect(db.close).toBeDefined();
-    expect(driver).toBeDefined();
   });
 
   it("should execute SQL commands", async () => {
@@ -37,7 +33,7 @@ describe("SQLite Database", () => {
     expect(tables.rows[0].name).toBe("test");
   });
 
-  it("should handle parameterized queries with $n syntax", async () => {
+  it("should handle parameterized queries with ? placeholders", async () => {
     await db.exec(`
       CREATE TABLE users (
         id INTEGER PRIMARY KEY,
@@ -46,17 +42,14 @@ describe("SQLite Database", () => {
       )
     `);
 
-    await db.query("INSERT INTO users (name, age) VALUES ($1, $2)", [
+    await db.query("INSERT INTO users (name, age) VALUES (?, ?)", [
       "Alice",
       30,
     ]);
-    await db.query("INSERT INTO users (name, age) VALUES ($1, $2)", [
-      "Bob",
-      25,
-    ]);
+    await db.query("INSERT INTO users (name, age) VALUES (?, ?)", ["Bob", 25]);
 
     const result = await db.query<{ name: string; age: number }>(
-      "SELECT * FROM users WHERE age > $1 ORDER BY name",
+      "SELECT * FROM users WHERE age > ? ORDER BY name",
       [24],
     );
 
@@ -151,5 +144,55 @@ describe("SQLite Database", () => {
     const result = await db.query("SELECT * FROM empty");
 
     expect(result.rows).toHaveLength(0);
+  });
+
+  it("should handle exec with parameters", async () => {
+    await db.exec(`
+      CREATE TABLE items (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        quantity INTEGER
+      )
+    `);
+
+    // Test exec with parameters
+    await db.exec("INSERT INTO items (name, quantity) VALUES (?, ?)", [
+      "Widget",
+      100,
+    ]);
+    await db.exec("INSERT INTO items (name, quantity) VALUES (?, ?)", [
+      "Gadget",
+      50,
+    ]);
+
+    // Verify the data was inserted
+    const result = await db.query<{ name: string; quantity: number }>(
+      "SELECT * FROM items ORDER BY name",
+    );
+
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[0]).toEqual({ id: 2, name: "Gadget", quantity: 50 });
+    expect(result.rows[1]).toEqual({ id: 1, name: "Widget", quantity: 100 });
+  });
+
+  it("should handle exec with UPDATE and parameters", async () => {
+    await db.exec(`
+      CREATE TABLE products (
+        id INTEGER PRIMARY KEY,
+        price REAL
+      )
+    `);
+
+    await db.exec("INSERT INTO products (id, price) VALUES (1, 10.99)");
+    await db.exec("INSERT INTO products (id, price) VALUES (2, 20.99)");
+
+    // Update with parameters
+    await db.exec("UPDATE products SET price = ? WHERE id = ?", [15.99, 1]);
+
+    const result = await db.query<{ id: number; price: number }>(
+      "SELECT * FROM products WHERE id = 1",
+    );
+
+    expect(result.rows[0].price).toBe(15.99);
   });
 });

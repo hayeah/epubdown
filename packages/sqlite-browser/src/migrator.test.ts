@@ -1,21 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Driver, type Migration, Migrator } from "./";
+import { type Migration, Migrator, SQLiteDB } from ".";
 
 describe("Migrator", () => {
-  let driver: Driver;
-  let db: Awaited<ReturnType<Driver["open"]>>;
+  let db: SQLiteDB;
   let migrator: Migrator;
 
   beforeEach(async () => {
     // Create a fresh in-memory database for each test
-    driver = await Driver.open();
-    db = await driver.open(":memory:");
+    db = await SQLiteDB.open(":memory:");
     migrator = new Migrator(db);
   });
 
   afterEach(async () => {
     await db.close();
-    await driver.close();
   });
 
   it("should create migrations table on first run", async () => {

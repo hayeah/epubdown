@@ -1,18 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Driver } from "./";
+import { SQLiteDB } from "./";
 
 describe("SQLite Database - Uint8Array BLOB Storage", () => {
-  let driver: Driver;
-  let db: Awaited<ReturnType<Driver["open"]>>;
+  let db: SQLiteDB;
 
   beforeEach(async () => {
-    driver = await Driver.open();
-    db = await driver.open(":memory:");
+    db = await SQLiteDB.open(":memory:");
   });
 
   afterEach(async () => {
     await db.close();
-    await driver.close();
   });
 
   it("should store and retrieve Uint8Array data in BLOB column", async () => {
@@ -29,14 +26,14 @@ describe("SQLite Database - Uint8Array BLOB Storage", () => {
     const testData = new Uint8Array([0, 1, 2, 3, 127, 128, 255]);
 
     // Insert Uint8Array into BLOB column
-    await db.query("INSERT INTO files (name, data) VALUES ($1, $2)", [
+    await db.query("INSERT INTO files (name, data) VALUES (?, ?)", [
       "test.bin",
       testData,
     ]);
 
     // Retrieve the data
     const result = await db.query<{ name: string; data: Uint8Array }>(
-      "SELECT * FROM files WHERE name = $1",
+      "SELECT * FROM files WHERE name = ?",
       ["test.bin"],
     );
 
