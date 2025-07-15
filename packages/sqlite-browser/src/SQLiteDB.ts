@@ -104,6 +104,58 @@ export class SQLiteDB implements SQLLikeDB {
     return this.runExclusive(() => this.execRaw(sql, params));
   }
 
+  /**
+   * Execute a batch of statements with the same SQL but different parameters.
+   * This is much more efficient than calling exec() multiple times as it:
+   * - Prepares the statement only once
+   * - Reuses the same prepared statement for all parameter sets
+   * - Runs all executions within a transaction for atomicity and performance
+   *
+   * @param sql - The SQL statement to execute (should contain parameter placeholders)
+   * @param batchParams - Array of parameter arrays, one for each execution
+   * @returns Promise that resolves when all executions complete
+   *
+   * @example
+   * await db.execBatch(
+   *   "INSERT INTO users (name, age) VALUES (?, ?)",
+   *   [
+   *     ["Alice", 25],
+   *     ["Bob", 30],
+   *     ["Charlie", 35]
+   *   ]
+   * );
+   */
+  async execBatch(sql: string, batchParams: unknown[][]): Promise<void> {
+    // If already in a transaction (useQueue is false), execute directly
+    if (!this.useQueue) {
+      // Prepare statement once
+      for await (const stmt of this.sqlite3.statements(this.db, sql)) {
+        // Execute for each set of parameters
+        for (const params of batchParams) {
+          if (params.length) {
+            this.sqlite3.bind_collection(stmt, params);
+          }
+
+          // Execute until done
+          let rc = await this.sqlite3.step(stmt);
+          while (rc !== SQLite.SQLITE_DONE) {
+            rc = await this.sqlite3.step(stmt);
+          }
+
+          // Reset the statement for next iteration
+          await this.sqlite3.reset(stmt);
+        }
+        // Statement is automatically finalized when loop exits
+      }
+      return;
+    }
+
+    // Otherwise, wrap in a transaction for atomicity and performance
+    return this.transaction(async (tx) => {
+      await tx.execBatch(sql, batchParams);
+    });
+  }
+
   async query<R = Record<string, unknown>>(
     sql: string,
     params: unknown[] = [],
