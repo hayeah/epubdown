@@ -46,7 +46,7 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
     if (isLoading) {
       return (
         <div className={`chapter-loading ${className || ""}`}>
-          <div style={{ textAlign: "center", padding: "2rem", color: "#666" }}>
+          <div className="text-center p-8 text-gray-500">
             Loading chapter...
           </div>
         </div>
@@ -56,16 +56,7 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
     if (error || (!markdownResult && !isLoading)) {
       return (
         <div className={`chapter-error ${className || ""}`}>
-          <div
-            style={{
-              textAlign: "center",
-              padding: "2rem",
-              color: "#cc0000",
-              backgroundColor: "#ffe6e6",
-              border: "1px solid #cc0000",
-              borderRadius: "4px",
-            }}
-          >
+          <div className="text-center p-8 text-red-600 bg-red-50 border border-red-200 rounded">
             Error: {error || "Failed to load chapter"}
           </div>
         </div>
@@ -100,9 +91,13 @@ export const BookReader: React.FC<BookReaderProps> = observer(
     if (isLoading) {
       return (
         <div className={`book-loading ${className || ""}`}>
-          <div style={{ textAlign: "center", padding: "4rem" }}>
-            <h2>Loading "{metadata.title || "Book"}"...</h2>
-            <p>Please wait while we prepare your reading experience.</p>
+          <div className="text-center p-16">
+            <h2 className="text-xl font-semibold mb-4">
+              Loading "{metadata.title || "Book"}"...
+            </h2>
+            <p className="text-gray-600">
+              Please wait while we prepare your reading experience.
+            </p>
           </div>
         </div>
       );
@@ -127,27 +122,14 @@ export const BookReader: React.FC<BookReaderProps> = observer(
     return (
       <div className={`book-reader ${className || ""}`}>
         {/* Book header */}
-        <header
-          className="book-header"
-          style={{
-            borderBottom: "1px solid #eee",
-            paddingBottom: "1rem",
-            marginBottom: "2rem",
-          }}
-        >
-          <h1 style={{ margin: 0, fontSize: "1.5em" }}>{metadata.title}</h1>
+        <header className="border-b border-gray-200 pb-4 mb-8">
+          <h1 className="text-2xl font-semibold text-gray-900 leading-tight m-0">
+            {metadata.title}
+          </h1>
           {metadata.author && (
-            <p style={{ margin: "0.5rem 0 0 0", color: "#666" }}>
-              by {metadata.author}
-            </p>
+            <p className="text-gray-600 mt-2 mb-0">by {metadata.author}</p>
           )}
-          <div
-            style={{
-              marginTop: "1rem",
-              fontSize: "0.9em",
-              color: "#999",
-            }}
-          >
+          <div className="text-sm text-gray-400 mt-4">
             Chapter {currentChapterIndex + 1} of {chapters.length}
           </div>
         </header>
@@ -161,34 +143,21 @@ export const BookReader: React.FC<BookReaderProps> = observer(
         )}
 
         {/* Navigation */}
-        <nav
-          className="chapter-navigation"
-          style={{
-            marginTop: "3rem",
-            padding: "2rem 0",
-            borderTop: "1px solid #eee",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <nav className="mt-12 pt-8 border-t border-gray-200 flex justify-between items-center">
           <button
             type="button"
             onClick={handlePrevious}
             disabled={!hasPrevious}
-            style={{
-              padding: "0.75rem 1.5rem",
-              backgroundColor: hasPrevious ? "#0066cc" : "#ccc",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: hasPrevious ? "pointer" : "not-allowed",
-            }}
+            className={`px-6 py-3 rounded text-white border-none ${
+              hasPrevious
+                ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
           >
             ← Previous Chapter
           </button>
 
-          <span style={{ color: "#666" }}>
+          <span className="text-gray-500">
             {currentChapterIndex + 1} / {chapters.length}
           </span>
 
@@ -196,14 +165,11 @@ export const BookReader: React.FC<BookReaderProps> = observer(
             type="button"
             onClick={handleNext}
             disabled={!hasNext}
-            style={{
-              padding: "0.75rem 1.5rem",
-              backgroundColor: hasNext ? "#0066cc" : "#ccc",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: hasNext ? "pointer" : "not-allowed",
-            }}
+            className={`px-6 py-3 rounded text-white border-none ${
+              hasNext
+                ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
           >
             Next Chapter →
           </button>
