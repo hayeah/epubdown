@@ -15,6 +15,8 @@ npm install @hayeah/sqlite-browser wa-sqlite
 pnpm add @hayeah/sqlite-browser wa-sqlite
 ```
 
+During development, the package loads directly from TypeScript sources for better hot-reloading. If you need a prebuilt JS bundle, import from `@hayeah/sqlite-browser/dist/index.js`.
+
 ## Opening a database
 
 ```ts
