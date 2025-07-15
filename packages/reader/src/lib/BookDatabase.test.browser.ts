@@ -1,23 +1,20 @@
-import { createSqliteDatabase } from "@hayeah/sqlite-browser";
-import type { SQLiteDBWrapper } from "@hayeah/sqlite-browser";
+import { SQLiteDB } from "@hayeah/sqlite-browser";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BookDatabase, type BookMetadata } from "./BookDatabase";
 
 describe("BookDatabase", () => {
-  let db: SQLiteDBWrapper;
+  let db: SQLiteDB;
   let bookDatabase: BookDatabase;
 
   beforeEach(async () => {
     // Create a fresh in-memory database for each test
-    const sqliteDb = await createSqliteDatabase({
-      databaseName: ":memory:",
-    });
-    db = sqliteDb.db;
+    db = await SQLiteDB.open(":memory:");
     bookDatabase = await BookDatabase.create(db);
   });
 
   afterEach(async () => {
-    // Clean up - nothing needed for in-memory database
+    // Clean up
+    await db.close();
   });
 
   describe("create", () => {

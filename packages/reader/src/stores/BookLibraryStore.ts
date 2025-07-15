@@ -1,21 +1,35 @@
 import { EPub } from "@epubdown/core";
+import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import { makeAutoObservable, runInAction } from "mobx";
-import type { BookMetadata } from "../lib/BookDatabase";
-import { BookStorage } from "../lib/BookStorage";
+import { BlobStore } from "../lib/BlobStore";
+import { BookDatabase, type BookMetadata } from "../lib/BookDatabase";
+import { getDb } from "../lib/DatabaseProvider";
+
+export interface StoredBook extends BookMetadata {
+  blob?: Blob;
+}
 
 export class BookLibraryStore {
   books: BookMetadata[] = [];
   isLoading = false;
-  private bookStorage: BookStorage;
 
-  private constructor(bookStorage: BookStorage) {
-    this.bookStorage = bookStorage;
+  private constructor(
+    private readonly blobStore: BlobStore,
+    private readonly bookDb: BookDatabase,
+    private readonly sqliteDb: SQLiteDB,
+  ) {
     makeAutoObservable(this);
   }
 
-  static async create(): Promise<BookLibraryStore> {
-    const bookStorage = await BookStorage.create();
-    const store = new BookLibraryStore(bookStorage);
+  static async create(db?: SQLiteDB): Promise<BookLibraryStore> {
+    const sqliteDb = db || (await getDb());
+    const bookDb = await BookDatabase.create(sqliteDb);
+    const blobStore = await BlobStore.create({
+      dbName: "epubdown-books",
+      storeName: "books",
+    });
+
+    const store = new BookLibraryStore(blobStore, bookDb, sqliteDb);
     await store.loadBooks();
     return store;
   }
@@ -24,7 +38,7 @@ export class BookLibraryStore {
     this.isLoading = true;
 
     try {
-      const books = await this.bookStorage.getAllBooks();
+      const books = await this.bookDb.getAllBooks();
       runInAction(() => {
         this.books = books;
         this.isLoading = false;
@@ -42,8 +56,23 @@ export class BookLibraryStore {
     const arrayBuffer = await file.arrayBuffer();
     const epub = await EPub.fromZip(arrayBuffer);
 
-    // Add to storage
-    const bookId = await this.bookStorage.addBook(file, epub);
+    // Generate a clean ID from filename
+    const bookId = this.generateBookId(file.name);
+    const blobStoreKey = `book-${bookId}`;
+
+    // Extract metadata from epub
+    const epubMetadata = epub.getMetadata();
+
+    // Store the book file
+    await this.blobStore.put(blobStoreKey, file);
+
+    // Store metadata in SQLite
+    await this.bookDb.addBook({
+      id: bookId,
+      title: epubMetadata.title || file.name,
+      filename: file.name,
+      fileSize: file.size,
+    });
 
     // Reload books list
     await this.loadBooks();
@@ -52,31 +81,60 @@ export class BookLibraryStore {
   }
 
   async deleteBook(bookId: string) {
-    await this.bookStorage.deleteBook(bookId);
+    const book = await this.bookDb.getBook(bookId);
+    if (!book) return;
+
+    // Delete blob first
+    const blobStoreKey = `book-${bookId}`;
+    await this.blobStore.delete(blobStoreKey);
+
+    // Then delete metadata
+    await this.bookDb.deleteBook(bookId);
+
     await this.loadBooks();
   }
 
   async loadBookForReading(
     bookId: string,
   ): Promise<{ blob: Blob; metadata: BookMetadata } | null> {
-    const storedBook = await this.bookStorage.getBook(bookId);
-    if (!storedBook || !storedBook.blob) return null;
+    const metadata = await this.bookDb.getBook(bookId);
+    if (!metadata) return null;
+
+    const blobStoreKey = `book-${bookId}`;
+    const blob = await this.blobStore.getBlob(blobStoreKey);
+    if (!blob) {
+      // Book blob is missing, clean up metadata
+      await this.bookDb.deleteBook(bookId);
+      return null;
+    }
 
     // Update last opened timestamp
-    await this.bookStorage.updateLastOpened(bookId);
+    await this.bookDb.updateLastOpened(bookId);
 
     return {
-      blob: storedBook.blob,
-      metadata: storedBook,
+      blob,
+      metadata,
     };
   }
 
-  // Getter for testing purposes
-  get storage(): BookStorage {
-    return this.bookStorage;
+  private generateBookId(filename: string): string {
+    // Remove file extension and clean up filename
+    const nameWithoutExt = filename.replace(/\.epub$/i, "");
+    // Replace non-alphanumeric characters with hyphens
+    const cleaned = nameWithoutExt
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+
+    // Add timestamp to ensure uniqueness
+    const timestamp = Date.now().toString(36);
+    return `${cleaned}-${timestamp}`;
   }
 
   async close(): Promise<void> {
-    await this.bookStorage.close();
+    this.blobStore.close();
+    // Note: We don't close the shared SQLiteDB instance here
+    // as it may be used by other parts of the application.
+    // Use closeDb() from DatabaseProvider for app-wide cleanup.
   }
 }
