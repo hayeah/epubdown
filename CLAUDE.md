@@ -6,8 +6,8 @@
 # Make Notes
 
 - When making complex or tricky changes to a file, you should make notes beside the source file.
-- If the file is named `BlobStore.ts`, name your note `BlobStore.ts.md`
-- Make sure that the notes are up to date.
+- If the file is named `BlobStore.ts`, name your note `BlobStore.md`. Replace extension with `.md`.
+- Make sure that the notes are up to date, current with the latest implementation.
 - Commit your notes along with the code changes.
 
 # File Naming Convention
