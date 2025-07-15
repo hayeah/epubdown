@@ -1,5 +1,6 @@
 import type { EPub, MarkdownResult, XMLFile } from "@epubdown/core";
 import parse, { domToReact, Element, type DOMNode } from "html-react-parser";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { marked } from "marked";
 import { observer } from "mobx-react-lite";
 import React, { useState, useEffect } from "react";
@@ -121,6 +122,41 @@ export const BookReader: React.FC<BookReaderProps> = observer(
 
     return (
       <div className={`book-reader ${className || ""}`}>
+        {/* Chapter navigation */}
+        <nav className="flex justify-between items-center mb-6">
+          <button
+            type="button"
+            onClick={handlePrevious}
+            disabled={!hasPrevious}
+            className={`p-2 rounded-full transition-colors border border-gray-200 ${
+              hasPrevious
+                ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed"
+            }`}
+            aria-label="Previous chapter"
+          >
+            <ChevronLeft size={20} />
+          </button>
+
+          <span className="text-sm text-gray-500">
+            Chapter {currentChapterIndex + 1} of {chapters.length}
+          </span>
+
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={!hasNext}
+            className={`p-2 rounded-full transition-colors border border-gray-200 ${
+              hasNext
+                ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed"
+            }`}
+            aria-label="Next chapter"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </nav>
+
         {/* Book header */}
         <header className="border-b border-gray-200 pb-4 mb-8">
           <h1 className="text-2xl font-semibold text-gray-900 leading-tight m-0">
@@ -129,9 +165,6 @@ export const BookReader: React.FC<BookReaderProps> = observer(
           {metadata.author && (
             <p className="text-gray-600 mt-2 mb-0">by {metadata.author}</p>
           )}
-          <div className="text-sm text-gray-400 mt-4">
-            Chapter {currentChapterIndex + 1} of {chapters.length}
-          </div>
         </header>
 
         {/* Current chapter */}
@@ -141,39 +174,6 @@ export const BookReader: React.FC<BookReaderProps> = observer(
             className="current-chapter"
           />
         )}
-
-        {/* Navigation */}
-        <nav className="mt-12 pt-8 border-t border-gray-200 flex justify-between items-center">
-          <button
-            type="button"
-            onClick={handlePrevious}
-            disabled={!hasPrevious}
-            className={`px-6 py-3 rounded text-white border-none ${
-              hasPrevious
-                ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                : "bg-gray-400 cursor-not-allowed"
-            }`}
-          >
-            ← Previous Chapter
-          </button>
-
-          <span className="text-gray-500">
-            {currentChapterIndex + 1} / {chapters.length}
-          </span>
-
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={!hasNext}
-            className={`px-6 py-3 rounded text-white border-none ${
-              hasNext
-                ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                : "bg-gray-400 cursor-not-allowed"
-            }`}
-          >
-            Next Chapter →
-          </button>
-        </nav>
       </div>
     );
   },
