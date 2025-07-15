@@ -1,20 +1,24 @@
-import { SQLiteDB } from "@hayeah/sqlite-browser";
+import { SQLiteDB, destroy } from "@hayeah/sqlite-browser";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BookDatabase, type BookMetadata } from "./BookDatabase";
+import { runMigrations } from "./DatabaseProvider";
 
 describe("BookDatabase", () => {
   let db: SQLiteDB;
   let bookDatabase: BookDatabase;
 
   beforeEach(async () => {
-    // Create a fresh in-memory database for each test
-    db = await SQLiteDB.open(":memory:");
+    // Create a fresh database for each test with a unique name
+    const testDbName = "test-db";
+    db = await SQLiteDB.open(testDbName);
+    // Run migrations manually for isolated test database
+    await runMigrations(db);
     bookDatabase = await BookDatabase.create(db);
   });
 
   afterEach(async () => {
-    // Clean up
-    await db.close();
+    // Destroy the database which closes and deletes it
+    await destroy(db);
   });
 
   describe("create", () => {

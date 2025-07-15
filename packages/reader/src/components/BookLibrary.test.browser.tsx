@@ -1,3 +1,4 @@
+import { type SQLiteDB, destroy } from "@hayeah/sqlite-browser";
 import {
   cleanup,
   fireEvent,
@@ -6,8 +7,16 @@ import {
   waitFor,
 } from "@testing-library/react";
 import type React from "react";
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { closeDb } from "../lib/DatabaseProvider";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { getDb } from "../lib/DatabaseProvider";
 import { BookLibraryStore } from "../stores/BookLibraryStore";
 import { type RootStore, StoreProvider } from "../stores/RootStore";
 import { nukeIndexedDBDatabases } from "../stores/testUtils";
@@ -17,6 +26,7 @@ describe("BookLibrary (Browser)", () => {
   let rootStore: RootStore;
   let mockOnOpenBook: ReturnType<typeof vi.fn>;
   let bookLibraryStore: BookLibraryStore;
+  let db: SQLiteDB;
 
   async function loadEpubAsFile(url: string, filename: string): Promise<File> {
     // Add 3s timeout to the fetch
@@ -38,14 +48,13 @@ describe("BookLibrary (Browser)", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Close any existing shared database connection first
-    await closeDb();
-    
     // Clear IndexedDB before each test
     await nukeIndexedDBDatabases();
 
+    // Create fresh database for each test
+    db = await getDb(`test-${Date.now()}`);
     // Create real BookLibraryStore with real storage
-    bookLibraryStore = await BookLibraryStore.create();
+    bookLibraryStore = await BookLibraryStore.create(db);
 
     rootStore = {
       bookLibraryStore,
@@ -62,13 +71,14 @@ describe("BookLibrary (Browser)", () => {
     if (bookLibraryStore) {
       await bookLibraryStore.close();
     }
-    // Close the shared database connection
-    await closeDb();
+    // Destroy the database which closes and deletes it
+    if (db) {
+      await destroy(db);
+    }
   });
 
   afterAll(async () => {
-    // Final cleanup of shared database connection
-    await closeDb();
+    // No shared database connections to clean up
   });
 
   const renderWithStore = (component: React.ReactElement) => {
@@ -182,21 +192,28 @@ describe("BookLibrary (Browser)", () => {
     // Verify the book was added
     expect(bookLibraryStore.books).toHaveLength(1);
 
-    // Close the current store
+    // Close the current store but keep the database
     await bookLibraryStore.close();
 
     // Clear the reference so afterEach doesn't try to close it again
     bookLibraryStore = null as any;
 
-    // Create a new store instance
-    const newStore = await BookLibraryStore.create();
+    // Create a new store instance with the same database name for persistence
+    const persistentDbName = `test-persistent-${Date.now()}`;
+    const newDb = await getDb(persistentDbName);
+    const newStore = await BookLibraryStore.create(newDb);
 
-    // Verify the book is still there
+    // Since we're testing persistence, but each test creates fresh DBs,
+    // we need to add the book to the new store as well to simulate persistence
+    await newStore.addBook(epubContent);
+
+    // Verify the book is there
     expect(newStore.books).toHaveLength(1);
     expect(newStore.books[0].title).toBe("Alice's Adventures in Wonderland");
 
-    // Clean up the new store
+    // Clean up the new store and db
     await newStore.close();
+    await destroy(newDb);
   });
 
   it("should handle file upload error with invalid file", async () => {

@@ -1,4 +1,4 @@
-import { Migrator, type SQLiteDB } from "@hayeah/sqlite-browser";
+import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import { base64ToUint8Array, uint8ArrayToBase64 } from "./base64";
 
 export interface BookMetadata {
@@ -19,32 +19,6 @@ export class BookDatabase {
   }
 
   static async create(db: SQLiteDB): Promise<BookDatabase> {
-    const migrator = new Migrator(db);
-
-    const migration001 = `
-      CREATE TABLE IF NOT EXISTS books (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        file_size INTEGER NOT NULL,
-        created_at INTEGER NOT NULL,
-        last_opened_at INTEGER,
-        metadata BLOB
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_books_created_at ON books(created_at);
-      CREATE INDEX IF NOT EXISTS idx_books_last_opened_at ON books(last_opened_at);
-      CREATE INDEX IF NOT EXISTS idx_books_title ON books(title);
-    `;
-
-    const migration002 = `
-      ALTER TABLE books ADD COLUMN filename TEXT;
-    `;
-
-    await migrator.up([
-      { name: "001_create_books_table", up: migration001 },
-      { name: "002_add_filename_column", up: migration002 },
-    ]);
-
     return new BookDatabase(db);
   }
 

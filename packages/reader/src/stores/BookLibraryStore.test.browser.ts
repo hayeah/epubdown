@@ -1,3 +1,4 @@
+import { type SQLiteDB, destroy } from "@hayeah/sqlite-browser";
 import {
   afterAll,
   afterEach,
@@ -7,21 +8,21 @@ import {
   it,
   vi,
 } from "vitest";
-import { closeDb } from "../lib/DatabaseProvider";
+import { getDb } from "../lib/DatabaseProvider";
 import { BookLibraryStore } from "./BookLibraryStore";
 import { nukeIndexedDBDatabases } from "./testUtils";
 
 describe("BookLibraryStore", () => {
   let store: BookLibraryStore;
+  let db: SQLiteDB;
 
   beforeEach(async () => {
-    // Close any existing shared database connection first
-    await closeDb();
-    
     // Clear IndexedDB before each test
     await nukeIndexedDBDatabases();
 
-    store = await BookLibraryStore.create();
+    // Create fresh database for each test
+    db = await getDb(`test-${Date.now()}`);
+    store = await BookLibraryStore.create(db);
   }, 1000);
 
   afterEach(async () => {
@@ -29,13 +30,14 @@ describe("BookLibraryStore", () => {
     if (store) {
       await store.close();
     }
-    // Close the shared database connection
-    await closeDb();
+    // Destroy the database which closes and deletes it
+    if (db) {
+      await destroy(db);
+    }
   });
 
   afterAll(async () => {
-    // Clean up the shared database connection
-    await closeDb();
+    // No shared database connections to clean up
   });
 
   async function loadEpubAsFile(url: string, filename: string): Promise<File> {

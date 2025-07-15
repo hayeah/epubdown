@@ -21,15 +21,14 @@ export class BookLibraryStore {
     makeAutoObservable(this);
   }
 
-  static async create(db?: SQLiteDB): Promise<BookLibraryStore> {
-    const sqliteDb = db || (await getDb());
-    const bookDb = await BookDatabase.create(sqliteDb);
+  static async create(db: SQLiteDB): Promise<BookLibraryStore> {
+    const bookDb = await BookDatabase.create(db);
     const blobStore = await BlobStore.create({
       dbName: "epubdown-books",
       storeName: "books",
     });
 
-    const store = new BookLibraryStore(blobStore, bookDb, sqliteDb);
+    const store = new BookLibraryStore(blobStore, bookDb, db);
     await store.loadBooks();
     return store;
   }
@@ -133,8 +132,7 @@ export class BookLibraryStore {
 
   async close(): Promise<void> {
     this.blobStore.close();
-    // Note: We don't close the shared SQLiteDB instance here
-    // as it may be used by other parts of the application.
-    // Use closeDb() from DatabaseProvider for app-wide cleanup.
+    // Note: Database will be closed by the destroy() call in tests
+    // or by the application lifecycle management
   }
 }
