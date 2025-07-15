@@ -13,8 +13,6 @@
 
 .book-reader p {
   margin-bottom: 1.25rem;
-  text-align: justify;
-  text-justify: inter-word;
 }
 
 .book-reader blockquote {
