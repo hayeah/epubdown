@@ -62,9 +62,6 @@ export class BookLibraryStore {
     // Extract metadata from epub
     const epubMetadata = epub.getMetadata();
 
-    // Create empty metadata array (not saving metadata for now)
-    const metadataArray = new Uint8Array(0);
-
     // Store the book file
     await this.blobStore.put(blobStoreKey, file);
 
@@ -74,7 +71,6 @@ export class BookLibraryStore {
       title: epubMetadata.title || file.name,
       filename: file.name,
       fileSize: file.size,
-      metadata: metadataArray,
     });
 
     // Reload books list
