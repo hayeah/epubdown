@@ -1,14 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "declaration": true,
-    "declarationMap": true,
-    "emitDeclarationOnly": true,
-    "outDir": "dist",
-    "rootDir": "src",
     "jsx": "react-jsx",
-    "types": ["node", "react", "react-dom", "bun", "yargs"],
+    "types": [
+      "node",
+      "react",
+      "react-dom",
+      "bun",
+      "yargs",
+      "@testing-library/jest-dom"
+    ],
     "paths": {
       "@epubdown/core": ["../core/src"],
       "@epubdown/core/*": ["../core/src/*"],
@@ -17,6 +18,5 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../core" }, { "path": "../sqlite-browser" }]
+  "exclude": ["node_modules", "dist"]
 }

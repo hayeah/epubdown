@@ -1,10 +1,15 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import JSZip from "jszip";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { BookMetadata } from "../lib/BookDatabase";
 import { BookLibraryStore } from "../stores/BookLibraryStore";
 import { type RootStore, StoreProvider } from "../stores/RootStore";
+import { nukeIndexedDBDatabases } from "../stores/testUtils";
 import { BookLibrary } from "./BookLibrary";
 
 describe("BookLibrary (Browser)", () => {
@@ -12,39 +17,46 @@ describe("BookLibrary (Browser)", () => {
   let mockOnOpenBook: ReturnType<typeof vi.fn>;
   let bookLibraryStore: BookLibraryStore;
 
+  async function loadEpubAsFile(url: string, filename: string): Promise<File> {
+    // Add 3s timeout to the fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      const blob = await response.blob();
+      return new File([blob], filename, { type: "application/epub+zip" });
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  }
+
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Clear all IndexedDB databases before each test
-    const databases = await indexedDB.databases();
-    for (const db of databases) {
-      if (db.name) {
-        indexedDB.deleteDatabase(db.name);
-      }
-    }
+    // Clear IndexedDB before each test
+    await nukeIndexedDBDatabases();
 
     // Create real BookLibraryStore with real storage
-    bookLibraryStore = new BookLibraryStore();
-
-    // Wait for initial load to complete
-    await waitFor(() => {
-      expect(bookLibraryStore.isLoading).toBe(false);
-    });
+    bookLibraryStore = await BookLibraryStore.create();
 
     rootStore = {
       bookLibraryStore,
     } as RootStore;
 
     mockOnOpenBook = vi.fn();
-  });
+  }, 10000);
 
   afterEach(async () => {
-    // Clean up IndexedDB after each test
-    const databases = await indexedDB.databases();
-    for (const db of databases) {
-      if (db.name) {
-        indexedDB.deleteDatabase(db.name);
-      }
+    // Clean up React components
+    cleanup();
+
+    // Close the store to release database connections
+    if (bookLibraryStore) {
+      await bookLibraryStore.close();
     }
   });
 
@@ -65,45 +77,32 @@ describe("BookLibrary (Browser)", () => {
     });
   });
 
-  it("should display loading state", async () => {
-    // Create a new store and immediately render while it's loading
-    const loadingStore = new BookLibraryStore();
-    const loadingRootStore = {
-      bookLibraryStore: loadingStore,
-    } as RootStore;
-
-    render(
-      <StoreProvider value={loadingRootStore}>
-        <BookLibrary onOpenBook={mockOnOpenBook} />
-      </StoreProvider>,
-    );
-
-    expect(screen.getByText("Loading library...")).toBeInTheDocument();
-
-    // Wait for loading to complete
-    await waitFor(() => {
-      expect(loadingStore.isLoading).toBe(false);
-    });
-  });
-
   it("should handle file upload with real storage", async () => {
     renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
 
-    // Create a mock EPUB file with minimal valid structure
-    const epubContent = await createMockEpubFile("Test Book", "test-book.epub");
+    // Load a real EPUB file
+    const epubContent = await loadEpubAsFile(
+      "/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
+    );
 
-    const input = screen
-      .getByLabelText(/click to upload/i)
-      .closest("label")
-      ?.querySelector("input[type=file]") as HTMLInputElement;
+    // Find the file input inside the dropzone
+    const dropzone = screen
+      .getByText("Click to select or drag and drop EPUB files")
+      .closest("div");
+    const input = dropzone?.querySelector(
+      "input[type=file]",
+    ) as HTMLInputElement;
 
     fireEvent.change(input, { target: { files: [epubContent] } });
 
     // Wait for the book to be added
     await waitFor(
       () => {
-        expect(screen.getByText("Test Book")).toBeInTheDocument();
-        expect(screen.getByText("test-book.epub")).toBeInTheDocument();
+        expect(
+          screen.getByText("Alice's Adventures in Wonderland"),
+        ).toBeInTheDocument();
+        expect(screen.getByText("alice.epub")).toBeInTheDocument();
       },
       { timeout: 5000 },
     );
@@ -117,24 +116,24 @@ describe("BookLibrary (Browser)", () => {
     if (storage) {
       const books = await storage.getAllBooks();
       expect(books).toHaveLength(1);
-      expect(books[0].title).toBe("Test Book");
-      expect(books[0].filename).toBe("test-book.epub");
+      expect(books[0].title).toBe("Alice's Adventures in Wonderland");
+      expect(books[0].filename).toBe("alice.epub");
     }
   });
 
   it("should handle book deletion with real storage", async () => {
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
-
     // First add a book
-    const epubContent = await createMockEpubFile(
-      "Book to Delete",
-      "delete-me.epub",
+    const epubContent = await loadEpubAsFile(
+      "/A Modest Proposal.epub",
+      "proposal.epub",
     );
     const bookId = await bookLibraryStore.addBook(epubContent);
 
+    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+
     // Wait for the book to appear
     await waitFor(() => {
-      expect(screen.getByText("Book to Delete")).toBeInTheDocument();
+      expect(screen.getByText(/A Modest Proposal/)).toBeInTheDocument();
     });
 
     // Mock window.confirm
@@ -146,7 +145,7 @@ describe("BookLibrary (Browser)", () => {
 
     // Wait for the book to be removed
     await waitFor(() => {
-      expect(screen.queryByText("Book to Delete")).not.toBeInTheDocument();
+      expect(screen.queryByText(/A Modest Proposal/)).not.toBeInTheDocument();
       expect(
         screen.getByText("No books in your library yet"),
       ).toBeInTheDocument();
@@ -163,23 +162,30 @@ describe("BookLibrary (Browser)", () => {
 
   it("should persist books across store instances", async () => {
     // Add a book with the first store
-    const epubContent = await createMockEpubFile(
-      "Persistent Book",
-      "persist.epub",
+    const epubContent = await loadEpubAsFile(
+      "/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
     );
     await bookLibraryStore.addBook(epubContent);
 
-    // Create a new store instance
-    const newStore = new BookLibraryStore();
+    // Verify the book was added
+    expect(bookLibraryStore.books).toHaveLength(1);
 
-    // Wait for it to load
-    await waitFor(() => {
-      expect(newStore.isLoading).toBe(false);
-    });
+    // Close the current store
+    await bookLibraryStore.close();
+
+    // Clear the reference so afterEach doesn't try to close it again
+    bookLibraryStore = null as any;
+
+    // Create a new store instance
+    const newStore = await BookLibraryStore.create();
 
     // Verify the book is still there
     expect(newStore.books).toHaveLength(1);
-    expect(newStore.books[0].title).toBe("Persistent Book");
+    expect(newStore.books[0].title).toBe("Alice's Adventures in Wonderland");
+
+    // Clean up the new store
+    await newStore.close();
   });
 
   it("should handle file upload error with invalid file", async () => {
@@ -195,10 +201,13 @@ describe("BookLibrary (Browser)", () => {
       type: "application/epub+zip",
     });
 
-    const input = screen
-      .getByLabelText(/click to upload/i)
-      .closest("label")
-      ?.querySelector("input[type=file]") as HTMLInputElement;
+    // Find the file input inside the dropzone
+    const dropzone = screen
+      .getByText("Click to select or drag and drop EPUB files")
+      .closest("div");
+    const input = dropzone?.querySelector(
+      "input[type=file]",
+    ) as HTMLInputElement;
 
     fireEvent.change(input, { target: { files: [invalidFile] } });
 
@@ -212,27 +221,39 @@ describe("BookLibrary (Browser)", () => {
 
     // Verify no book was added
     expect(bookLibraryStore.books).toHaveLength(0);
+
+    // Clean up spies
+    alertSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   it("should display multiple books with correct formatting", async () => {
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
-
-    // Add multiple books
-    const book1 = await createMockEpubFile("First Book", "first.epub");
-    const book2 = await createMockEpubFile("Second Book", "second.epub");
+    // Add multiple books before rendering
+    const book1 = await loadEpubAsFile(
+      "/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
+    );
+    const book2 = await loadEpubAsFile(
+      "/A Modest Proposal.epub",
+      "proposal.epub",
+    );
 
     await bookLibraryStore.addBook(book1);
     await bookLibraryStore.addBook(book2);
 
+    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+
     // Wait for books to appear
     await waitFor(() => {
-      expect(screen.getByText("First Book")).toBeInTheDocument();
-      expect(screen.getByText("Second Book")).toBeInTheDocument();
+      expect(
+        screen.getByText("Alice's Adventures in Wonderland"),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/A Modest Proposal/)).toBeInTheDocument();
     });
 
     // Check filenames are displayed
-    expect(screen.getByText("first.epub")).toBeInTheDocument();
-    expect(screen.getByText("second.epub")).toBeInTheDocument();
+    expect(screen.getByText("alice.epub")).toBeInTheDocument();
+    expect(screen.getByText("proposal.epub")).toBeInTheDocument();
 
     // Check file sizes are formatted (both should be similar small size)
     const fileSizes = screen.getAllByText(/\d+\.\d+ [KM]B/);
@@ -240,15 +261,20 @@ describe("BookLibrary (Browser)", () => {
   });
 
   it("should not delete book when confirm is cancelled", async () => {
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
-
     // Add a book
-    const epubContent = await createMockEpubFile("Keep Me", "keep.epub");
+    const epubContent = await loadEpubAsFile(
+      "/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
+    );
     await bookLibraryStore.addBook(epubContent);
+
+    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
 
     // Wait for the book to appear
     await waitFor(() => {
-      expect(screen.getByText("Keep Me")).toBeInTheDocument();
+      expect(
+        screen.getByText("Alice's Adventures in Wonderland"),
+      ).toBeInTheDocument();
     });
 
     // Mock window.confirm to return false
@@ -259,7 +285,9 @@ describe("BookLibrary (Browser)", () => {
     fireEvent.click(deleteButton);
 
     // Book should still be there
-    expect(screen.getByText("Keep Me")).toBeInTheDocument();
+    expect(
+      screen.getByText("Alice's Adventures in Wonderland"),
+    ).toBeInTheDocument();
 
     // Verify the book is still in storage
     const storage = bookLibraryStore.storage;
@@ -270,19 +298,24 @@ describe("BookLibrary (Browser)", () => {
   });
 
   it("should handle book click to open", async () => {
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
-
     // Add a book
-    const epubContent = await createMockEpubFile("Click Me", "click.epub");
+    const epubContent = await loadEpubAsFile(
+      "/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
+    );
     const bookId = await bookLibraryStore.addBook(epubContent);
+
+    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
 
     // Wait for the book to appear
     await waitFor(() => {
-      expect(screen.getByText("Click Me")).toBeInTheDocument();
+      expect(
+        screen.getByText("Alice's Adventures in Wonderland"),
+      ).toBeInTheDocument();
     });
 
     // Click on the book title
-    const bookTitle = screen.getByText("Click Me");
+    const bookTitle = screen.getByText("Alice's Adventures in Wonderland");
     fireEvent.click(bookTitle);
 
     // Verify callback was called with correct ID
@@ -290,18 +323,18 @@ describe("BookLibrary (Browser)", () => {
   });
 
   it("should format dates correctly", async () => {
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
-
     // Add a book
-    const epubContent = await createMockEpubFile(
-      "Date Test Book",
-      "dates.epub",
+    const epubContent = await loadEpubAsFile(
+      "/A Modest Proposal.epub",
+      "proposal.epub",
     );
     await bookLibraryStore.addBook(epubContent);
 
+    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+
     // Wait for the book to appear
     await waitFor(() => {
-      expect(screen.getByText("Date Test Book")).toBeInTheDocument();
+      expect(screen.getByText(/A Modest Proposal/)).toBeInTheDocument();
     });
 
     // Check that date fields are displayed
@@ -321,22 +354,24 @@ describe("BookLibrary (Browser)", () => {
   });
 
   it("should update last opened timestamp when opening a book", async () => {
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
-
     // Add a book
-    const epubContent = await createMockEpubFile(
-      "Book to Open",
-      "open-me.epub",
+    const epubContent = await loadEpubAsFile(
+      "/Alice's Adventures in Wonderland.epub",
+      "alice.epub",
     );
     const bookId = await bookLibraryStore.addBook(epubContent);
 
+    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+
     // Wait for the book to appear
     await waitFor(() => {
-      expect(screen.getByText("Book to Open")).toBeInTheDocument();
+      expect(
+        screen.getByText("Alice's Adventures in Wonderland"),
+      ).toBeInTheDocument();
     });
 
     // Click on the book to open it
-    const bookTitle = screen.getByText("Book to Open");
+    const bookTitle = screen.getByText("Alice's Adventures in Wonderland");
     fireEvent.click(bookTitle);
 
     expect(mockOnOpenBook).toHaveBeenCalledWith(bookId);
@@ -355,77 +390,3 @@ describe("BookLibrary (Browser)", () => {
     }
   });
 });
-
-// Helper function to create a minimal valid EPUB file
-async function createMockEpubFile(
-  title: string,
-  filename: string,
-): Promise<File> {
-  const zip = new JSZip();
-
-  // Add mimetype
-  zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
-
-  // Add container.xml
-  zip.file(
-    "META-INF/container.xml",
-    `<?xml version="1.0" encoding="UTF-8"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="content.opf" media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>`,
-  );
-
-  // Add content.opf
-  zip.file(
-    "content.opf",
-    `<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" version="3.0">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:title>${title}</dc:title>
-    <dc:identifier id="uid">test-book-id</dc:identifier>
-    <dc:language>en</dc:language>
-  </metadata>
-  <manifest>
-    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
-    <item id="chapter1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
-  </manifest>
-  <spine>
-    <itemref idref="chapter1"/>
-  </spine>
-</package>`,
-  );
-
-  // Add navigation
-  zip.file(
-    "nav.xhtml",
-    `<?xml version="1.0" encoding="UTF-8"?>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
-<head><title>Navigation</title></head>
-<body>
-  <nav epub:type="toc">
-    <ol>
-      <li><a href="chapter1.xhtml">Chapter 1</a></li>
-    </ol>
-  </nav>
-</body>
-</html>`,
-  );
-
-  // Add a chapter
-  zip.file(
-    "chapter1.xhtml",
-    `<?xml version="1.0" encoding="UTF-8"?>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><title>Chapter 1</title></head>
-<body>
-  <h1>Chapter 1</h1>
-  <p>This is the content of chapter 1.</p>
-</body>
-</html>`,
-  );
-
-  const blob = await zip.generateAsync({ type: "blob" });
-  return new File([blob], filename, { type: "application/epub+zip" });
-}

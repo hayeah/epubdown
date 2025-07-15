@@ -3,6 +3,16 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "files": ["dist", "src"],
   "scripts": {
     "dev": "vite",
     "build": "vite build",

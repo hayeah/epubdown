@@ -5,11 +5,10 @@
 
 # Make Notes
 
-- READ NOTES.txt before you start working.
-- Maintain development notes relevant to this project in NOTES.txt
-- You may add notes about how to run commands, what APIs there are, in NOTES.txt
-  - Especially if you've made mistakes. If you recovered from mistakes, or the user intervene and gave you a tip, remember these in NOTES.txt.
-- Commit NOTES.txt as a separate commit.
+- When making complex or tricky changes to a file, you should make notes beside the source file.
+- If the file is named `BlobStore.ts`, name your note `BlobStore.ts.md`
+- Make sure that the notes are up to date.
+- Commit your notes along with the code changes.
 
 # File Naming Convention
 
@@ -23,3 +22,13 @@
 # Lint / Format
 
 - `pnpm run check` to do automatic lint fixing, format.
+
+# Commit Message
+
+- you MUST NOT include this in
+
+```
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
