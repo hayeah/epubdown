@@ -1,4 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { closeDb } from "../lib/DatabaseProvider";
 import { BookLibraryStore } from "./BookLibraryStore";
 import { nukeIndexedDBDatabases } from "./testUtils";
 
@@ -6,6 +15,9 @@ describe("BookLibraryStore", () => {
   let store: BookLibraryStore;
 
   beforeEach(async () => {
+    // Close any existing shared database connection first
+    await closeDb();
+    
     // Clear IndexedDB before each test
     await nukeIndexedDBDatabases();
 
@@ -17,6 +29,13 @@ describe("BookLibraryStore", () => {
     if (store) {
       await store.close();
     }
+    // Close the shared database connection
+    await closeDb();
+  });
+
+  afterAll(async () => {
+    // Clean up the shared database connection
+    await closeDb();
   });
 
   async function loadEpubAsFile(url: string, filename: string): Promise<File> {

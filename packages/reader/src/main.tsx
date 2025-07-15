@@ -11,10 +11,13 @@ if (!rootElement) {
 // Create root store instance
 const rootStore = new RootStore();
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <StoreProvider value={rootStore}>
-      <App />
-    </StoreProvider>
-  </StrictMode>,
-);
+// Initialize async stores
+rootStore.initializeBookLibrary().then(() => {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <StoreProvider value={rootStore}>
+        <App />
+      </StoreProvider>
+    </StrictMode>,
+  );
+});

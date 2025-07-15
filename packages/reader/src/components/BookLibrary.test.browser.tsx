@@ -6,7 +6,8 @@ import {
   waitFor,
 } from "@testing-library/react";
 import type React from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { closeDb } from "../lib/DatabaseProvider";
 import { BookLibraryStore } from "../stores/BookLibraryStore";
 import { type RootStore, StoreProvider } from "../stores/RootStore";
 import { nukeIndexedDBDatabases } from "../stores/testUtils";
@@ -37,6 +38,9 @@ describe("BookLibrary (Browser)", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
+    // Close any existing shared database connection first
+    await closeDb();
+    
     // Clear IndexedDB before each test
     await nukeIndexedDBDatabases();
 
@@ -58,6 +62,13 @@ describe("BookLibrary (Browser)", () => {
     if (bookLibraryStore) {
       await bookLibraryStore.close();
     }
+    // Close the shared database connection
+    await closeDb();
+  });
+
+  afterAll(async () => {
+    // Final cleanup of shared database connection
+    await closeDb();
   });
 
   const renderWithStore = (component: React.ReactElement) => {

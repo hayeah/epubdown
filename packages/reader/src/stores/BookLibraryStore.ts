@@ -1,8 +1,9 @@
 import { EPub } from "@epubdown/core";
-import { SQLiteDB } from "@hayeah/sqlite-browser";
+import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import { makeAutoObservable, runInAction } from "mobx";
 import { BlobStore } from "../lib/BlobStore";
 import { BookDatabase, type BookMetadata } from "../lib/BookDatabase";
+import { getDb } from "../lib/DatabaseProvider";
 
 export interface StoredBook extends BookMetadata {
   blob?: Blob;
@@ -20,8 +21,8 @@ export class BookLibraryStore {
     makeAutoObservable(this);
   }
 
-  static async create(): Promise<BookLibraryStore> {
-    const sqliteDb = await SQLiteDB.open("epubdown");
+  static async create(db?: SQLiteDB): Promise<BookLibraryStore> {
+    const sqliteDb = db || (await getDb());
     const bookDb = await BookDatabase.create(sqliteDb);
     const blobStore = await BlobStore.create({
       dbName: "epubdown-books",
@@ -132,6 +133,8 @@ export class BookLibraryStore {
 
   async close(): Promise<void> {
     this.blobStore.close();
-    await this.sqliteDb.close();
+    // Note: We don't close the shared SQLiteDB instance here
+    // as it may be used by other parts of the application.
+    // Use closeDb() from DatabaseProvider for app-wide cleanup.
   }
 }
