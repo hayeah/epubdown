@@ -61,7 +61,7 @@ export class BookDatabase {
       metadataBase64 = uint8ArrayToBase64(book.metadata);
     }
 
-    await this.db.query(sql, [
+    await this.db.exec(sql, [
       book.id,
       book.title,
       book.filename,
@@ -91,14 +91,14 @@ export class BookDatabase {
   }
 
   async updateLastOpened(id: string): Promise<void> {
-    await this.db.query("UPDATE books SET last_opened_at = ? WHERE id = ?", [
+    await this.db.exec("UPDATE books SET last_opened_at = ? WHERE id = ?", [
       Date.now(),
       id,
     ]);
   }
 
   async deleteBook(id: string): Promise<void> {
-    await this.db.query("DELETE FROM books WHERE id = ?", [id]);
+    await this.db.exec("DELETE FROM books WHERE id = ?", [id]);
   }
 
   private rowToBookMetadata(row: any): BookMetadata {
