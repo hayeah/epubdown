@@ -253,4 +253,194 @@ describe("SQLiteDBWrapper", () => {
       expect(result.rows[0].count).toBe(1);
     });
   });
+
+  describe("execBatch", () => {
+    it("should insert multiple rows with a single prepared statement", async () => {
+      await db.exec(
+        "CREATE TABLE batch_test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER)",
+      );
+
+      const batchParams = [
+        ["Alice", 100],
+        ["Bob", 200],
+        ["Charlie", 300],
+        ["David", 400],
+        ["Eve", 500],
+      ];
+
+      await db.execBatch(
+        "INSERT INTO batch_test (name, value) VALUES (?, ?)",
+        batchParams,
+      );
+
+      const result = await db.query<{ name: string; value: number }>(
+        "SELECT name, value FROM batch_test ORDER BY value",
+      );
+
+      expect(result.rows).toHaveLength(5);
+      expect(result.rows[0]).toEqual({ name: "Alice", value: 100 });
+      expect(result.rows[1]).toEqual({ name: "Bob", value: 200 });
+      expect(result.rows[2]).toEqual({ name: "Charlie", value: 300 });
+      expect(result.rows[3]).toEqual({ name: "David", value: 400 });
+      expect(result.rows[4]).toEqual({ name: "Eve", value: 500 });
+    });
+
+    it("should handle empty batch parameters", async () => {
+      await db.exec("CREATE TABLE empty_batch (id INTEGER, data TEXT)");
+
+      await expect(
+        db.execBatch("INSERT INTO empty_batch (id, data) VALUES (?, ?)", []),
+      ).resolves.not.toThrow();
+
+      const result = await db.query(
+        "SELECT COUNT(*) as count FROM empty_batch",
+      );
+      expect(result.rows[0].count).toBe(0);
+    });
+
+    it("should handle batch updates", async () => {
+      await db.exec(
+        "CREATE TABLE batch_update (id INTEGER PRIMARY KEY, status TEXT)",
+      );
+
+      // Insert initial data
+      await db.execBatch(
+        "INSERT INTO batch_update (id, status) VALUES (?, ?)",
+        [
+          [1, "pending"],
+          [2, "pending"],
+          [3, "pending"],
+        ],
+      );
+
+      // Batch update
+      await db.execBatch("UPDATE batch_update SET status = ? WHERE id = ?", [
+        ["completed", 1],
+        ["failed", 2],
+        ["completed", 3],
+      ]);
+
+      const result = await db.query<{ id: number; status: string }>(
+        "SELECT id, status FROM batch_update ORDER BY id",
+      );
+
+      expect(result.rows).toEqual([
+        { id: 1, status: "completed" },
+        { id: 2, status: "failed" },
+        { id: 3, status: "completed" },
+      ]);
+    });
+
+    it("should handle batch operations with different parameter types", async () => {
+      await db.exec(
+        "CREATE TABLE mixed_types (id INTEGER PRIMARY KEY, text_val TEXT, int_val INTEGER, real_val REAL, blob_val BLOB)",
+      );
+
+      const batchParams = [
+        ["text1", 42, 3.14, new Uint8Array([1, 2, 3])],
+        ["text2", 100, 2.72, new Uint8Array([4, 5, 6])],
+        [null, null, null, null], // Test null values
+      ];
+
+      await db.execBatch(
+        "INSERT INTO mixed_types (text_val, int_val, real_val, blob_val) VALUES (?, ?, ?, ?)",
+        batchParams,
+      );
+
+      const result = await db.query(
+        "SELECT text_val, int_val, real_val, blob_val FROM mixed_types ORDER BY id",
+      );
+
+      expect(result.rows).toHaveLength(3);
+      expect(result.rows[0].text_val).toBe("text1");
+      expect(result.rows[0].int_val).toBe(42);
+      expect(result.rows[0].real_val).toBeCloseTo(3.14);
+      expect(result.rows[0].blob_val).toEqual(new Uint8Array([1, 2, 3]));
+
+      expect(result.rows[2].text_val).toBeNull();
+      expect(result.rows[2].int_val).toBeNull();
+      expect(result.rows[2].real_val).toBeNull();
+      expect(result.rows[2].blob_val).toBeNull();
+    });
+
+    it("should work within transactions", async () => {
+      await db.exec(
+        "CREATE TABLE batch_txn (id INTEGER PRIMARY KEY, value INTEGER)",
+      );
+
+      await db.transaction(async (tx) => {
+        await tx.execBatch("INSERT INTO batch_txn (value) VALUES (?)", [
+          [10],
+          [20],
+          [30],
+        ]);
+
+        // Verify within transaction
+        const result = await tx.query<{ count: number }>(
+          "SELECT COUNT(*) as count FROM batch_txn",
+        );
+        expect(result.rows[0].count).toBe(3);
+      });
+
+      // Verify after transaction
+      const result = await db.query<{ sum: number }>(
+        "SELECT SUM(value) as sum FROM batch_txn",
+      );
+      expect(result.rows[0].sum).toBe(60);
+    });
+
+    it("should handle errors in batch operations", async () => {
+      await db.exec(
+        "CREATE TABLE batch_error (id INTEGER PRIMARY KEY, value INTEGER NOT NULL)",
+      );
+
+      // Try to insert with NULL in NOT NULL column
+      const invalidBatch = [
+        [1, 100],
+        [2, null], // This should cause an error
+        [3, 300],
+      ];
+
+      // execBatch runs in a transaction by default, ensuring atomicity
+      await expect(
+        db.execBatch(
+          "INSERT INTO batch_error (id, value) VALUES (?, ?)",
+          invalidBatch,
+        ),
+      ).rejects.toThrow();
+
+      // Verify no partial inserts occurred (transaction should have rolled back)
+      const result = await db.query(
+        "SELECT COUNT(*) as count FROM batch_error",
+      );
+      expect(result.rows[0].count).toBe(0);
+    });
+
+    it("should run in a transaction by default", async () => {
+      await db.exec(
+        "CREATE TABLE batch_transaction_test (id INTEGER PRIMARY KEY, value INTEGER)",
+      );
+
+      // Create a batch that will fail partway through
+      const batchParams = [
+        [1, 100],
+        [2, 200],
+        [1, 300], // Duplicate primary key - will fail
+      ];
+
+      // execBatch should fail due to primary key violation
+      await expect(
+        db.execBatch(
+          "INSERT INTO batch_transaction_test (id, value) VALUES (?, ?)",
+          batchParams,
+        ),
+      ).rejects.toThrow();
+
+      // Verify no rows were inserted (transaction rolled back)
+      const result = await db.query(
+        "SELECT COUNT(*) as count FROM batch_transaction_test",
+      );
+      expect(result.rows[0].count).toBe(0);
+    });
+  });
 });
