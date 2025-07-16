@@ -150,6 +150,12 @@ export class MarkdownTurndownService extends TurndownService {
     // Clean up common EPUB structural elements
     this.addRule("clean-structure", {
       filter: (node) => {
+        // Only clean up non-paragraph elements with these classes
+        // Paragraphs should maintain their structure
+        if (node.nodeName === "P") {
+          return false;
+        }
+
         const className = node.getAttribute("class") || "";
         return (
           className.includes("calibre") ||
