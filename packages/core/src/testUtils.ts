@@ -14,3 +14,5 @@ export function compareOrUpdateFixture<T>(fullPath: string, actual: T): void {
     expect(actual).toEqual(expected);
   }
 }
+
+export { fetchEpub } from "./testUtils/fetchEpub";

@@ -48,32 +48,35 @@ class ZipDataResolver extends DataResolver {
   }
 }
 
-// class FileDataResolver extends DataResolver {
-//   constructor(base = "") {
-//     super(base);
-//   }
+/**
+ * Filesystem variant of DataResolver, used by EPubShortener
+ */
+export class FileDataResolver extends DataResolver {
+  constructor(base = "") {
+    super(base);
+  }
 
-//   async read(href: string): Promise<string | undefined> {
-//     try {
-//       const fs = await import("node:fs/promises");
-//       const fullPath = resolve(this.base, href);
-//       return await fs.readFile(fullPath, "utf-8");
-//     } catch (error) {
-//       return undefined;
-//     }
-//   }
+  async read(href: string): Promise<string | undefined> {
+    try {
+      const fs = await import("node:fs/promises");
+      const fullPath = resolve(this.base, href);
+      return await fs.readFile(fullPath, "utf-8");
+    } catch (error) {
+      return undefined;
+    }
+  }
 
-//   async readRaw(href: string): Promise<Uint8Array | undefined> {
-//     const fs = await import("node:fs/promises");
-//     const fullPath = resolve(this.base, href);
-//     const data = await fs.readFile(fullPath);
-//     return data;
-//   }
+  async readRaw(href: string): Promise<Uint8Array | undefined> {
+    const fs = await import("node:fs/promises");
+    const fullPath = resolve(this.base, href);
+    const data = await fs.readFile(fullPath);
+    return data;
+  }
 
-//   createInstance(base: string): DataResolver {
-//     return new FileDataResolver(base);
-//   }
-// }
+  createInstance(base: string): DataResolver {
+    return new FileDataResolver(base);
+  }
+}
 
 export class XMLFile extends DataResolver {
   constructor(
@@ -205,32 +208,32 @@ export class EPub {
 
     const result: EPubMetadata = {};
 
-    // Title
-    const title = metadata.querySelector("title");
+    // Title - try both with and without namespace
+    const title = metadata.querySelector("dc\\:title, title");
     if (title) result.title = title.textContent?.trim();
 
     // Creator/Author
-    const creator = metadata.querySelector("creator");
+    const creator = metadata.querySelector("dc\\:creator, creator");
     if (creator) result.author = creator.textContent?.trim();
 
     // Language
-    const language = metadata.querySelector("language");
+    const language = metadata.querySelector("dc\\:language, language");
     if (language) result.language = language.textContent?.trim();
 
     // Identifier
-    const identifier = metadata.querySelector("identifier");
+    const identifier = metadata.querySelector("dc\\:identifier, identifier");
     if (identifier) result.identifier = identifier.textContent?.trim();
 
     // Description
-    const description = metadata.querySelector("description");
+    const description = metadata.querySelector("dc\\:description, description");
     if (description) result.description = description.textContent?.trim();
 
     // Publisher
-    const publisher = metadata.querySelector("publisher");
+    const publisher = metadata.querySelector("dc\\:publisher, publisher");
     if (publisher) result.publisher = publisher.textContent?.trim();
 
     // Date
-    const date = metadata.querySelector("date");
+    const date = metadata.querySelector("dc\\:date, date");
     if (date) result.date = date.textContent?.trim();
 
     return result;

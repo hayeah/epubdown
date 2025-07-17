@@ -108,11 +108,11 @@ export class XmlAnonymizer {
   private serializeDocument(doc: Document): string {
     if (this.mode === "html") {
       return doc.toString();
-    } else if (typeof XMLSerializer !== "undefined") {
-      return new XMLSerializer().serializeToString(doc);
-    } else {
-      return doc.documentElement?.outerHTML || "";
     }
+    if (typeof XMLSerializer !== "undefined") {
+      return new XMLSerializer().serializeToString(doc);
+    }
+    return doc.documentElement?.outerHTML || "";
   }
 
   private cleanOutput(serialized: string): string {
