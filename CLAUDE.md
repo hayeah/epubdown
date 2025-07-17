@@ -1,6 +1,7 @@
 - Once you are satisfied with the code, commit it.
   - Run relevant tests before commiting.
     - When you work on a workspace package (e.g. `packages/core`), remember to cd into it to run tests.
+    - `cd packages/core && pnpm run check`
   - Always run pre-commit to clean up before commit.
   - If I ask you to make changes, create a new commit for the amend after you are happy with the changes.
 - If you are in a git work tree, YOU MUST not cd out of the work tree into the root repo, or other work trees.
