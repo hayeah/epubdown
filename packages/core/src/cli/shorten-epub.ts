@@ -24,7 +24,7 @@ const argv = yargs(hideBin(process.argv))
         describe: "Path to the EPUB file to shorten",
         type: "string",
       });
-    }
+    },
   )
   .option("output", {
     alias: "o",
@@ -52,11 +52,11 @@ const argv = yargs(hideBin(process.argv))
   .example("$0 book.epub", "Shorten book.epub and save to book-short.epub")
   .example(
     "$0 book.epub -o shortened.epub",
-    "Shorten book.epub and save to shortened.epub"
+    "Shorten book.epub and save to shortened.epub",
   )
   .example(
     "$0 --dir extracted-book/",
-    "Shorten an extracted EPUB directory in-place"
+    "Shorten an extracted EPUB directory in-place",
   )
   .help()
   .alias("help", "h")

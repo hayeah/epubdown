@@ -7,3 +7,4 @@ export * from "./xmlParser";
 export * from "./MarkdownConverter";
 export type { MarkdownResult, EPubResolverContext } from "./MarkdownConverter";
 export { shortenDir, shorten } from "./utils/EPubShortener";
+export { unzip, zip, zipToBuffer } from "./utils/zipUtils";

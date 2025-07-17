@@ -1,12 +1,12 @@
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { shorten, shortenDir } from "../src/utils/EPubShortener";
-import { EPub, FileDataResolver } from "../src/Epub";
-import { fetchEpub } from "../src/testUtils";
-import { parseHtml } from "../src/xmlParser";
+import { EPub, FileDataResolver } from "../Epub";
+import { fetchEpub } from "../testUtils";
+import { parseHtml } from "../xmlParser";
+import { shorten, shortenDir } from "./EPubShortener";
+import { unzip } from "./zipUtils";
 
 describe("EPubShortener", () => {
   let tempDir: string;
@@ -25,20 +25,9 @@ describe("EPubShortener", () => {
     it("should shorten all chapters in an extracted EPUB directory", async () => {
       // Load and extract Alice EPUB to temp directory
       const epubData = await fetchEpub("alice.epub");
-      const zip = await JSZip.loadAsync(epubData);
 
-      // Extract all files
-      for (const [relativePath, file] of Object.entries(zip.files)) {
-        if (!file.dir) {
-          const filePath = join(tempDir, relativePath);
-          await fs.mkdir(
-            join(tempDir, relativePath.split("/").slice(0, -1).join("/")),
-            { recursive: true }
-          );
-          const content = await file.async("uint8array");
-          await fs.writeFile(filePath, content);
-        }
-      }
+      // Extract all files using the helper
+      await unzip(epubData, tempDir);
 
       // Run the shortener on the directory
       await shortenDir(tempDir, { preserveLength: true });
