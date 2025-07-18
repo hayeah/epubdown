@@ -1,22 +1,24 @@
-let getDOMParser: () => typeof DOMParser;
-let parseXml: (xml: string) => Document;
-let parseHtml: (html: string) => Document;
+/* xmlParser.ts */
 
-if (typeof window === "undefined") {
-  // Node.js environment
-  const { DOMParser } = require("linkedom");
-  getDOMParser = () => DOMParser;
-  parseXml = (xml: string) =>
-    new DOMParser().parseFromString(xml, "text/xml") as any;
-  parseHtml = (html: string) =>
-    new DOMParser().parseFromString(html, "text/html") as any;
+type DOMParserCtor = typeof window.DOMParser;
+let DOMParser: DOMParserCtor;
+
+// choose the implementation once
+if (import.meta.env.SSR || typeof window === "undefined") {
+  const { DOMParser: LinkeDOMParser } = await import("linkedom");
+  DOMParser = LinkeDOMParser as DOMParserCtor;
 } else {
-  // Browser environment
-  getDOMParser = () => DOMParser;
-  parseXml = (xml: string) =>
-    new DOMParser().parseFromString(xml, "text/xml") as any;
-  parseHtml = (html: string) =>
-    new DOMParser().parseFromString(html, "text/html") as any;
+  DOMParser = window.DOMParser;
 }
 
-export { getDOMParser, parseXml, parseHtml };
+export function parseXml(xml: string): Document {
+  return new DOMParser().parseFromString(xml, "text/xml");
+}
+
+export function parseHtml(html: string): Document {
+  return new DOMParser().parseFromString(html, "text/html");
+}
+
+export function parseDocument(doc: string, mode: "html" | "xml"): Document {
+  return mode === "html" ? parseHtml(doc) : parseXml(doc);
+}

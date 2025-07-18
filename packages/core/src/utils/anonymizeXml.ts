@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import pluginXml from "@prettier/plugin-xml";
 import prettier from "prettier";
-import { parseHtml, parseXml } from "../xmlParser";
+import { parseDocument } from "../xmlParser";
 
 export interface XmlAnonymizerOptions {
   preserveLength?: boolean;
@@ -61,7 +61,7 @@ export class XmlAnonymizer {
       this.doctype = doctypeMatch[0];
     }
 
-    const doc = this.parseDocument(xml);
+    const doc = parseDocument(xml, this.mode);
 
     // Strip images first if requested
     if (this.stripImages) {
@@ -91,10 +91,6 @@ export class XmlAnonymizer {
 
   getStrippedImagePaths(): Set<string> {
     return this.strippedImagePaths;
-  }
-
-  private parseDocument(xml: string): Document {
-    return this.mode === "html" ? parseHtml(xml) : parseXml(xml);
   }
 
   private traverseAndAnonymize(node: Node): void {
