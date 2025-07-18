@@ -1,16 +1,5 @@
-import { DOMParser } from "linkedom";
 import { describe, expect, it } from "vitest";
 import { anonymizeXml } from "./anonymizeXml";
-
-// Setup global DOMParser for the tests
-global.DOMParser = DOMParser as any;
-
-// Mock XMLSerializer for tests
-global.XMLSerializer = class XMLSerializer {
-  serializeToString(doc: Document): string {
-    return doc.documentElement.outerHTML;
-  }
-} as any;
 
 describe("anonymizeXml", () => {
   it("should replace text nodes with public domain text", async () => {
@@ -238,7 +227,7 @@ describe("anonymizeXml", () => {
   <p class="calibre35"><span class="calibre18">And even more text</span></p>
 </body>
 </html>`;
-    const result = await anonymizeXml(html, { mode: "html" });
+    const result = await anonymizeXml(html, { mode: "html", format: true });
 
     // Should not have text outside of proper tags
     expect(result).not.toMatch(/>\s*[A-Za-z]+\s*</); // No text between > and <

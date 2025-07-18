@@ -1,12 +1,8 @@
+import { ContentToMarkdown } from "./ContentToMarkdown";
 import type { EPub, XMLFile } from "./Epub";
-import { MarkdownConverter, type MarkdownResult } from "./MarkdownConverter";
 
 export class EPubMarkdownConverter {
-  private markdownConverter: MarkdownConverter;
-
-  constructor(private epub: EPub) {
-    this.markdownConverter = new MarkdownConverter();
-  }
+  constructor(private epub: EPub) {}
 
   /**
    * Convert a chapter to markdown with proper anchor ID preservation
@@ -14,18 +10,6 @@ export class EPubMarkdownConverter {
    * @returns Promise<string> The markdown content
    */
   async getChapterMD(chapterOrHref: XMLFile | string): Promise<string> {
-    const result = await this.getChapterMarkdown(chapterOrHref);
-    return result.content;
-  }
-
-  /**
-   * Convert a chapter to markdown with proper anchor ID preservation
-   * @param chapterOrHref Either an XMLFile chapter or the href string to load it
-   * @returns Promise<MarkdownResult> The full markdown conversion result including title, images, footnotes
-   */
-  async getChapterMarkdown(
-    chapterOrHref: XMLFile | string,
-  ): Promise<MarkdownResult> {
     // Get the chapter XMLFile
     let chapter: XMLFile;
     if (typeof chapterOrHref === "string") {
@@ -45,8 +29,11 @@ export class EPubMarkdownConverter {
     const chapterPath = chapter.path;
     const keepIds = tocLinks.get(chapterPath) || new Set<string>();
 
-    // Convert to markdown with keepIds
-    return await this.markdownConverter.convertXMLFile(chapter, { keepIds });
+    // Create converter with keepIds
+    const converter = ContentToMarkdown.create({ keepIds });
+
+    // Convert to markdown
+    return await converter.convertXMLFile(chapter);
   }
 
   /**
@@ -66,10 +53,10 @@ export class EPubMarkdownConverter {
     const chapterPath = xmlFile.path;
     const keepIds = tocLinks.get(chapterPath) || new Set<string>();
 
-    // Convert to markdown with keepIds
-    const result = await this.markdownConverter.convertXMLFile(xmlFile, {
-      keepIds,
-    });
-    return result.content;
+    // Create converter with keepIds
+    const converter = ContentToMarkdown.create({ keepIds });
+
+    // Convert to markdown
+    return await converter.convertXMLFile(xmlFile);
   }
 }

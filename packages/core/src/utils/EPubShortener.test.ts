@@ -57,6 +57,104 @@ describe("EPubShortener", () => {
 
       expect(chaptersChecked).toBeGreaterThan(0);
     });
+
+    it("should strip images when stripImages option is enabled", async () => {
+      // Create a test EPUB structure with images
+      const oebpsDir = join(tempDir, "OEBPS");
+      await fs.mkdir(oebpsDir, { recursive: true });
+
+      // Create container.xml
+      const metaInfDir = join(tempDir, "META-INF");
+      await fs.mkdir(metaInfDir, { recursive: true });
+      await fs.writeFile(
+        join(metaInfDir, "container.xml"),
+        `<?xml version="1.0" encoding="UTF-8"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`,
+      );
+
+      // Create content.opf
+      await fs.writeFile(
+        join(oebpsDir, "content.opf"),
+        `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId" version="2.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>Test Book</dc:title>
+    <dc:identifier id="BookId">test123</dc:identifier>
+  </metadata>
+  <manifest>
+    <item id="chapter1" href="chapter1.html" media-type="application/xhtml+xml"/>
+    <item id="chapter2" href="chapter2.xml" media-type="application/xhtml+xml"/>
+    <item id="image1" href="images/test.png" media-type="image/png"/>
+  </manifest>
+  <spine>
+    <itemref idref="chapter1"/>
+    <itemref idref="chapter2"/>
+  </spine>
+</package>`,
+      );
+
+      // Create HTML chapter with img tag
+      await fs.writeFile(
+        join(oebpsDir, "chapter1.html"),
+        `<!DOCTYPE html>
+<html>
+<body>
+<h1>Chapter 1</h1>
+<p>Here is an image: <img src="images/test.png" alt="Test image"/></p>
+<p>Some text after the image.</p>
+</body>
+</html>`,
+      );
+
+      // Create XML chapter with SVG image
+      await fs.writeFile(
+        join(oebpsDir, "chapter2.xml"),
+        `<?xml version="1.0" encoding="UTF-8"?>
+<chapter>
+<title>Chapter 2</title>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<image xlink:href="images/test.png" x="0" y="0" width="100" height="100"/>
+</svg>
+</chapter>`,
+      );
+
+      // Create image directory and file
+      const imagesDir = join(oebpsDir, "images");
+      await fs.mkdir(imagesDir, { recursive: true });
+      await fs.writeFile(
+        join(imagesDir, "test.png"),
+        Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+      );
+
+      // Run the shortener with stripImages enabled
+      await shortenDir(tempDir, { stripImages: true });
+
+      // Verify that image file has been deleted
+      const imageExists = await fs
+        .access(join(imagesDir, "test.png"))
+        .then(() => true)
+        .catch(() => false);
+      expect(imageExists).toBe(false);
+
+      // Verify that img tags have been replaced with [image src: ...] text
+      const chapter1Content = await fs.readFile(
+        join(oebpsDir, "chapter1.html"),
+        "utf-8",
+      );
+      expect(chapter1Content).toContain("[image src: images/test.png]");
+      expect(chapter1Content).not.toContain("<img");
+
+      const chapter2Content = await fs.readFile(
+        join(oebpsDir, "chapter2.xml"),
+        "utf-8",
+      );
+      expect(chapter2Content).toContain("[image src: images/test.png]");
+      expect(chapter2Content).not.toContain("<image");
+    });
   });
 
   describe("shorten", () => {
@@ -126,9 +224,11 @@ describe("EPubShortener", () => {
 
       // When preserveLength is false, the content lengths will likely differ
       for (let i = 0; i < originalChapters.length; i++) {
-        const originalText = originalChapters[i].replace(/<[^>]*>/g, "").trim();
+        const originalText = originalChapters[i]
+          ?.replace(/<[^>]*>/g, "")
+          .trim();
         const shortenedText = shortenedChapters[i]
-          .replace(/<[^>]*>/g, "")
+          ?.replace(/<[^>]*>/g, "")
           .trim();
 
         // Content should be anonymized (different)

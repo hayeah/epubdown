@@ -23,10 +23,10 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@types/jsdom": "^21.1.7",
     "@types/yargs": "^17.0.33",
-    "fast-xml-parser": "^5",
+    "jsdom": "^25.0.1",
     "jszip": "^3",
-    "linkedom": "^0.18",
     "turndown": "^7",
     "yargs": "^17"
   },

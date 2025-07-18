@@ -7,6 +7,42 @@
 - If you are in a git work tree, YOU MUST not cd out of the work tree into the root repo, or other work trees.
   - The work trees are typically named `.forks/001`, `.forks/002`. DO NOT cd or make changes out of these by accident.
 
+# Typescript Style Guide
+
+## Typescript Class
+
+- how you should write typescript class
+  - Use `constructor(public foo: str, public bar number)` to declare and assign to instance properties
+  - Prefer composition & injection into the constructor, rather than constructing complex classes inside the constructor
+  - if a property requires async to initialize, create an async factory method on the class, then inject the awaited value into a normal constructor
+    - this avoids an `init` instance method
+  - Example code:
+
+```
+private readonly dbName: string;
+  private readonly storeName: string;
+
+  constructor(
+    private readonly db: IDBDatabase,
+    config: BlobStoreConfig,
+  ) {
+    this.dbName = config.dbName;
+    this.storeName = config.storeName;
+  }
+
+  static async create(config: BlobStoreConfig): Promise<BlobStore> {
+    const dbName = config.dbName;
+    const storeName = config.storeName;
+    const version = BlobStore.CURRENT_DB_VERSION;
+
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      // ...
+    });
+
+    return new BlobStore(db, config);
+  }
+```
+
 # Make Notes
 
 - When making complex or tricky changes to a file, you should make notes beside the source file.
@@ -26,7 +62,9 @@
 # Lint / Format
 
 - If you worked on typescript, run `tsc` to type check and fix errors.
+  - run in package root
 - `pnpm run check` to do automatic lint fixing, format.
+  - run in repo root
 
 # Commit Message
 
