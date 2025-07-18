@@ -52,7 +52,7 @@ export class EPubShortener {
     }
   }
 
-  async shorten(zipData: Uint8Array | Buffer): Promise<Uint8Array> {
+  async shortenZip(zipData: Uint8Array | Buffer): Promise<Uint8Array> {
     // Create temp directory
     const tempDir = await fs.mkdtemp(join(tmpdir(), "epub-shorten-"));
 
@@ -70,6 +70,37 @@ export class EPubShortener {
       await fs.rm(tempDir, { recursive: true, force: true });
     }
   }
+
+  async shortenZipFile(filePath: string): Promise<Uint8Array> {
+    const zipData = await fs.readFile(filePath);
+    return this.shortenZip(zipData);
+  }
+
+  async shorten(
+    input: string | Uint8Array | Buffer,
+  ): Promise<Uint8Array | undefined> {
+    // If input is binary data (Uint8Array or Buffer)
+    if (input instanceof Uint8Array || Buffer.isBuffer(input)) {
+      return this.shortenZip(input);
+    }
+
+    // If input is a string, check if it's a directory or file
+    if (typeof input === "string") {
+      const stats = await fs.stat(input);
+
+      if (stats.isDirectory()) {
+        await this.shortenDir(input);
+        return;
+      }
+      if (stats.isFile()) {
+        return this.shortenZipFile(input);
+      }
+
+      throw new Error(`Invalid input path: ${input}`);
+    }
+
+    throw new Error("Invalid input type");
+  }
 }
 
 // Backward compatibility functions
@@ -86,5 +117,5 @@ export async function shorten(
   opts: Omit<XmlAnonymizerOptions, "mode" | "basePath"> = {},
 ): Promise<Uint8Array> {
   const shortener = new EPubShortener(opts);
-  return shortener.shorten(zipData);
+  return shortener.shortenZip(zipData);
 }
