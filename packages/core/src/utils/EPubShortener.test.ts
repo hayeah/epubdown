@@ -116,7 +116,7 @@ describe("EPubShortener", () => {
         `<?xml version="1.0" encoding="UTF-8"?>
 <chapter>
 <title>Chapter 2</title>
-<svg xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <image xlink:href="images/test.png" x="0" y="0" width="100" height="100"/>
 </svg>
 </chapter>`,

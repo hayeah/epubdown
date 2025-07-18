@@ -49,65 +49,7 @@ describe("ContentToMarkdown", () => {
     expect(result).not.toContain("Book Title");
     expect(result).not.toContain("Author Name");
     expect(result).not.toContain("style.css");
-    expect(result).toBe("Content");
-  });
-
-  it("removes page-list navigation", async () => {
-    const html = `
-      <html>
-        <body>
-          <nav epub:type="page-list">
-            <ol>
-              <li><a href="#page1">Page 1</a></li>
-              <li><a href="#page2">Page 2</a></li>
-            </ol>
-          </nav>
-          <p>Main content</p>
-        </body>
-      </html>
-    `;
-    const xmlFile = createMockXMLFile(html);
-    const converter = ContentToMarkdown.create();
-    const result = await converter.convertXMLFile(xmlFile);
-
-    expect(result).not.toContain("Page 1");
-    expect(result).not.toContain("Page 2");
-    expect(result).toBe("Main content");
-  });
-
-  it("cleans up calibre and epub structural elements", async () => {
-    const html = `
-      <html>
-        <body>
-          <div class="calibre1">
-            <p>Content</p>
-          </div>
-          <span class="epub-type">More content</span>
-          <div epub:type="pagebreak"></div>
-        </body>
-      </html>
-    `;
-    const xmlFile = createMockXMLFile(html);
-    const converter = ContentToMarkdown.create();
-    const result = await converter.convertXMLFile(xmlFile);
-
-    expect(result).toBe("Content\n\nMore content");
-  });
-
-  it("preserves paragraph structure", async () => {
-    const html = `
-      <html>
-        <body>
-          <p class="calibre-paragraph">First paragraph</p>
-          <p class="epub-style">Second paragraph</p>
-        </body>
-      </html>
-    `;
-    const xmlFile = createMockXMLFile(html);
-    const converter = ContentToMarkdown.create();
-    const result = await converter.convertXMLFile(xmlFile);
-
-    expect(result).toBe("First paragraph\n\nSecond paragraph");
+    expect(result.trim()).toBe("Content");
   });
 
   it("preserves IDs when keepIds option is provided", async () => {

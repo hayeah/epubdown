@@ -10,7 +10,7 @@ describe("EpubDumper", () => {
 
   beforeEach(async () => {
     // Create a temporary test directory
-    testDir = join(process.cwd(), "epub-dumper-test-" + Date.now());
+    testDir = join(process.cwd(), `epub-dumper-test-${Date.now()}`);
     await fs.mkdir(testDir, { recursive: true });
   });
 

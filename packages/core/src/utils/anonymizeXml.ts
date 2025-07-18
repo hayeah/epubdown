@@ -129,7 +129,10 @@ export class XmlAnonymizer {
 
   private serializeDocument(doc: Document): string {
     if (this.mode === "html") {
-      return doc.toString();
+      // For HTML, serialize the entire document including DOCTYPE
+      const doctype = doc.doctype ? `<!DOCTYPE ${doc.doctype.name}>\n` : "";
+      const html = doc.documentElement?.outerHTML || "";
+      return doctype + html;
     }
     if (typeof XMLSerializer !== "undefined") {
       return new XMLSerializer().serializeToString(doc);
@@ -149,7 +152,7 @@ export class XmlAnonymizer {
   private stripImagesFromDocument(doc: Document): void {
     // Find all img elements
     const images = doc.querySelectorAll("img");
-    images.forEach((img) => {
+    for (const img of images) {
       const src = img.getAttribute("src");
       if (src) {
         // Store just the src path, not the full path
@@ -157,11 +160,11 @@ export class XmlAnonymizer {
         const textNode = doc.createTextNode(`[image src: ${src}]`);
         img.parentNode?.replaceChild(textNode, img);
       }
-    });
+    }
 
     // Also handle SVG image elements
     const svgImages = doc.querySelectorAll("image");
-    svgImages.forEach((img) => {
+    for (const img of svgImages) {
       const href = img.getAttribute("xlink:href") || img.getAttribute("href");
       if (href) {
         // Store just the href path, not the full path
@@ -169,7 +172,7 @@ export class XmlAnonymizer {
         const textNode = doc.createTextNode(`[image src: ${href}]`);
         img.parentNode?.replaceChild(textNode, img);
       }
-    });
+    }
   }
 
   getBasePath(): string | undefined {

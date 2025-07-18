@@ -1,66 +1,71 @@
-# xmlParser.ts - LinkedDOM Behavior Notes
+# xmlParser.ts - Parser Implementation Notes
 
 ## Summary
 
-LinkedDOM is a server-side DOM implementation that doesn't fully comply with W3C standards for XML parsing. While it handles some differences between HTML and XML modes correctly, it has significant deviations, particularly with XML features.
+The xmlParser module uses jsdom for both HTML and XML parsing in Node.js environments, and native browser DOMParser in client-side environments. The implementation uses Vite's `import.meta.SSR` for conditional bundling to ensure proper tree-shaking.
 
-## Standards Compliance Overview
+## Implementation Details
 
-| Feature | HTML Mode | XML Mode |
-|---------|-----------|----------|
-| Case Sensitivity | ✅ Standard | ⚠️ Partial |
-| Self-closing Tags | ✅ Standard | ✅ Standard |
-| Void Elements | ✅ Standard | ❌ Deviation |
-| Namespaces | ✅ Standard | ❌ Deviation |
-| CDATA Sections | ⚠️ Partial | ✅ Standard |
-| Entity References | ✅ Standard | ✅ Standard |
-| Error Handling | ✅ Standard | ❌ Deviation |
-| Attribute Quotes | ✅ Standard | ❌ Deviation |
+### Server-side (Node.js)
+- Uses jsdom for both HTML and XML parsing
+- Provides consistent W3C-compliant DOM implementation
+- XML parsing properly handles errors by creating parsererror elements
+- HTML parsing follows standard HTML5 parsing rules
 
-## Key Findings
+### Client-side (Browser)
+- Uses native browser DOMParser
+- Leverages built-in browser parsing capabilities
+- No additional dependencies in browser bundles
 
-LinkedDOM does NOT fully respect the difference between HTML and XML parsing modes. Here's what we discovered:
+### Conditional Loading
+- Uses `import.meta.SSR` (Vite) with fallback to `typeof window === "undefined"`
+- Ensures jsdom is only loaded in server environments
+- Optimizes bundle size for client-side applications
 
-### 1. **Namespace Handling**
-- In XML mode, linkedDOM sets the default namespace to XHTML (`http://www.w3.org/1999/xhtml`)
-- XML namespaces are not properly handled - `getElementsByTagNameNS` doesn't work as expected
-- Elements with namespace prefixes (like `<custom:element>`) are treated as regular elements with colons in their tag names
+## Key Features
 
-### 2. **Case Sensitivity**
-- Both HTML and XML modes preserve the original case of tag names
-- `querySelector` with lowercase works for uppercase tags in HTML mode (as expected)
-- XML mode properly requires exact case matching
+jsdom provides excellent standards compliance for both HTML and XML parsing:
 
-### 3. **Entity Handling**
-- HTML mode correctly handles HTML entities like `&nbsp;` and `&copy;`
-- XML mode does NOT handle these entities - they remain as literal text (e.g., `&nbsp;` stays as `&nbsp;`)
-- Both modes handle basic XML entities (`&lt;`, `&gt;`, `&amp;`)
+### 1. **Error Handling**
+- XML parsing errors are properly captured and wrapped in `<parsererror>` elements
+- Invalid XML (e.g., unclosed tags, multiple root elements) generates appropriate error messages
+- HTML parsing is forgiving and follows HTML5 error recovery rules
 
-### 4. **CDATA Sections**
-- XML mode properly handles CDATA sections, treating content as text
-- HTML mode appears to ignore/strip CDATA sections entirely
+### 2. **Namespace Support**
+- Full support for XML namespaces
+- `getElementsByTagNameNS` works correctly
+- Proper handling of namespace prefixes and default namespaces
 
-### 5. **Error Handling**
-- LinkedDOM is more forgiving than a real XML parser
-- Malformed XML doesn't produce parse errors or `<parsererror>` elements
-- Both modes try to parse malformed content as best they can
+### 3. **Standards Compliance**
+- HTML mode: Full HTML5 parsing algorithm
+- XML mode: Strict XML 1.0 parsing
+- Proper handling of void elements, CDATA sections, and entities
 
-### 6. **Attributes**
-- Duplicate attributes: Only the first one is kept (in both modes)
-- Unquoted attributes work in both modes (should only work in HTML)
+### 4. **Performance Considerations**
+- jsdom is heavier than linkedom but provides better standards compliance
+- Server-side only - not included in client bundles thanks to conditional imports
+- Suitable for EPUB processing where correctness is more important than raw performance
 
-## Practical Implications
+## Usage Examples
 
-When using linkedDOM for EPUB processing:
-1. **Be careful with XML namespaces** - they won't work as expected
-2. **Entity handling differs** - XML mode won't decode HTML entities
-3. **No strict XML validation** - malformed XML won't throw errors
-4. **XHTML namespace is automatically applied** in XML mode
+```typescript
+import { parseHtml, parseXml } from './xmlParser';
 
-## Recommendations
+// HTML parsing (forgiving)
+const htmlDoc = parseHtml('<div><p>Hello</div>'); // Missing </p> is handled
 
-For EPUB processing specifically:
-- Use XML mode for content that needs to preserve CDATA
-- Be aware that namespace handling is limited
-- Don't rely on XML validation - linkedDOM is permissive
-- Handle HTML entities manually in XML mode if needed
+// XML parsing (strict)
+const xmlDoc = parseXml('<?xml version="1.0"?><root><item/></root>');
+
+// Invalid XML creates parsererror
+const invalidXml = parseXml('<root><unclosed>');
+// xmlDoc.querySelector('parsererror') will contain the error
+```
+
+## Migration from LinkedDOM
+
+The switch from linkedom to jsdom for HTML parsing ensures:
+1. Consistent parsing behavior between HTML and XML modes
+2. Better standards compliance
+3. Proper error handling for both modes
+4. Single dependency for all server-side DOM operations
