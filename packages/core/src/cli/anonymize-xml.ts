@@ -43,8 +43,8 @@ const argv = yargs(hideBin(process.argv))
     alias: "m",
     type: "string",
     choices: ["xml", "html"] as const,
-    default: "xml",
-    describe: "Parsing mode: both xml and html skip whitespace-only nodes",
+    describe:
+      "Parsing mode: both xml and html skip whitespace-only nodes. Auto-detected based on file extension if not specified",
   })
   .option("format", {
     alias: "f",
@@ -83,10 +83,27 @@ async function main() {
     const inputPath = resolve(input);
     const xmlContent = readFileSync(inputPath, "utf-8");
 
+    // Auto-detect mode based on file extension if not explicitly set
+    let actualMode = mode;
+    if (!argv.mode) {
+      // Mode was not explicitly provided, auto-detect based on extension
+      const ext = inputPath.toLowerCase();
+      if (
+        ext.endsWith(".html") ||
+        ext.endsWith(".xhtml") ||
+        ext.endsWith(".htm")
+      ) {
+        actualMode = "html";
+        console.error(`Note: Auto-detected HTML mode for ${inputPath}`);
+      } else {
+        actualMode = "xml";
+      }
+    }
+
     // Anonymize the XML
     const anonymized = await anonymizeXml(xmlContent, {
       preserveLength,
-      mode,
+      mode: actualMode,
       format,
     });
 
