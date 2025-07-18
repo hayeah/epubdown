@@ -48,7 +48,7 @@ export class XmlAnonymizer {
   async anonymize(xml: string): Promise<string> {
     // Reset stripped image paths for this document
     this.strippedImagePaths.clear();
-    
+
     // Extract XML declaration if present
     const xmlDeclMatch = xml.match(/^<\?xml[^?]*\?>\s*/);
     if (xmlDeclMatch) {
@@ -62,12 +62,12 @@ export class XmlAnonymizer {
     }
 
     const doc = this.parseDocument(xml);
-    
+
     // Strip images first if requested
     if (this.stripImages) {
       this.stripImagesFromDocument(doc);
     }
-    
+
     this.traverseAndAnonymize(doc.documentElement || doc);
     let result = this.serializeDocument(doc);
     result = this.cleanOutput(result);
@@ -102,7 +102,7 @@ export class XmlAnonymizer {
       // TEXT_NODE = 3
       const original = node.nodeValue || "";
       if (original.trim() === "") return;
-      
+
       // Skip anonymizing image replacement markers
       if (original.match(/^\[image src: [^\]]+\]$/)) {
         return;

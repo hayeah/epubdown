@@ -62,7 +62,7 @@ describe("EPubShortener", () => {
       // Create a test EPUB structure with images
       const oebpsDir = join(tempDir, "OEBPS");
       await fs.mkdir(oebpsDir, { recursive: true });
-      
+
       // Create container.xml
       const metaInfDir = join(tempDir, "META-INF");
       await fs.mkdir(metaInfDir, { recursive: true });
@@ -73,9 +73,9 @@ describe("EPubShortener", () => {
   <rootfiles>
     <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
   </rootfiles>
-</container>`
+</container>`,
       );
-      
+
       // Create content.opf
       await fs.writeFile(
         join(oebpsDir, "content.opf"),
@@ -94,9 +94,9 @@ describe("EPubShortener", () => {
     <itemref idref="chapter1"/>
     <itemref idref="chapter2"/>
   </spine>
-</package>`
+</package>`,
       );
-      
+
       // Create HTML chapter with img tag
       await fs.writeFile(
         join(oebpsDir, "chapter1.html"),
@@ -107,9 +107,9 @@ describe("EPubShortener", () => {
 <p>Here is an image: <img src="images/test.png" alt="Test image"/></p>
 <p>Some text after the image.</p>
 </body>
-</html>`
+</html>`,
       );
-      
+
       // Create XML chapter with SVG image
       await fs.writeFile(
         join(oebpsDir, "chapter2.xml"),
@@ -119,27 +119,39 @@ describe("EPubShortener", () => {
 <svg xmlns="http://www.w3.org/2000/svg">
 <image xlink:href="images/test.png" x="0" y="0" width="100" height="100"/>
 </svg>
-</chapter>`
+</chapter>`,
       );
-      
+
       // Create image directory and file
       const imagesDir = join(oebpsDir, "images");
       await fs.mkdir(imagesDir, { recursive: true });
-      await fs.writeFile(join(imagesDir, "test.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+      await fs.writeFile(
+        join(imagesDir, "test.png"),
+        Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+      );
 
       // Run the shortener with stripImages enabled
       await shortenDir(tempDir, { stripImages: true });
 
       // Verify that image file has been deleted
-      const imageExists = await fs.access(join(imagesDir, "test.png")).then(() => true).catch(() => false);
+      const imageExists = await fs
+        .access(join(imagesDir, "test.png"))
+        .then(() => true)
+        .catch(() => false);
       expect(imageExists).toBe(false);
 
       // Verify that img tags have been replaced with [image src: ...] text
-      const chapter1Content = await fs.readFile(join(oebpsDir, "chapter1.html"), "utf-8");
+      const chapter1Content = await fs.readFile(
+        join(oebpsDir, "chapter1.html"),
+        "utf-8",
+      );
       expect(chapter1Content).toContain("[image src: images/test.png]");
       expect(chapter1Content).not.toContain("<img");
-      
-      const chapter2Content = await fs.readFile(join(oebpsDir, "chapter2.xml"), "utf-8");
+
+      const chapter2Content = await fs.readFile(
+        join(oebpsDir, "chapter2.xml"),
+        "utf-8",
+      );
       expect(chapter2Content).toContain("[image src: images/test.png]");
       expect(chapter2Content).not.toContain("<image");
     });
@@ -212,10 +224,14 @@ describe("EPubShortener", () => {
 
       // When preserveLength is false, the content lengths will likely differ
       for (let i = 0; i < originalChapters.length; i++) {
-        const originalText = originalChapters[i]!.replace(/<[^>]*>/g, "").trim();
-        const shortenedText = shortenedChapters[i]!
-          .replace(/<[^>]*>/g, "")
-          .trim();
+        const originalText = originalChapters[i]!.replace(
+          /<[^>]*>/g,
+          "",
+        ).trim();
+        const shortenedText = shortenedChapters[i]!.replace(
+          /<[^>]*>/g,
+          "",
+        ).trim();
 
         // Content should be anonymized (different)
         if (originalText.length > 50) {
