@@ -62,7 +62,9 @@ private readonly dbName: string;
 # Lint / Format
 
 - If you worked on typescript, run `tsc` to type check and fix errors.
+  - run in package root
 - `pnpm run check` to do automatic lint fixing, format.
+  - run in repo root
 
 # Commit Message
 
