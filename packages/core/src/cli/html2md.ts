@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { MarkdownTurndownService } from "../MarkdownConverter";
+import { ContentToMarkdown } from "../ContentToMarkdown";
 
 const argv = yargs(hideBin(process.argv))
   .usage("Usage: $0 [options]")
@@ -33,9 +33,9 @@ async function main() {
       htmlContent = readFileSync(0, "utf-8");
     }
 
-    // Convert HTML/XML to markdown
-    const converter = new MarkdownTurndownService();
-    const markdown = converter.turndown(htmlContent);
+    // Convert HTML/XML to markdown using ContentToMarkdown
+    const converter = ContentToMarkdown.create();
+    const markdown = await converter.convert(htmlContent);
 
     // Output the result
     if (argv.output) {

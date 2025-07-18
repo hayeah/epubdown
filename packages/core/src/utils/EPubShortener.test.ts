@@ -224,14 +224,12 @@ describe("EPubShortener", () => {
 
       // When preserveLength is false, the content lengths will likely differ
       for (let i = 0; i < originalChapters.length; i++) {
-        const originalText = originalChapters[i]!.replace(
-          /<[^>]*>/g,
-          "",
-        ).trim();
-        const shortenedText = shortenedChapters[i]!.replace(
-          /<[^>]*>/g,
-          "",
-        ).trim();
+        const originalText = originalChapters[i]
+          ?.replace(/<[^>]*>/g, "")
+          .trim();
+        const shortenedText = shortenedChapters[i]
+          ?.replace(/<[^>]*>/g, "")
+          .trim();
 
         // Content should be anonymized (different)
         if (originalText.length > 50) {
