@@ -1,41 +1,42 @@
 import { promises as fs } from "node:fs";
-import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
+import { ContentToMarkdown } from "../ContentToMarkdown";
 import { EPubMarkdownConverter } from "../EPubMarkdownConverter";
 import { EPub } from "../Epub";
 import { FileDataResolver } from "../Epub";
-import { MarkdownConverter } from "../MarkdownConverter";
 import { unzip } from "./zipUtils";
 
 interface DumpOptions {
   verbose?: boolean;
+  outputDir?: string;
 }
 
 export class EpubDumper {
-  private converter: MarkdownConverter;
+  private converter: ContentToMarkdown;
   private epubMarkdownConverter: EPubMarkdownConverter;
+  private outputDir: string;
 
   constructor(
     private readonly epub: EPub,
     private readonly baseDir: string,
     private readonly options: DumpOptions = {},
   ) {
-    this.converter = new MarkdownConverter();
+    this.converter = ContentToMarkdown.create();
     this.epubMarkdownConverter = new EPubMarkdownConverter(this.epub);
+    this.outputDir = options.outputDir || baseDir;
   }
 
-  static async fromZip(
-    zipData: Uint8Array | Buffer,
+  static async fromZipFile(
+    epubFile: string,
     options?: DumpOptions,
   ): Promise<EpubDumper> {
-    // Create temp directory
-    const tempDir = await fs.mkdtemp(join(tmpdir(), "epub-dump-"));
+    // Extract zip file to output directory
+    const outputDir =
+      options?.outputDir || `${basename(epubFile, ".epub")}_dump`;
+    await unzip(epubFile, outputDir);
 
-    // Unzip to temp directory
-    await unzip(zipData, tempDir);
-
-    const epub = await EPub.init(new FileDataResolver(tempDir));
-    return new EpubDumper(epub, tempDir, options);
+    // Call fromDirectory with the extracted content
+    return EpubDumper.fromDirectory(outputDir, options);
   }
 
   static async fromDirectory(
@@ -74,7 +75,7 @@ export class EpubDumper {
     relativePath: string,
     content: string,
   ): Promise<void> {
-    const fullPath = join(this.baseDir, relativePath);
+    const fullPath = join(this.outputDir, relativePath);
     await fs.mkdir(dirname(fullPath), { recursive: true });
     await fs.writeFile(fullPath, content, "utf8");
   }
@@ -86,6 +87,9 @@ export class EpubDumper {
   async dump(): Promise<void> {
     if (this.options.verbose) {
       console.log(`Dumping EPUB from: ${this.baseDir}`);
+      if (this.outputDir !== this.baseDir) {
+        console.log(`Output directory: ${this.outputDir}`);
+      }
     }
 
     // Initialize TOC anchor links (will be cached in epub instance)
@@ -101,7 +105,7 @@ export class EpubDumper {
     await this.dumpChapters();
 
     if (this.options.verbose) {
-      console.log(`Dump completed in: ${this.baseDir}`);
+      console.log(`Dump completed in: ${this.outputDir}`);
     }
   }
 
@@ -134,8 +138,7 @@ export class EpubDumper {
 
       // Convert nav to markdown
       await this.time("nav.md", async () => {
-        const { content: navMarkdown } =
-          await this.converter.convertXMLFile(navFile);
+        const navMarkdown = await this.converter.convert(navFile.content);
         await this.writeFile("nav.dump.md", navMarkdown);
       });
     }
@@ -155,8 +158,7 @@ export class EpubDumper {
 
         // Convert the HTML version to markdown
         await this.time("ncx.md", async () => {
-          const { content: ncxMarkdown } =
-            await this.converter.convertXMLFile(ncxHtml);
+          const ncxMarkdown = await this.converter.convert(ncxHtml.content);
           await this.writeFile("ncx.dump.md", ncxMarkdown);
         });
       }
@@ -172,9 +174,12 @@ export class EpubDumper {
       index += 1;
 
       await this.time(`chapter ${index}`, async () => {
-        // Get markdown with all metadata
-        const { title, content } =
-          await this.epubMarkdownConverter.getChapterMarkdown(chapter);
+        // Get markdown content
+        const content = await this.epubMarkdownConverter.getChapterMD(chapter);
+
+        // Extract title from the content (typically the first H1)
+        const titleMatch = content.match(/^#\s+(.+)$/m);
+        const title = titleMatch ? titleMatch[1] : "Chapter";
 
         // Write markdown beside the original file
         const mdPath = chapter.path.replace(/\.(x?html?)$/i, ".dump.md");
@@ -191,12 +196,5 @@ export class EpubDumper {
 
     // Write chapter list to root
     await this.writeJSON("chapters.dump.json", chapterList);
-  }
-
-  async cleanup(): Promise<void> {
-    // Clean up temp directory if it was created from zip
-    if (this.baseDir.includes(tmpdir())) {
-      await fs.rm(this.baseDir, { recursive: true, force: true });
-    }
   }
 }

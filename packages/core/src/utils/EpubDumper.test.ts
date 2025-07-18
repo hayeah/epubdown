@@ -1,5 +1,4 @@
 import { promises as fs } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fetchEpub } from "../testUtils";
@@ -11,7 +10,8 @@ describe("EpubDumper", () => {
 
   beforeEach(async () => {
     // Create a temporary test directory
-    testDir = await fs.mkdtemp(join(tmpdir(), "epub-dumper-test-"));
+    testDir = join(process.cwd(), "epub-dumper-test-" + Date.now());
+    await fs.mkdir(testDir, { recursive: true });
   });
 
   afterEach(async () => {
@@ -86,19 +86,33 @@ describe("EpubDumper", () => {
     });
   });
 
-  describe("fromZip", () => {
+  describe("fromZipFile", () => {
     it("should create dumper from zip file", async () => {
-      // Load Alice EPUB
+      // Create a temp EPUB file
       const epubData = await fetchEpub("alice.epub");
+      const tempEpubPath = join(process.cwd(), "test-alice.epub");
+      await fs.writeFile(tempEpubPath, epubData);
 
-      // Create dumper from zip
-      const dumper = await EpubDumper.fromZip(epubData);
-      await dumper.dump();
+      try {
+        // Create dumper from zip file
+        const dumper = await EpubDumper.fromZipFile(tempEpubPath);
+        await dumper.dump();
 
-      // The dumper should have created a temp directory
-      // We can't check the exact path, but we can verify the dump worked
-      // by checking that cleanup removes the temp directory
-      await dumper.cleanup();
+        // Verify the dump directory was created
+        const dumpDir = "test-alice_dump";
+        expect(
+          await fs
+            .access(dumpDir)
+            .then(() => true)
+            .catch(() => false),
+        ).toBe(true);
+
+        // Clean up
+        await fs.rm(dumpDir, { recursive: true, force: true });
+      } finally {
+        // Clean up temp EPUB file
+        await fs.rm(tempEpubPath, { force: true });
+      }
     });
   });
 
@@ -125,9 +139,8 @@ describe("EpubDumper", () => {
             .catch(() => false),
         ).toBe(true);
 
-        await dumper.cleanup();
-
-        // Directory and files should still exist after cleanup
+        // Cleanup method no longer exists - directories are not cleaned up automatically
+        // Directory and files should still exist
         expect(
           await fs
             .access(nonTempDir)
@@ -146,38 +159,31 @@ describe("EpubDumper", () => {
       }
     });
 
-    it("should remove temp directories created from zip", async () => {
-      // Load Alice EPUB
+    it("should not create temp directories with fromZipFile", async () => {
+      // Create a temp EPUB file
       const epubData = await fetchEpub("alice.epub");
+      const tempEpubPath = join(process.cwd(), "test-alice-cleanup.epub");
+      await fs.writeFile(tempEpubPath, epubData);
 
-      // Create dumper from zip (which creates temp directory)
-      const dumper = await EpubDumper.fromZip(epubData);
+      try {
+        // Create dumper from zip file
+        const dumper = await EpubDumper.fromZipFile(tempEpubPath);
+        const dumpDir = "test-alice-cleanup_dump";
 
-      // Get the temp directory path (we'll need to access private property for testing)
-      const tempDirPath = (dumper as any).baseDir;
+        // Verify the dump directory was created in current directory, not temp
+        expect(
+          await fs
+            .access(dumpDir)
+            .then(() => true)
+            .catch(() => false),
+        ).toBe(true);
 
-      // Verify it's in tmpdir
-      expect(tempDirPath).toContain(tmpdir());
-
-      await dumper.dump();
-
-      // Verify temp directory exists
-      expect(
-        await fs
-          .access(tempDirPath)
-          .then(() => true)
-          .catch(() => false),
-      ).toBe(true);
-
-      await dumper.cleanup();
-
-      // Temp directory should be removed
-      expect(
-        await fs
-          .access(tempDirPath)
-          .then(() => true)
-          .catch(() => false),
-      ).toBe(false);
+        // Clean up manually since no cleanup method exists
+        await fs.rm(dumpDir, { recursive: true, force: true });
+      } finally {
+        // Clean up temp EPUB file
+        await fs.rm(tempEpubPath, { force: true });
+      }
     });
   });
 });

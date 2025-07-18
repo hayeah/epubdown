@@ -9,17 +9,38 @@ async function dumpPath(targetPath: string, verbose: boolean) {
   const stats = await fs.stat(targetPath);
 
   if (stats.isFile() && targetPath.toLowerCase().endsWith(".epub")) {
-    // Handle zip file
+    // Handle single EPUB file
     console.log(`Dumping EPUB file: ${targetPath}`);
-    const zipData = await fs.readFile(targetPath);
-    const dumper = await EpubDumper.fromZip(zipData, { verbose });
+    const dumper = await EpubDumper.fromZipFile(targetPath, { verbose });
     await dumper.dump();
-    await dumper.cleanup();
   } else if (stats.isDirectory()) {
-    // Handle directory
-    console.log(`Dumping EPUB directory: ${targetPath}`);
-    const dumper = await EpubDumper.fromDirectory(targetPath, { verbose });
-    await dumper.dump();
+    // Check if directory contains EPUB files
+    const files = await fs.readdir(targetPath);
+    const epubFiles = files.filter((file) =>
+      file.toLowerCase().endsWith(".epub"),
+    );
+
+    if (epubFiles.length > 0) {
+      // Directory contains EPUB files - process each one
+      console.log(
+        `Found ${epubFiles.length} EPUB files in directory: ${targetPath}`,
+      );
+
+      for (const epubFile of epubFiles) {
+        console.log(`\nDumping EPUB file: ${epubFile}`);
+        const epubPath = path.join(targetPath, epubFile);
+
+        const dumper = await EpubDumper.fromZipFile(epubPath, {
+          verbose,
+        });
+        await dumper.dump();
+      }
+    } else {
+      // No EPUB files, treat as EPUB directory structure
+      console.log(`Dumping EPUB directory: ${targetPath}`);
+      const dumper = await EpubDumper.fromDirectory(targetPath, { verbose });
+      await dumper.dump();
+    }
   } else {
     throw new Error(`${targetPath} is neither an EPUB file nor a directory`);
   }
