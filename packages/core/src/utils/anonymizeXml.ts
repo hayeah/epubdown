@@ -1,6 +1,15 @@
+import { join } from "node:path";
 import pluginXml from "@prettier/plugin-xml";
 import prettier from "prettier";
 import { parseHtml, parseXml } from "../xmlParser";
+
+export interface XmlAnonymizerOptions {
+  preserveLength?: boolean;
+  mode?: "xml" | "html";
+  format?: boolean;
+  stripImages?: boolean;
+  basePath?: string;
+}
 
 const PUBLIC_DOMAIN_TEXT = `
 Call me Ishmael. Some years ago—never mind how long precisely—having little or no money
@@ -20,24 +29,26 @@ export class XmlAnonymizer {
   private preserveLength: boolean;
   private mode: "xml" | "html";
   private format: boolean;
+  private stripImages: boolean;
+  private basePath?: string;
   private corpusIdx = 0;
   private corpusLen = PUBLIC_DOMAIN_TEXT.length;
   private xmlDeclaration: string | null = null;
   private doctype: string | null = null;
+  private strippedImagePaths = new Set<string>();
 
-  constructor(
-    opts: {
-      preserveLength?: boolean;
-      mode?: "xml" | "html";
-      format?: boolean;
-    } = {},
-  ) {
+  constructor(opts: XmlAnonymizerOptions = {}) {
     this.preserveLength = opts.preserveLength ?? false;
     this.mode = opts.mode ?? "xml";
     this.format = opts.format ?? false;
+    this.stripImages = opts.stripImages ?? false;
+    this.basePath = opts.basePath;
   }
 
   async anonymize(xml: string): Promise<string> {
+    // Reset stripped image paths for this document
+    this.strippedImagePaths.clear();
+    
     // Extract XML declaration if present
     const xmlDeclMatch = xml.match(/^<\?xml[^?]*\?>\s*/);
     if (xmlDeclMatch) {
@@ -51,6 +62,12 @@ export class XmlAnonymizer {
     }
 
     const doc = this.parseDocument(xml);
+    
+    // Strip images first if requested
+    if (this.stripImages) {
+      this.stripImagesFromDocument(doc);
+    }
+    
     this.traverseAndAnonymize(doc.documentElement || doc);
     let result = this.serializeDocument(doc);
     result = this.cleanOutput(result);
@@ -72,6 +89,10 @@ export class XmlAnonymizer {
     return result;
   }
 
+  getStrippedImagePaths(): Set<string> {
+    return this.strippedImagePaths;
+  }
+
   private parseDocument(xml: string): Document {
     return this.mode === "html" ? parseHtml(xml) : parseXml(xml);
   }
@@ -81,6 +102,11 @@ export class XmlAnonymizer {
       // TEXT_NODE = 3
       const original = node.nodeValue || "";
       if (original.trim() === "") return;
+      
+      // Skip anonymizing image replacement markers
+      if (original.match(/^\[image src: [^\]]+\]$/)) {
+        return;
+      }
 
       const desiredLength = this.preserveLength
         ? original.length
@@ -124,6 +150,36 @@ export class XmlAnonymizer {
     return str.replace(/<(\w+)\s*\/>/g, "<$1></$1>");
   }
 
+  private stripImagesFromDocument(doc: Document): void {
+    // Find all img elements
+    const images = doc.querySelectorAll("img");
+    images.forEach((img) => {
+      const src = img.getAttribute("src");
+      if (src) {
+        // Store just the src path, not the full path
+        this.strippedImagePaths.add(src);
+        const textNode = doc.createTextNode(`[image src: ${src}]`);
+        img.parentNode?.replaceChild(textNode, img);
+      }
+    });
+
+    // Also handle SVG image elements
+    const svgImages = doc.querySelectorAll("image");
+    svgImages.forEach((img) => {
+      const href = img.getAttribute("xlink:href") || img.getAttribute("href");
+      if (href) {
+        // Store just the href path, not the full path
+        this.strippedImagePaths.add(href);
+        const textNode = doc.createTextNode(`[image src: ${href}]`);
+        img.parentNode?.replaceChild(textNode, img);
+      }
+    });
+  }
+
+  getBasePath(): string | undefined {
+    return this.basePath;
+  }
+
   private async formatOutput(str: string): Promise<string> {
     try {
       const formatted = await prettier.format(str, {
@@ -145,11 +201,7 @@ export class XmlAnonymizer {
 
 export async function anonymizeXml(
   xml: string,
-  opts: {
-    preserveLength?: boolean;
-    mode?: "xml" | "html";
-    format?: boolean;
-  } = {},
+  opts: XmlAnonymizerOptions = {},
 ): Promise<string> {
   const anonymizer = new XmlAnonymizer(opts);
   return anonymizer.anonymize(xml);
