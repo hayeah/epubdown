@@ -1,4 +1,4 @@
-import { EPub, type Metadata, type XMLFile } from "@epubdown/core";
+import { EPub, type XMLFile } from "@epubdown/core";
 import { action, makeObservable, observable } from "mobx";
 
 export class EPubStore {
@@ -7,7 +7,7 @@ export class EPubStore {
   error: string | null = null;
   currentChapterIndex = 0;
   chapters: XMLFile[] = [];
-  metadata: Metadata = {};
+  metadata: Record<string, any> = {};
 
   constructor() {
     makeObservable(this, {
@@ -41,7 +41,7 @@ export class EPubStore {
       }
       this.chapters = chapterArray;
 
-      this.metadata = epub.getMetadata();
+      this.metadata = epub.metadata.toJSON();
       this.currentChapterIndex = 0;
     } catch (err) {
       this.error = err instanceof Error ? err.message : "Failed to load EPUB";

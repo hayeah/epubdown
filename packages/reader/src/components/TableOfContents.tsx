@@ -49,8 +49,9 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
     const loadToc = async () => {
       try {
         setIsLoading(true);
-        const toc = await epub.toc();
-        setTocFile(toc || null);
+        // Get the TOC as HTML (automatically handles EPUB3 nav or NCX)
+        const tocHtml = await epub.toc.html();
+        setTocFile(tocHtml || null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load TOC");
       } finally {

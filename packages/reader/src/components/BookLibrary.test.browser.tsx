@@ -132,14 +132,10 @@ describe("BookLibrary (Browser)", () => {
     expect(input.value).toBe("");
 
     // Verify the book was persisted in storage
-    const storage = bookLibraryStore.storage;
-    expect(storage).not.toBeNull();
-    if (storage) {
-      const books = await storage.getAllBooks();
-      expect(books).toHaveLength(1);
-      expect(books[0].title).toBe("Alice's Adventures in Wonderland");
-      expect(books[0].filename).toBe("alice.epub");
-    }
+    const books = bookLibraryStore.books;
+    expect(books).toHaveLength(1);
+    expect(books[0].title).toBe("Alice's Adventures in Wonderland");
+    expect(books[0].filename).toBe("alice.epub");
   });
 
   it("should handle book deletion with real storage", async () => {
@@ -173,12 +169,8 @@ describe("BookLibrary (Browser)", () => {
     });
 
     // Verify the book was removed from storage
-    const storage = bookLibraryStore.storage;
-    expect(storage).not.toBeNull();
-    if (storage) {
-      const books = await storage.getAllBooks();
-      expect(books).toHaveLength(0);
-    }
+    const books = bookLibraryStore.books;
+    expect(books).toHaveLength(0);
   });
 
   it("should persist books across store instances", async () => {
@@ -318,11 +310,8 @@ describe("BookLibrary (Browser)", () => {
     ).toBeInTheDocument();
 
     // Verify the book is still in storage
-    const storage = bookLibraryStore.storage;
-    if (storage) {
-      const books = await storage.getAllBooks();
-      expect(books).toHaveLength(1);
-    }
+    const books = bookLibraryStore.books;
+    expect(books).toHaveLength(1);
   });
 
   it("should handle book click to open", async () => {
@@ -408,13 +397,12 @@ describe("BookLibrary (Browser)", () => {
     const bookData = await bookLibraryStore.loadBookForReading(bookId);
     expect(bookData).not.toBeNull();
 
+    // Reload books to get updated timestamps
+    await bookLibraryStore.loadBooks();
+
     // Verify last opened was updated
-    const storage = bookLibraryStore.storage;
-    expect(storage).not.toBeNull();
-    if (storage) {
-      const books = await storage.getAllBooks();
-      expect(books[0].lastOpenedAt).toBeDefined();
-      expect(books[0].lastOpenedAt).toBeGreaterThan(0);
-    }
+    const books = bookLibraryStore.books;
+    expect(books[0].lastOpenedAt).toBeDefined();
+    expect(books[0].lastOpenedAt).toBeGreaterThan(0);
   });
 });

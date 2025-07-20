@@ -206,12 +206,14 @@ describe("MobX Store Integration - Simple", () => {
 
     it("should coordinate between stores when loading epub", () => {
       const mockEpub = {
-        getMetadata: () => ({ title: "Test Book", author: "Test Author" }),
+        metadata: {
+          toJSON: () => ({ title: "Test Book", author: "Test Author" }),
+        },
       } as EPub;
 
       runInAction(() => {
         rootStore.epubStore.epub = mockEpub;
-        rootStore.epubStore.metadata = mockEpub.getMetadata();
+        rootStore.epubStore.metadata = mockEpub.metadata.toJSON();
         rootStore.chapterStore.setConverter(mockEpub);
       });
 
