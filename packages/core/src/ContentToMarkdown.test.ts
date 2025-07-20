@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ContentToMarkdown } from "./ContentToMarkdown";
-import { FileDataResolver, XMLFile } from "./Epub";
+import { XMLFile } from "./XMLFile";
+import { FileDataResolver } from "./resolvers/FileDataResolver";
 import { parseXml } from "./xmlParser";
 
 function createMockXMLFile(html: string): XMLFile {

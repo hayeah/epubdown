@@ -1,5 +1,6 @@
 import { ContentToMarkdown } from "./ContentToMarkdown";
-import type { EPub, XMLFile } from "./Epub";
+import type { EPub } from "./Epub";
+import type { XMLFile } from "./XMLFile";
 
 export class EPubMarkdownConverter {
   constructor(private epub: EPub) {}

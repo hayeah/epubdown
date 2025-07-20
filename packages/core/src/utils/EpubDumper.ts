@@ -3,7 +3,7 @@ import { basename, dirname, join } from "node:path";
 import { ContentToMarkdown } from "../ContentToMarkdown";
 import { EPubMarkdownConverter } from "../EPubMarkdownConverter";
 import { EPub } from "../Epub";
-import { FileDataResolver } from "../Epub";
+import { FileDataResolver } from "../resolvers/FileDataResolver";
 import { unzip } from "./zipUtils";
 
 interface DumpOptions {

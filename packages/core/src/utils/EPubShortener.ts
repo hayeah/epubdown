@@ -1,7 +1,8 @@
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { EPub, FileDataResolver } from "../Epub";
+import { EPub } from "../Epub";
+import { FileDataResolver } from "../resolvers/FileDataResolver";
 import { XmlAnonymizer } from "./anonymizeXml";
 import type { XmlAnonymizerOptions } from "./anonymizeXml";
 import { unzip, zipToBuffer } from "./zipUtils";

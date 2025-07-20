@@ -1,5 +1,5 @@
 import TurndownService from "turndown";
-import type { XMLFile } from "./Epub";
+import type { XMLFile } from "./XMLFile";
 
 export interface ConversionOptions {
   keepIds?: Set<string>;

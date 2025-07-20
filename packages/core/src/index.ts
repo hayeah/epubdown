@@ -1,5 +1,7 @@
 // Main EPub classes
-export { EPub, XMLFile, FileDataResolver } from "./Epub";
+export { EPub } from "./Epub";
+export { XMLFile } from "./XMLFile";
+export { FileDataResolver } from "./resolvers/FileDataResolver";
 export { EPubMarkdownConverter } from "./EPubMarkdownConverter";
 export { Metadata } from "./Metadata";
 export type {
