@@ -26,6 +26,20 @@ interface SpineItem {
   linear: boolean;
 }
 
+export interface NavItem {
+  id?: string;
+  href: string;
+  label: string;
+  subitems?: NavItem[];
+}
+
+export interface FlatNavItem extends NavItem {
+  level: number;
+  parentHref?: string;
+}
+
+export type FlatTOC = FlatNavItem[];
+
 export class EPub {
   private _tocAnchorLinks?: Map<string, Set<string>>;
 
@@ -267,6 +281,101 @@ export class EPub {
       parseXml(html) as XMLDocument,
       ncxFile.resolver,
     );
+  }
+
+  /**
+   * Parse the table of contents and return nested navigation items
+   */
+  async tocNavItems(): Promise<NavItem[]> {
+    const tocFile = await this.toc();
+    if (!tocFile) {
+      return [];
+    }
+
+    // Parse the nav element
+    const navElement = tocFile.querySelector('nav[epub\\:type="toc"]');
+    if (!navElement) {
+      return [];
+    }
+
+    const parseNavList = (listElement: Element): NavItem[] => {
+      const items = Array.from(listElement.querySelectorAll(":scope > li"));
+      const navItems: NavItem[] = [];
+
+      for (const item of items) {
+        const link = item.querySelector(":scope > a");
+        if (!link) continue;
+
+        const href = link.getAttribute("href") || "";
+        const label = link.textContent?.trim() || "";
+
+        // Parse id from href fragment
+        const fragmentIndex = href.indexOf("#");
+        const id =
+          fragmentIndex !== -1 ? href.substring(fragmentIndex + 1) : undefined;
+
+        // Create the nav item
+        const navItem: NavItem = {
+          href,
+          label,
+        };
+
+        if (id) {
+          navItem.id = id;
+        }
+
+        // Check for nested list and parse recursively
+        const nestedList = item.querySelector(":scope > ul, :scope > ol");
+        if (nestedList) {
+          navItem.subitems = parseNavList(nestedList);
+        }
+
+        navItems.push(navItem);
+      }
+
+      return navItems;
+    };
+
+    // Find the main list (ol or ul) within the nav element
+    const mainList = navElement.querySelector(":scope > ol, :scope > ul");
+    if (mainList) {
+      return parseNavList(mainList);
+    }
+
+    return [];
+  }
+
+  /**
+   * Parse the table of contents and return a flattened array of navigation items
+   * Each item includes its hierarchical level and parent reference
+   */
+  async tocFlat(): Promise<FlatTOC> {
+    const navItems = await this.tocNavItems();
+
+    const flattenNavItems = (
+      items: NavItem[],
+      level = 0,
+      parentHref?: string,
+    ): FlatNavItem[] => {
+      return items.reduce<FlatNavItem[]>((acc, item) => {
+        const flatItem: FlatNavItem = {
+          ...item,
+          level,
+          parentHref,
+        };
+
+        acc.push(flatItem);
+
+        if (item.subitems && item.subitems.length > 0) {
+          // Use the item's href as parent for subitems
+          acc.push(...flattenNavItems(item.subitems, level + 1, item.href));
+        }
+
+        return acc;
+      }, []);
+    };
+
+    return flattenNavItems(navItems);
   }
 
   /**
