@@ -62,6 +62,14 @@ private readonly dbName: string;
   - tests for "src/BlobStore.ts" should be "src/BlobStore.test.ts"
 - tests that should run in browser have the naming convention of: "src/BlobStore.test.browser.ts"
 
+## Sharing Tests
+
+For isomorphic JS code that need to work both in the browser and node/bun, we'd want to share tests between browser and jsdom:
+
+  1. Create a .test.shared.ts file with a factory function that returns test suites
+  2. The factory accepts environment-specific dependencies.
+  3. Import and call the factory in both .test.ts (jsdom) and .test.browser.ts files
+
 # Lint / Format
 
 - If you worked on typescript, run `tsc` to type check and fix errors.
