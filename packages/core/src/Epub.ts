@@ -1,17 +1,16 @@
 import JSZip from "jszip";
+import { Metadata } from "./Metadata";
 import { TableOfContents } from "./TableOfContents";
 import type { XMLFile } from "./XMLFile";
 import { type DataResolver, ZipDataResolver } from "./resolvers";
 
-interface EPubMetadata {
-  title?: string;
-  author?: string;
-  language?: string;
-  identifier?: string;
-  description?: string;
-  publisher?: string;
-  date?: string;
-}
+/*
+ * EPUB 3.3 Required Metadata:
+ * According to the EPUB specification, only these metadata elements are required:
+ * - dc:identifier - Unique identifier for the publication
+ * - dc:title - Title of the publication
+ * - dc:language - Language of the publication
+ */
 
 interface ManifestItem {
   id: string;
@@ -27,6 +26,7 @@ interface SpineItem {
 
 export class EPub {
   private _toc?: TableOfContents;
+  private _metadata?: Metadata;
 
   constructor(
     public readonly container: XMLFile,
@@ -84,41 +84,18 @@ export class EPub {
   //   return await EPub.init(resolver);
   // }
 
-  getMetadata(): EPubMetadata {
-    const metadata = this.opf.querySelector("metadata");
-    if (!metadata) return {};
-
-    const result: EPubMetadata = {};
-
-    // Title - try both with and without namespace
-    const title = metadata.querySelector("dc\\:title, title");
-    if (title) result.title = title.textContent?.trim();
-
-    // Creator/Author
-    const creator = metadata.querySelector("dc\\:creator, creator");
-    if (creator) result.author = creator.textContent?.trim();
-
-    // Language
-    const language = metadata.querySelector("dc\\:language, language");
-    if (language) result.language = language.textContent?.trim();
-
-    // Identifier
-    const identifier = metadata.querySelector("dc\\:identifier, identifier");
-    if (identifier) result.identifier = identifier.textContent?.trim();
-
-    // Description
-    const description = metadata.querySelector("dc\\:description, description");
-    if (description) result.description = description.textContent?.trim();
-
-    // Publisher
-    const publisher = metadata.querySelector("dc\\:publisher, publisher");
-    if (publisher) result.publisher = publisher.textContent?.trim();
-
-    // Date
-    const date = metadata.querySelector("dc\\:date, date");
-    if (date) result.date = date.textContent?.trim();
-
-    return result;
+  /**
+   * Get the metadata handler
+   */
+  get metadata(): Metadata {
+    if (!this._metadata) {
+      const metadataElement = this.opf.querySelector("metadata");
+      if (!metadataElement) {
+        throw new Error("EPUB metadata element not found");
+      }
+      this._metadata = Metadata.fromDom(metadataElement);
+    }
+    return this._metadata;
   }
 
   getManifest(): ManifestItem[] {

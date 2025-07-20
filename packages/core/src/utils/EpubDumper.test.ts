@@ -44,7 +44,7 @@ describe("EpubDumper", () => {
 
       const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
       expect(metadata.title).toBe("Alice's Adventures in Wonderland");
-      expect(metadata.author).toBe("Lewis Carroll");
+      expect(metadata.creator).toBe("Lewis Carroll");
 
       // Check that manifest was created
       const manifestPath = join(testDir, "manifest.dump.json");

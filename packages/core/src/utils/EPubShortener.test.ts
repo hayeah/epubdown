@@ -174,8 +174,8 @@ describe("EPubShortener", () => {
 
       // Load the shortened EPUB and verify content
       const epub = await EPub.fromZip(shortenedData);
-      const metadata = epub.getMetadata();
-      expect(metadata.title).toBe("Alice's Adventures in Wonderland");
+      const metadata = epub.metadata;
+      expect(metadata.get("title")).toBe("Alice's Adventures in Wonderland");
 
       // Check that chapters have been shortened
       let chaptersChecked = 0;

@@ -17,10 +17,10 @@ describe("EPub - Browser Tests", () => {
   });
 
   it("should extract metadata from EPUB", async () => {
-    const metadata = epub.getMetadata();
-    expect(metadata.title).toContain("Alice");
-    expect(metadata.author).toBeDefined();
-    expect(metadata.language).toBeDefined();
+    const metadata = epub.metadata;
+    expect(metadata.get("title")).toContain("Alice");
+    expect(metadata.get("creator")).toBeTruthy();
+    expect(metadata.get("language")).toBeTruthy();
   });
 
   it("should get manifest items", async () => {

@@ -38,23 +38,50 @@ export class Metadata {
 
   /* ---------- public API ---------- */
 
+  /**
+   * Gets the first value associated with the given key.
+   * If there are no values associated with the key, returns "".
+   * It is case insensitive; the key is normalized to lowercase.
+   */
+  get(key: string): string {
+    const normalizedKey = this.normalizeKey(key);
+    const props = this.propertiesByName.get(normalizedKey);
+    return props?.[0]?.value || "";
+  }
+
+  /**
+   * Returns all values associated with the given key.
+   * It is case insensitive; the key is normalized to lowercase.
+   */
+  getValues(key: string): string[] {
+    const normalizedKey = this.normalizeKey(key);
+    const props = this.propertiesByName.get(normalizedKey);
+    return props?.map((p) => p.value) || [];
+  }
+
+  private normalizeKey(key: string): string {
+    // Remove dc: prefix if present and convert to lowercase
+    return key.replace(/^dc:/i, "").toLowerCase();
+  }
+
   addDC(
     name: string,
     value: string,
     attributes: Record<string, string> = {},
   ): void {
+    const normalizedName = this.normalizeKey(name);
     const id = attributes.id;
     const prop: DCProperty = {
-      name,
+      name: normalizedName,
       value,
       attributes,
       refinements: new Map(),
     };
 
-    if (!this.propertiesByName.has(name)) {
-      this.propertiesByName.set(name, []);
+    if (!this.propertiesByName.has(normalizedName)) {
+      this.propertiesByName.set(normalizedName, []);
     }
-    this.propertiesByName.get(name)?.push(prop);
+    this.propertiesByName.get(normalizedName)?.push(prop);
 
     if (id) this.propertiesById.set(`#${id}`, prop);
   }
@@ -72,10 +99,10 @@ export class Metadata {
   }
 
   getText(name: string): string | undefined {
-    return this.get(name)[0]?.value;
+    return this.getProperties(name)[0]?.value;
   }
 
-  get(name: string): DCProperty[] {
+  getProperties(name: string): DCProperty[] {
     return this.propertiesByName.get(name) ?? [];
   }
 
@@ -83,7 +110,24 @@ export class Metadata {
     return this.propertiesById.get(id.startsWith("#") ? id : `#${id}`);
   }
 
-  toJSON(): Record<string, unknown> {
+  /**
+   * Returns a simple Record with the first value for each property.
+   * Similar to http.Header in Go.
+   */
+  toJSON(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const [name, props] of this.propertiesByName) {
+      if (props.length > 0 && props[0]) {
+        out[name] = props[0].value;
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Returns the full structure with all values, attributes, and refinements.
+   */
+  toJSONFull(): Record<string, unknown> {
     const out: Record<string, unknown> = {};
     for (const [name, props] of this.propertiesByName) {
       out[name] = props.map((p) => ({

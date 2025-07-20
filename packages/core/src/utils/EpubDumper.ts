@@ -119,8 +119,8 @@ export class EpubDumper {
     await this.writeFile("opf.dump.xml", this.epub.opf.content);
 
     // Dump metadata
-    const metadata = this.epub.getMetadata();
-    await this.writeJSON("metadata.dump.json", metadata);
+    const metadata = this.epub.metadata;
+    await this.writeJSON("metadata.dump.json", metadata.toJSON());
 
     // Dump manifest
     const manifest = this.epub.getManifest();
