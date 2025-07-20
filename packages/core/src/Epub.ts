@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { ContentToMarkdown } from "./ContentToMarkdown";
 import { Metadata } from "./Metadata";
 import { TableOfContents } from "./TableOfContents";
 import type { XMLFile } from "./XMLFile";
@@ -170,5 +171,31 @@ export class EPub {
       if (!chapter) continue;
       yield chapter;
     }
+  }
+
+  /**
+   * Convert a chapter to markdown with proper anchor ID preservation
+   * @param href The href string to load the chapter
+   * @returns Promise<string> The markdown content
+   */
+  async getChapterMD(href: string): Promise<string> {
+    // Get the chapter XMLFile
+    const chapter = await this.getChapter(href);
+    if (!chapter) {
+      throw new Error(`Chapter not found: ${href}`);
+    }
+
+    // Get TOC anchor links (memoized)
+    const tocLinks = await this.toc.anchorLinks();
+
+    // Get the keepIds for this chapter
+    const chapterPath = chapter.path;
+    const keepIds = tocLinks.get(chapterPath) || new Set<string>();
+
+    // Create converter with keepIds
+    const converter = ContentToMarkdown.create({ keepIds });
+
+    // Convert to markdown
+    return await converter.convertXMLFile(chapter);
   }
 }

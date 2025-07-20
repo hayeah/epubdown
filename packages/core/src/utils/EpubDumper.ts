@@ -1,7 +1,6 @@
 import { promises as fs } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { ContentToMarkdown } from "../ContentToMarkdown";
-import { EPubMarkdownConverter } from "../EPubMarkdownConverter";
 import { EPub } from "../Epub";
 import { FileDataResolver } from "../resolvers/FileDataResolver";
 import { unzip } from "./zipUtils";
@@ -13,7 +12,6 @@ interface DumpOptions {
 
 export class EpubDumper {
   private converter: ContentToMarkdown;
-  private epubMarkdownConverter: EPubMarkdownConverter;
   private outputDir: string;
 
   constructor(
@@ -22,7 +20,6 @@ export class EpubDumper {
     private readonly options: DumpOptions = {},
   ) {
     this.converter = ContentToMarkdown.create();
-    this.epubMarkdownConverter = new EPubMarkdownConverter(this.epub);
     this.outputDir = options.outputDir || baseDir;
   }
 
@@ -177,7 +174,7 @@ export class EpubDumper {
 
       await this.time(`chapter ${index}`, async () => {
         // Get markdown content
-        const content = await this.epubMarkdownConverter.getChapterMD(chapter);
+        const content = await this.epub.getChapterMD(chapter.path);
 
         // Extract title from the content (typically the first H1)
         const titleMatch = content.match(/^#\s+(.+)$/m);
