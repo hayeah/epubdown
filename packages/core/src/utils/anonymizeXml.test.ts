@@ -246,4 +246,70 @@ describe("anonymizeXml", () => {
       }
     }
   });
+
+  it("should handle XHTML with HTML entities in HTML mode", async () => {
+    const xhtml = `<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<body>
+  <p>Text with &nbsp; entity</p>
+</body>
+</html>`;
+    const result = await anonymizeXml(xhtml, { mode: "html" });
+
+    // Should handle HTML entities correctly in HTML mode (no parsererror)
+    expect(result).not.toContain("parsererror");
+    // Should have anonymized the text content
+    expect(result).toContain("Call me Ishmael");
+    expect(result).not.toContain("Text with");
+  });
+
+  it("should create parsererror when HTML entities are used in XML mode", async () => {
+    const xml = "<root>Text with &nbsp; entity</root>";
+    const result = await anonymizeXml(xml, { mode: "xml" });
+
+    // Should create parsererror document
+    expect(result).toContain("<parsererror>");
+    expect(result).toContain("Call me Ishmael");
+  });
+
+  it("should strip images when stripImages option is true", async () => {
+    const { XmlAnonymizer } = await import("./anonymizeXml");
+    const html = `<html>
+<body>
+  <p>Before image</p>
+  <img src="test.jpg" alt="Test"/>
+  <p>After image</p>
+</body>
+</html>`;
+
+    const anonymizer = new XmlAnonymizer({ mode: "html", stripImages: true });
+    const result = await anonymizer.anonymize(html);
+
+    // Should replace img with text node
+    expect(result).not.toContain("<img");
+    expect(result).toContain("[image src: test.jpg]");
+
+    // Should track stripped image paths
+    const strippedPaths = anonymizer.getStrippedImagePaths();
+    expect(strippedPaths.has("test.jpg")).toBe(true);
+  });
+
+  it("should not anonymize image replacement markers", async () => {
+    const html = `<html>
+<body>
+  <p>[image src: already-stripped.jpg]</p>
+  <p>Normal text</p>
+</body>
+</html>`;
+
+    const result = await anonymizeXml(html, { mode: "html" });
+
+    // Should preserve image markers as-is
+    expect(result).toContain("[image src: already-stripped.jpg]");
+    // Should anonymize normal text
+    expect(result).not.toContain("Normal text");
+    expect(result).toContain("Call me Ish");
+  });
 });

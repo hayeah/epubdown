@@ -2,7 +2,8 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { EPub, FileDataResolver } from "../Epub";
+import { EPub } from "../Epub";
+import { FileDataResolver } from "../resolvers/FileDataResolver";
 import { fetchEpub } from "../testUtils";
 import { parseHtml } from "../xmlParser";
 import { shorten, shortenDir } from "./EPubShortener";
@@ -36,7 +37,7 @@ describe("EPubShortener", () => {
       const epub = await EPub.init(new FileDataResolver(tempDir));
       let chaptersChecked = 0;
 
-      for await (const chapter of epub.getChapters()) {
+      for await (const chapter of epub.chapters()) {
         // Check that text content has been replaced with public domain text
         // The text should be from Moby Dick but may not start at the beginning
         const publicDomainText =
@@ -173,15 +174,15 @@ describe("EPubShortener", () => {
 
       // Load the shortened EPUB and verify content
       const epub = await EPub.fromZip(shortenedData);
-      const metadata = epub.getMetadata();
-      expect(metadata.title).toBe("Alice's Adventures in Wonderland");
+      const metadata = epub.metadata;
+      expect(metadata.get("title")).toBe("Alice's Adventures in Wonderland");
 
       // Check that chapters have been shortened
       let chaptersChecked = 0;
       const publicDomainText =
         "Call me Ishmael. Some years ago—never mind how long precisely—having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world.";
 
-      for await (const chapter of epub.getChapters()) {
+      for await (const chapter of epub.chapters()) {
         // The content should have public domain text
         const contentWithoutTags = chapter.content
           .replace(/<[^>]*>/g, "")
@@ -211,12 +212,12 @@ describe("EPubShortener", () => {
 
       // Compare chapter lengths
       const originalChapters = [];
-      for await (const chapter of originalEpub.getChapters()) {
+      for await (const chapter of originalEpub.chapters()) {
         originalChapters.push(chapter.content);
       }
 
       const shortenedChapters = [];
-      for await (const chapter of shortenedEpub.getChapters()) {
+      for await (const chapter of shortenedEpub.chapters()) {
         shortenedChapters.push(chapter.content);
       }
 
@@ -232,7 +233,7 @@ describe("EPubShortener", () => {
           .trim();
 
         // Content should be anonymized (different)
-        if (originalText.length > 50) {
+        if (originalText && originalText.length > 50) {
           expect(shortenedText).not.toBe(originalText);
         }
       }

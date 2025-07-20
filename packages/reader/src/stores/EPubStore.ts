@@ -36,7 +36,7 @@ export class EPubStore {
 
       // Load chapters
       const chapterArray: XMLFile[] = [];
-      for await (const chapter of epub.getChapters()) {
+      for await (const chapter of epub.chapters()) {
         chapterArray.push(chapter);
       }
       this.chapters = chapterArray;

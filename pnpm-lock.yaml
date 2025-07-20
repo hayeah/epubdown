@@ -46,6 +46,9 @@ importers:
       '@biomejs/biome':
         specifier: ^1.9.4
         version: 1.9.4
+      '@playwright/test':
+        specifier: ^1.54.1
+        version: 1.54.1
       '@prettier/plugin-xml':
         specifier: ^3.4.2
         version: 3.4.2(prettier@3.6.2)
@@ -61,6 +64,9 @@ importers:
       typescript:
         specifier: ^5
         version: 5.8.3
+      vite-plugin-node-polyfills:
+        specifier: ^0.23.0
+        version: 0.23.0(rollup@4.41.0)(vite@6.3.5(@types/node@22.15.21)(jiti@2.4.2)(lightningcss@1.30.1))
       vitest:
         specifier: ^3.1.4
         version: 3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(@vitest/browser@3.1.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.30.1)
@@ -130,7 +136,7 @@ importers:
         version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@types/bun':
         specifier: latest
-        version: 1.2.18(@types/react@19.1.5)
+        version: 1.2.19(@types/react@19.1.5)
       '@types/jszip':
         specifier: ^3.4.1
         version: 3.4.1
@@ -696,6 +702,11 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
+  '@playwright/test@1.54.1':
+    resolution: {integrity: sha512-FS8hQ12acieG2dYSksmLOF7BNxnVf2afRJdCuM1eMSxj6QTSE6G4InGF7oApGgDb65MX7AwMVlIkpru0yZA4Xw==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
@@ -959,8 +970,8 @@ packages:
   '@types/babel__traverse@7.20.7':
     resolution: {integrity: sha512-dkO5fhS7+/oos4ciWxyEyjWe48zmG6wbCheo/G2ZnHx4fs3EU6YC6UM8rk56gAjNJ9P3MTH2jo5jb92/K6wbng==}
 
-  '@types/bun@1.2.18':
-    resolution: {integrity: sha512-Xf6RaWVheyemaThV0kUfaAUvCNokFr+bH8Jxp+tTZfx7dAPA8z9ePnP9S9+Vspzuxxx9JRAXhnyccRj3GyCMdQ==}
+  '@types/bun@1.2.19':
+    resolution: {integrity: sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg==}
 
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
@@ -1193,8 +1204,8 @@ packages:
   builtin-status-codes@3.0.0:
     resolution: {integrity: sha512-HpGFw18DgFWlncDfjTa2rcQ4W88O1mC8e8yZ2AvQY5KDaktSTwo+KRf6nHK6FRI5FyRyb/5T6+TSxfP7QyGsmQ==}
 
-  bun-types@1.2.18:
-    resolution: {integrity: sha512-04+Eha5NP7Z0A9YgDAzMk5PHR16ZuLVa83b26kH5+cp1qZW4F6FmAURngE7INf4tKOvCE69vYvDEwoNl1tGiWw==}
+  bun-types@1.2.19:
+    resolution: {integrity: sha512-uAOTaZSPuYsWIXRpj7o56Let0g/wjihKCkeRqUBhlLVM/Bt+Fj9xTo+LhC1OV1XDaGkz4hNC80et5xgy+9KTHQ==}
     peerDependencies:
       '@types/react': ^19
 
@@ -2262,8 +2273,18 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  playwright-core@1.54.1:
+    resolution: {integrity: sha512-Nbjs2zjj0htNhzgiy5wu+3w09YetDx5pkrpI/kZotDlDUaYk0HVA5xrBVPdow4SAUIlhgKcJeJg4GRKW6xHusA==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   playwright@1.53.2:
     resolution: {integrity: sha512-6K/qQxVFuVQhRQhFsVZ9fGeatxirtrpPgxzBYWyZLEXJzqYwuL4fuNmfOfD5et1tJE4GScKyPNeLhZeRwuTU3A==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.54.1:
+    resolution: {integrity: sha512-peWpSwIBmSLi6aW2auvrUtf2DqY16YYcCMO8rTVx486jKmDTJg7UAhyrraP98GB8BoPURZP8+nxO7TSd4cPr5g==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -3340,6 +3361,10 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
+  '@playwright/test@1.54.1':
+    dependencies:
+      playwright: 1.54.1
+
   '@polka/url@1.0.0-next.29': {}
 
   '@prettier/plugin-xml@3.4.2(prettier@3.6.2)':
@@ -3554,9 +3579,9 @@ snapshots:
     dependencies:
       '@babel/types': 7.27.1
 
-  '@types/bun@1.2.18(@types/react@19.1.5)':
+  '@types/bun@1.2.19(@types/react@19.1.5)':
     dependencies:
-      bun-types: 1.2.18(@types/react@19.1.5)
+      bun-types: 1.2.19(@types/react@19.1.5)
     transitivePeerDependencies:
       - '@types/react'
 
@@ -3653,7 +3678,7 @@ snapshots:
       - utf-8-validate
       - vite
 
-  '@vitest/browser@3.1.4(playwright@1.53.2)(vite@6.3.5(@types/node@22.15.21)(jiti@2.4.2)(lightningcss@1.30.1))(vitest@3.1.4)':
+  '@vitest/browser@3.1.4(playwright@1.54.1)(vite@6.3.5(@types/node@22.15.21)(jiti@2.4.2)(lightningcss@1.30.1))(vitest@3.1.4)':
     dependencies:
       '@testing-library/dom': 10.4.0
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.0)
@@ -3662,10 +3687,10 @@ snapshots:
       magic-string: 0.30.17
       sirv: 3.0.1
       tinyrainbow: 2.0.0
-      vitest: 3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(@vitest/browser@3.1.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)
+      vitest: 3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(@vitest/browser@3.1.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.30.1)
       ws: 8.18.2
     optionalDependencies:
-      playwright: 1.53.2
+      playwright: 1.54.1
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -3862,7 +3887,7 @@ snapshots:
 
   builtin-status-codes@3.0.0: {}
 
-  bun-types@1.2.18(@types/react@19.1.5):
+  bun-types@1.2.19(@types/react@19.1.5):
     dependencies:
       '@types/node': 22.15.21
       '@types/react': 19.1.5
@@ -5230,9 +5255,17 @@ snapshots:
 
   playwright-core@1.53.2: {}
 
+  playwright-core@1.54.1: {}
+
   playwright@1.53.2:
     dependencies:
       playwright-core: 1.53.2
+    optionalDependencies:
+      fsevents: 2.3.2
+
+  playwright@1.54.1:
+    dependencies:
+      playwright-core: 1.54.1
     optionalDependencies:
       fsevents: 2.3.2
 
@@ -5954,7 +5987,7 @@ snapshots:
     optionalDependencies:
       '@types/debug': 4.1.12
       '@types/node': 22.15.21
-      '@vitest/browser': 3.1.4(playwright@1.53.2)(vite@6.3.5(@types/node@22.15.21)(jiti@2.4.2)(lightningcss@1.30.1))(vitest@3.1.4)
+      '@vitest/browser': 3.1.4(playwright@1.54.1)(vite@6.3.5(@types/node@22.15.21)(jiti@2.4.2)(lightningcss@1.30.1))(vitest@3.1.4)
       happy-dom: 15.11.7
       jsdom: 25.0.1
     transitivePeerDependencies:
@@ -5997,7 +6030,7 @@ snapshots:
     optionalDependencies:
       '@types/debug': 4.1.12
       '@types/node': 22.15.21
-      '@vitest/browser': 3.1.4(playwright@1.53.2)(vite@6.3.5(@types/node@22.15.21)(jiti@2.4.2)(lightningcss@1.30.1))(vitest@3.1.4)
+      '@vitest/browser': 3.1.4(playwright@1.54.1)(vite@6.3.5(@types/node@22.15.21)(jiti@2.4.2)(lightningcss@1.30.1))(vitest@3.1.4)
       happy-dom: 15.11.7
       jsdom: 26.1.0
     transitivePeerDependencies:

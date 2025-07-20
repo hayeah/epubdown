@@ -1,5 +1,5 @@
 import TurndownService from "turndown";
-import type { XMLFile } from "./Epub";
+import type { XMLFile } from "./XMLFile";
 
 export interface ConversionOptions {
   keepIds?: Set<string>;
@@ -33,6 +33,18 @@ function addMetadataRemovalRules(td: TurndownService): void {
   // Remove common EPUB metadata elements
   td.addRule("remove-epub-metadata", {
     filter: ["head", "title", "meta", "link"],
+    replacement: () => "",
+  });
+
+  // Remove style tags to prevent CSS content from appearing in markdown
+  td.addRule("remove-style-tags", {
+    filter: ["style"],
+    replacement: () => "",
+  });
+
+  // Remove script tags for security and cleanliness
+  td.addRule("remove-script-tags", {
+    filter: ["script"],
     replacement: () => "",
   });
 }

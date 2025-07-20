@@ -9,6 +9,9 @@
 
 # Typescript Style Guide
 
+- In general don't use `try ... catch`, let error bubble up, so it's easier for the dev to debug.
+  - Use `try ... catch` for cleanup.
+
 ## Typescript Class
 
 - how you should write typescript class

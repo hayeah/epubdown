@@ -1,9 +1,8 @@
 import { promises as fs } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { ContentToMarkdown } from "../ContentToMarkdown";
-import { EPubMarkdownConverter } from "../EPubMarkdownConverter";
 import { EPub } from "../Epub";
-import { FileDataResolver } from "../Epub";
+import { FileDataResolver } from "../resolvers/FileDataResolver";
 import { unzip } from "./zipUtils";
 
 interface DumpOptions {
@@ -13,7 +12,6 @@ interface DumpOptions {
 
 export class EpubDumper {
   private converter: ContentToMarkdown;
-  private epubMarkdownConverter: EPubMarkdownConverter;
   private outputDir: string;
 
   constructor(
@@ -22,7 +20,6 @@ export class EpubDumper {
     private readonly options: DumpOptions = {},
   ) {
     this.converter = ContentToMarkdown.create();
-    this.epubMarkdownConverter = new EPubMarkdownConverter(this.epub);
     this.outputDir = options.outputDir || baseDir;
   }
 
@@ -30,9 +27,11 @@ export class EpubDumper {
     epubFile: string,
     options?: DumpOptions,
   ): Promise<EpubDumper> {
-    // Extract zip file to output directory
+    // Extract zip file to output directory in the same directory as the epub
+    const epubDir = dirname(epubFile);
+    const epubBasename = basename(epubFile);
     const outputDir =
-      options?.outputDir || `${basename(epubFile, ".epub")}_dump`;
+      options?.outputDir || join(epubDir, `${epubBasename}.dump`);
     await unzip(epubFile, outputDir);
 
     // Call fromDirectory with the extracted content
@@ -71,11 +70,11 @@ export class EpubDumper {
     );
   }
 
-  private async writeFile(
-    relativePath: string,
-    content: string,
-  ): Promise<void> {
-    const fullPath = join(this.outputDir, relativePath);
+  private async writeFile(filePath: string, content: string): Promise<void> {
+    // If the path is absolute, use it directly, otherwise join with outputDir
+    const fullPath = filePath.startsWith("/")
+      ? filePath
+      : join(this.outputDir, filePath);
     await fs.mkdir(dirname(fullPath), { recursive: true });
     await fs.writeFile(fullPath, content, "utf8");
   }
@@ -93,7 +92,7 @@ export class EpubDumper {
     }
 
     // Initialize TOC anchor links (will be cached in epub instance)
-    const tocAnchorLinks = await this.epub.tocAnchorLinks();
+    const tocAnchorLinks = await this.epub.toc.anchorLinks();
     if (this.options.verbose) {
       console.log(`Found ${tocAnchorLinks.size} files with TOC anchors`);
     }
@@ -117,19 +116,19 @@ export class EpubDumper {
     await this.writeFile("opf.dump.xml", this.epub.opf.content);
 
     // Dump metadata
-    const metadata = this.epub.getMetadata();
-    await this.writeJSON("metadata.dump.json", metadata);
+    const metadata = this.epub.metadata;
+    await this.writeJSON("metadata.dump.json", metadata.toJSON());
 
     // Dump manifest
-    const manifest = this.epub.getManifest();
+    const manifest = this.epub.manifest();
     await this.writeJSON("manifest.dump.json", manifest);
 
     // Dump spine with manifest context
-    const spineManifest = this.epub.getSpineWithManifest(false);
+    const spineManifest = this.epub.spineWithManifest(false);
     await this.writeJSON("spineManifest.dump.json", spineManifest);
 
     // Dump nav file if exists
-    const navFile = await this.epub.nav();
+    const navFile = await this.epub.toc.nav();
     if (navFile) {
       if (this.options.verbose) {
         console.log(`Found nav file: ${navFile.path}`);
@@ -144,7 +143,7 @@ export class EpubDumper {
     }
 
     // Dump NCX file if exists
-    const ncxFile = await this.epub.ncx();
+    const ncxFile = await this.epub.toc.ncx();
     if (ncxFile) {
       if (this.options.verbose) {
         console.log(`Found NCX file: ${ncxFile.path}`);
@@ -152,7 +151,7 @@ export class EpubDumper {
       await this.writeFile("ncx.dump.xml", ncxFile.content);
 
       // Convert NCX to HTML
-      const ncxHtml = await this.epub.ncxToHTML();
+      const ncxHtml = await this.epub.toc.ncxToHTML();
       if (ncxHtml) {
         await this.writeFile("ncx.dump.html", ncxHtml.content);
 
@@ -170,26 +169,29 @@ export class EpubDumper {
       [];
     let index = 0;
 
-    for await (const chapter of this.epub.getChapters(false)) {
+    for await (const chapter of this.epub.chapters(false)) {
       index += 1;
 
       await this.time(`chapter ${index}`, async () => {
         // Get markdown content
-        const content = await this.epubMarkdownConverter.getChapterMD(chapter);
+        const content = await this.epub.chapterMarkdown(chapter.path);
 
         // Extract title from the content (typically the first H1)
         const titleMatch = content.match(/^#\s+(.+)$/m);
         const title = titleMatch ? titleMatch[1] : "Chapter";
 
-        // Write markdown beside the original file
-        const mdPath = chapter.path.replace(/\.(x?html?)$/i, ".dump.md");
+        // Write markdown beside the original file using absolute path
+        const mdPath = `${chapter.path}.dump.md`;
         await this.writeFile(mdPath, content);
 
-        // Add to chapter list
+        // Add to chapter list with relative path
+        const relativePath = chapter.path.startsWith(this.outputDir)
+          ? chapter.path.slice(this.outputDir.length + 1)
+          : chapter.path;
         chapterList.push({
           index,
           title: title || "Chapter",
-          path: chapter.path,
+          path: relativePath,
         });
       });
     }

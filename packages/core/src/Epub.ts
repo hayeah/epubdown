@@ -1,145 +1,17 @@
-import { basename, dirname, join, resolve } from "node:path";
 import JSZip from "jszip";
-import { parseXml } from "./xmlParser";
+import { ContentToMarkdown } from "./ContentToMarkdown";
+import { Metadata } from "./Metadata";
+import { TableOfContents } from "./TableOfContents";
+import type { XMLFile } from "./XMLFile";
+import { type DataResolver, ZipDataResolver } from "./resolvers";
 
-// Data resolver abstract class and implementations
-abstract class DataResolver {
-  constructor(public readonly base: string = "") {}
-
-  abstract read(href: string): Promise<string | undefined>;
-  abstract readRaw(href: string): Promise<Uint8Array | undefined>;
-
-  // Can be implemented in base class since it just creates new instance
-  rebase(base: string): DataResolver {
-    return this.createInstance(base);
-  }
-
-  async readXMLFile(href: string): Promise<XMLFile | undefined> {
-    return XMLFile.load(href, this);
-  }
-
-  abstract createInstance(base: string): DataResolver;
-}
-
-class ZipDataResolver extends DataResolver {
-  constructor(
-    private readonly zip: JSZip,
-    base = "",
-  ) {
-    super(base);
-  }
-
-  async read(href: string): Promise<string | undefined> {
-    const fullPath = this.base ? join(this.base, href) : href;
-    const file = this.zip.file(fullPath);
-    if (!file) return undefined;
-    return await file.async("string");
-  }
-
-  async readRaw(href: string): Promise<Uint8Array | undefined> {
-    const fullPath = this.base ? join(this.base, href) : href;
-    const file = this.zip.file(fullPath);
-    if (!file) return undefined;
-    return await file.async("uint8array");
-  }
-
-  createInstance(base: string): DataResolver {
-    return new ZipDataResolver(this.zip, base);
-  }
-}
-
-/**
- * Filesystem variant of DataResolver, used by EPubShortener
+/*
+ * EPUB 3.3 Required Metadata:
+ * According to the EPUB specification, only these metadata elements are required:
+ * - dc:identifier - Unique identifier for the publication
+ * - dc:title - Title of the publication
+ * - dc:language - Language of the publication
  */
-export class FileDataResolver extends DataResolver {
-  constructor(base = "") {
-    super(base);
-  }
-
-  async read(href: string): Promise<string | undefined> {
-    try {
-      const fs = await import("node:fs/promises");
-      const fullPath = resolve(this.base, href);
-      return await fs.readFile(fullPath, "utf-8");
-    } catch (error) {
-      return undefined;
-    }
-  }
-
-  async readRaw(href: string): Promise<Uint8Array | undefined> {
-    const fs = await import("node:fs/promises");
-    const fullPath = resolve(this.base, href);
-    const data = await fs.readFile(fullPath);
-    return data;
-  }
-
-  createInstance(base: string): DataResolver {
-    return new FileDataResolver(base);
-  }
-}
-
-export class XMLFile extends DataResolver {
-  constructor(
-    public readonly base: string,
-    public readonly name: string,
-    public readonly content: string,
-    public readonly dom: XMLDocument,
-    public readonly resolver: DataResolver,
-  ) {
-    super(base);
-  }
-
-  get path() {
-    return join(this.base, this.name);
-  }
-
-  static async load(
-    href: string,
-    resolver: DataResolver,
-  ): Promise<XMLFile | undefined> {
-    const content = await resolver.read(href);
-    if (!content) {
-      return undefined;
-    }
-
-    const dom = parseXml(content) as XMLDocument;
-    const newBase = join(resolver.base, dirname(href));
-    const name = basename(href);
-
-    return new XMLFile(newBase, name, content, dom, resolver.rebase(newBase));
-  }
-
-  async readRaw(href: string): Promise<Uint8Array | undefined> {
-    return this.resolver.readRaw(href);
-  }
-
-  async read(href: string): Promise<string | undefined> {
-    return this.resolver.read(href);
-  }
-
-  createInstance(base: string): DataResolver {
-    // throw new Error("Not implemented");
-    return this.resolver.createInstance(base);
-  }
-
-  querySelector(selector: string): Element | null {
-    return this.dom.querySelector(selector);
-  }
-
-  querySelectorAll(selector: string): NodeListOf<Element> {
-    return this.dom.querySelectorAll(selector);
-  }
-}
-
-interface EPubMetadata {
-  title?: string;
-  author?: string;
-  language?: string;
-  identifier?: string;
-  description?: string;
-  publisher?: string;
-  date?: string;
-}
 
 interface ManifestItem {
   id: string;
@@ -154,12 +26,23 @@ interface SpineItem {
 }
 
 export class EPub {
-  private _tocAnchorLinks?: Map<string, Set<string>>;
+  private _toc?: TableOfContents;
+  private _metadata?: Metadata;
 
   constructor(
     public readonly container: XMLFile,
     public readonly opf: XMLFile,
   ) {}
+
+  /**
+   * Get the table of contents handler
+   */
+  get toc(): TableOfContents {
+    if (!this._toc) {
+      this._toc = new TableOfContents(this);
+    }
+    return this._toc;
+  }
 
   static async init(resolver: DataResolver): Promise<EPub> {
     // Parse container.xml
@@ -202,44 +85,21 @@ export class EPub {
   //   return await EPub.init(resolver);
   // }
 
-  getMetadata(): EPubMetadata {
-    const metadata = this.opf.querySelector("metadata");
-    if (!metadata) return {};
-
-    const result: EPubMetadata = {};
-
-    // Title - try both with and without namespace
-    const title = metadata.querySelector("dc\\:title, title");
-    if (title) result.title = title.textContent?.trim();
-
-    // Creator/Author
-    const creator = metadata.querySelector("dc\\:creator, creator");
-    if (creator) result.author = creator.textContent?.trim();
-
-    // Language
-    const language = metadata.querySelector("dc\\:language, language");
-    if (language) result.language = language.textContent?.trim();
-
-    // Identifier
-    const identifier = metadata.querySelector("dc\\:identifier, identifier");
-    if (identifier) result.identifier = identifier.textContent?.trim();
-
-    // Description
-    const description = metadata.querySelector("dc\\:description, description");
-    if (description) result.description = description.textContent?.trim();
-
-    // Publisher
-    const publisher = metadata.querySelector("dc\\:publisher, publisher");
-    if (publisher) result.publisher = publisher.textContent?.trim();
-
-    // Date
-    const date = metadata.querySelector("dc\\:date, date");
-    if (date) result.date = date.textContent?.trim();
-
-    return result;
+  /**
+   * Get the metadata handler
+   */
+  get metadata(): Metadata {
+    if (!this._metadata) {
+      const metadataElement = this.opf.querySelector("metadata");
+      if (!metadataElement) {
+        throw new Error("EPUB metadata element not found");
+      }
+      this._metadata = Metadata.fromDom(metadataElement);
+    }
+    return this._metadata;
   }
 
-  getManifest(): ManifestItem[] {
+  manifest(): ManifestItem[] {
     const manifest = this.opf.querySelector("manifest");
     if (!manifest) return [];
 
@@ -252,7 +112,7 @@ export class EPub {
     }));
   }
 
-  getSpine(linearOnly = true): SpineItem[] {
+  spine(linearOnly = true): SpineItem[] {
     const spine = this.opf.querySelector("spine");
     if (!spine) return [];
 
@@ -266,11 +126,11 @@ export class EPub {
   }
 
   // Helper to get spine items with their manifest details
-  getSpineWithManifest(
+  spineWithManifest(
     linearOnly = true,
   ): (SpineItem & { manifestItem: ManifestItem })[] {
-    const spine = this.getSpine(linearOnly);
-    const manifest = this.getManifest();
+    const spine = this.spine(linearOnly);
+    const manifest = this.manifest();
     const manifestMap = new Map(manifest.map((item) => [item.id, item]));
 
     const result: (SpineItem & { manifestItem: ManifestItem })[] = [];
@@ -298,8 +158,8 @@ export class EPub {
    * @param linearOnly If true, skip non-linear spine items
    * @returns Generator yielding XMLFile objects with href and title properties
    */
-  async *getChapters(linearOnly = true): AsyncGenerator<XMLFile> {
-    const spineItems = this.getSpineWithManifest(linearOnly).filter(
+  async *chapters(linearOnly = true): AsyncGenerator<XMLFile> {
+    const spineItems = this.spineWithManifest(linearOnly).filter(
       (item) =>
         item.manifestItem.mediaType.includes("xhtml") ||
         item.manifestItem.mediaType.includes("html"),
@@ -313,131 +173,29 @@ export class EPub {
     }
   }
 
-  async toc(): Promise<XMLFile | undefined> {
-    // First check for EPUB3 nav document
-    const navFile = await this.nav();
-    if (navFile) {
-      return navFile;
-    }
-
-    // Otherwise try to convert NCX to HTML
-    return await this.ncxToHTML();
-  }
-
-  async nav(): Promise<XMLFile | undefined> {
-    const manifest = this.opf.querySelector("manifest");
-    if (!manifest) return undefined;
-
-    const navItem = manifest.querySelector('item[properties~="nav"]');
-    if (!navItem) return undefined;
-
-    const href = navItem.getAttribute("href");
-    if (!href) return undefined;
-
-    return this.opf.readXMLFile(href);
-  }
-
-  async ncx(): Promise<XMLFile | undefined> {
-    const manifest = this.opf.querySelector("manifest");
-    if (!manifest) return undefined;
-
-    const ncxItem = manifest.querySelector(
-      'item[media-type="application/x-dtbncx+xml"]',
-    );
-    if (!ncxItem) return undefined;
-
-    const href = ncxItem.getAttribute("href");
-    if (!href) return undefined;
-
-    return this.opf.readXMLFile(href);
-  }
-
-  async ncxToHTML(): Promise<XMLFile | undefined> {
-    const ncxFile = await this.ncx();
-    if (!ncxFile) return undefined;
-
-    const navMap = ncxFile.querySelector("navMap");
-    if (!navMap) {
-      return undefined;
-    }
-
-    const convertNavPoints = (parent: Element): string => {
-      const navPoints = Array.from(
-        parent.querySelectorAll(":scope > navPoint"),
-      );
-      if (navPoints.length === 0) {
-        return "";
-      }
-
-      const items = navPoints
-        .map((navPoint) => {
-          const label =
-            navPoint.querySelector("text")?.textContent?.trim() || "";
-          const href =
-            navPoint.querySelector("content")?.getAttribute("src") || "";
-          const children = convertNavPoints(navPoint);
-
-          return `<li><a href="${href}">${label}</a>${children}</li>`;
-        })
-        .join("\n");
-
-      return `<ul>\n${items}\n</ul>`;
-    };
-
-    const olMarkup = convertNavPoints(navMap);
-    const html = `<nav epub:type="toc">\n${olMarkup}\n</nav>`;
-
-    return new XMLFile(
-      ncxFile.base,
-      "ncx.xml.html",
-      html,
-      parseXml(html) as XMLDocument,
-      ncxFile.resolver,
-    );
-  }
-
   /**
-   * Extract all anchor links from the table of contents
-   * Returns a Map where keys are resolved file paths and values are Sets of anchor IDs
-   * Results are memoized for performance
+   * Convert a chapter to markdown with proper anchor ID preservation
+   * @param href The href string to load the chapter
+   * @returns Promise<string> The markdown content
    */
-  async tocAnchorLinks(): Promise<Map<string, Set<string>>> {
-    // Return memoized result if available
-    if (this._tocAnchorLinks) {
-      return this._tocAnchorLinks;
+  async chapterMarkdown(href: string): Promise<string> {
+    // Get the chapter XMLFile
+    const chapter = await this.getChapter(href);
+    if (!chapter) {
+      throw new Error(`Chapter not found: ${href}`);
     }
 
-    const tocFile = await this.toc();
-    if (!tocFile) {
-      this._tocAnchorLinks = new Map();
-      return this._tocAnchorLinks;
-    }
+    // Get TOC anchor links (memoized)
+    const tocLinks = await this.toc.anchorLinks();
 
-    const anchorMap = new Map<string, Set<string>>();
+    // Get the keepIds for this chapter
+    const chapterPath = chapter.path;
+    const keepIds = tocLinks.get(chapterPath) || new Set<string>();
 
-    // Find all links in the TOC
-    const links = tocFile.querySelectorAll(`nav[epub\\:type="toc"] a[href]`);
+    // Create converter with keepIds
+    const converter = ContentToMarkdown.create({ keepIds });
 
-    for (const link of Array.from(links)) {
-      const href = link.getAttribute("href");
-      if (!href) continue;
-
-      // Split href into file path and anchor
-      const [filePath, anchor] = href.split("#");
-      if (!filePath || !anchor) continue;
-
-      // Resolve the file path relative to the TOC file
-      const resolvedPath = join(tocFile.base, filePath);
-
-      // Add anchor to the set for this file
-      if (!anchorMap.has(resolvedPath)) {
-        anchorMap.set(resolvedPath, new Set());
-      }
-      anchorMap.get(resolvedPath)?.add(anchor);
-    }
-
-    // Memoize the result
-    this._tocAnchorLinks = anchorMap;
-    return anchorMap;
+    // Convert to markdown
+    return await converter.convertXMLFile(chapter);
   }
 }

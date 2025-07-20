@@ -1,7 +1,8 @@
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { EPub, FileDataResolver } from "../Epub";
+import { EPub } from "../Epub";
+import { FileDataResolver } from "../resolvers/FileDataResolver";
 import { XmlAnonymizer } from "./anonymizeXml";
 import type { XmlAnonymizerOptions } from "./anonymizeXml";
 import { unzip, zipToBuffer } from "./zipUtils";
@@ -19,7 +20,7 @@ export class EPubShortener {
     const imagePathsToDelete = new Map<string, string>(); // Map of image path to base directory
 
     // Process each chapter
-    for await (const chapter of epub.getChapters()) {
+    for await (const chapter of epub.chapters()) {
       const mode = chapter.name.endsWith(".html") ? "html" : "xml";
       const anonymizer = new XmlAnonymizer({
         mode,
