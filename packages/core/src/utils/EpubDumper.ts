@@ -30,9 +30,11 @@ export class EpubDumper {
     epubFile: string,
     options?: DumpOptions,
   ): Promise<EpubDumper> {
-    // Extract zip file to output directory
+    // Extract zip file to output directory in the same directory as the epub
+    const epubDir = dirname(epubFile);
+    const epubBasename = basename(epubFile);
     const outputDir =
-      options?.outputDir || `${basename(epubFile, ".epub")}_dump`;
+      options?.outputDir || join(epubDir, `${epubBasename}.dump`);
     await unzip(epubFile, outputDir);
 
     // Call fromDirectory with the extracted content
@@ -72,10 +74,13 @@ export class EpubDumper {
   }
 
   private async writeFile(
-    relativePath: string,
+    filePath: string,
     content: string,
   ): Promise<void> {
-    const fullPath = join(this.outputDir, relativePath);
+    // If the path is absolute, use it directly, otherwise join with outputDir
+    const fullPath = filePath.startsWith("/")
+      ? filePath
+      : join(this.outputDir, filePath);
     await fs.mkdir(dirname(fullPath), { recursive: true });
     await fs.writeFile(fullPath, content, "utf8");
   }
@@ -181,15 +186,18 @@ export class EpubDumper {
         const titleMatch = content.match(/^#\s+(.+)$/m);
         const title = titleMatch ? titleMatch[1] : "Chapter";
 
-        // Write markdown beside the original file
-        const mdPath = chapter.path.replace(/\.(x?html?)$/i, ".dump.md");
+        // Write markdown beside the original file using absolute path
+        const mdPath = `${chapter.path}.dump.md`;
         await this.writeFile(mdPath, content);
 
-        // Add to chapter list
+        // Add to chapter list with relative path
+        const relativePath = chapter.path.startsWith(this.outputDir)
+          ? chapter.path.slice(this.outputDir.length + 1)
+          : chapter.path;
         chapterList.push({
           index,
           title: title || "Chapter",
-          path: chapter.path,
+          path: relativePath,
         });
       });
     }

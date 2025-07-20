@@ -72,14 +72,11 @@ describe("EpubDumper", () => {
 
       // Check that at least one chapter markdown was created
       const firstChapter = chapters[0];
-      const chapterMdPath = firstChapter.path.replace(
-        /\.(x?html?)$/i,
-        ".dump.md",
-      );
-      const fullChapterMdPath = join(testDir, chapterMdPath);
+      // The markdown file is written next to the original file with .dump.md extension
+      const chapterMdPath = `${join(testDir, firstChapter.path)}.dump.md`;
       expect(
         await fs
-          .access(fullChapterMdPath)
+          .access(chapterMdPath)
           .then(() => true)
           .catch(() => false),
       ).toBe(true);
@@ -99,7 +96,7 @@ describe("EpubDumper", () => {
         await dumper.dump();
 
         // Verify the dump directory was created
-        const dumpDir = "test-alice_dump";
+        const dumpDir = "test-alice.epub.dump";
         expect(
           await fs
             .access(dumpDir)
@@ -168,7 +165,7 @@ describe("EpubDumper", () => {
       try {
         // Create dumper from zip file
         const dumper = await EpubDumper.fromZipFile(tempEpubPath);
-        const dumpDir = "test-alice-cleanup_dump";
+        const dumpDir = "test-alice-cleanup.epub.dump";
 
         // Verify the dump directory was created in current directory, not temp
         expect(
