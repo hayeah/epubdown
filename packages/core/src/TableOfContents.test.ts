@@ -1,19 +1,22 @@
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { EPub } from "./Epub";
+import type { TableOfContents } from "./TableOfContents";
 import { compareOrUpdateFixture, fetchEpub } from "./testUtils";
 
-describe("EPub", () => {
+describe("TableOfContents", () => {
   let epub: EPub;
+  let toc: TableOfContents;
 
   beforeEach(async () => {
     const epubData = await fetchEpub("alice.epub");
     epub = await EPub.fromZip(epubData);
+    toc = epub.toc;
   });
 
-  describe("tocNavItems", () => {
+  describe("navItems", () => {
     it("should parse navigation items from Alice EPUB", async () => {
-      const navItems = await epub.tocNavItems();
+      const navItems = await toc.navItems();
 
       // Compare against fixture
       const fixturePath = path.join(
@@ -25,7 +28,7 @@ describe("EPub", () => {
     });
 
     it("should handle nested navigation if present", async () => {
-      const navItems = await epub.tocNavItems();
+      const navItems = await toc.navItems();
 
       // Check if any items have subitems
       const itemsWithSubitems = navItems.filter(
@@ -53,9 +56,9 @@ describe("EPub", () => {
     });
   });
 
-  describe("tocFlat", () => {
+  describe("flat", () => {
     it("should flatten navigation structure from Alice EPUB", async () => {
-      const flatToc = await epub.tocFlat();
+      const flatToc = await toc.flatNavItems();
 
       // Compare against fixture
       const fixturePath = path.join(
@@ -67,8 +70,8 @@ describe("EPub", () => {
     });
 
     it("should maintain hierarchy in flattened structure", async () => {
-      const navItems = await epub.tocNavItems();
-      const flatToc = await epub.tocFlat();
+      const navItems = await toc.navItems();
+      const flatToc = await toc.flatNavItems();
 
       // Count total items including nested ones
       const countItems = (items: typeof navItems): number => {
@@ -94,7 +97,7 @@ describe("EPub", () => {
     });
 
     it("should have correct parent-child relationships", async () => {
-      const flatToc = await epub.tocFlat();
+      const flatToc = await toc.flatNavItems();
 
       // Verify parent references are correct
       for (const item of flatToc) {
@@ -111,6 +114,36 @@ describe("EPub", () => {
           expect(item.level).toBe(0);
         }
       }
+    });
+  });
+
+  describe("html", () => {
+    it("should return HTML representation of TOC", async () => {
+      const htmlToc = await toc.html();
+
+      expect(htmlToc).toBeDefined();
+      expect(htmlToc?.content).toContain("<nav");
+      expect(htmlToc?.content).toContain('epub:type="toc"');
+
+      // Should have links
+      const navElement = htmlToc?.querySelector('nav[epub\\:type="toc"]');
+      const links = navElement?.querySelectorAll("a");
+      expect(links?.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("anchorLinks", () => {
+    it("should extract anchor links from TOC", async () => {
+      const anchorLinks = await toc.anchorLinks();
+
+      expect(anchorLinks).toBeInstanceOf(Map);
+
+      // Alice EPUB has anchors in its TOC
+      let totalAnchors = 0;
+      for (const anchors of anchorLinks.values()) {
+        totalAnchors += anchors.size;
+      }
+      expect(totalAnchors).toBeGreaterThan(0);
     });
   });
 });

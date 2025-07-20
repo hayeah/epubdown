@@ -93,7 +93,7 @@ export class EpubDumper {
     }
 
     // Initialize TOC anchor links (will be cached in epub instance)
-    const tocAnchorLinks = await this.epub.tocAnchorLinks();
+    const tocAnchorLinks = await this.epub.toc.anchorLinks();
     if (this.options.verbose) {
       console.log(`Found ${tocAnchorLinks.size} files with TOC anchors`);
     }
@@ -129,7 +129,7 @@ export class EpubDumper {
     await this.writeJSON("spineManifest.dump.json", spineManifest);
 
     // Dump nav file if exists
-    const navFile = await this.epub.nav();
+    const navFile = await this.epub.toc.nav();
     if (navFile) {
       if (this.options.verbose) {
         console.log(`Found nav file: ${navFile.path}`);
@@ -144,7 +144,7 @@ export class EpubDumper {
     }
 
     // Dump NCX file if exists
-    const ncxFile = await this.epub.ncx();
+    const ncxFile = await this.epub.toc.ncx();
     if (ncxFile) {
       if (this.options.verbose) {
         console.log(`Found NCX file: ${ncxFile.path}`);
@@ -152,7 +152,7 @@ export class EpubDumper {
       await this.writeFile("ncx.dump.xml", ncxFile.content);
 
       // Convert NCX to HTML
-      const ncxHtml = await this.epub.ncxToHTML();
+      const ncxHtml = await this.epub.toc.ncxToHTML();
       if (ncxHtml) {
         await this.writeFile("ncx.dump.html", ncxHtml.content);
 

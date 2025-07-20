@@ -24,7 +24,7 @@ export class EPubMarkdownConverter {
     }
 
     // Get TOC anchor links (memoized)
-    const tocLinks = await this.epub.tocAnchorLinks();
+    const tocLinks = await this.epub.toc.anchorLinks();
 
     // Get the keepIds for this chapter
     const chapterPath = chapter.path;
@@ -48,7 +48,7 @@ export class EPubMarkdownConverter {
     xmlFile: XMLFile,
   ): Promise<string> {
     // Get TOC anchor links (memoized)
-    const tocLinks = await this.epub.tocAnchorLinks();
+    const tocLinks = await this.epub.toc.anchorLinks();
 
     // Get the keepIds for this chapter
     const chapterPath = xmlFile.path;

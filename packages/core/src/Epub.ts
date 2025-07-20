@@ -1,8 +1,7 @@
-import { join } from "node:path";
 import JSZip from "jszip";
-import { XMLFile } from "./XMLFile";
+import { TableOfContents } from "./TableOfContents";
+import type { XMLFile } from "./XMLFile";
 import { type DataResolver, ZipDataResolver } from "./resolvers";
-import { parseXml } from "./xmlParser";
 
 interface EPubMetadata {
   title?: string;
@@ -26,27 +25,23 @@ interface SpineItem {
   linear: boolean;
 }
 
-export interface NavItem {
-  id?: string;
-  href: string;
-  label: string;
-  subitems?: NavItem[];
-}
-
-export interface FlatNavItem extends NavItem {
-  level: number;
-  parentHref?: string;
-}
-
-export type FlatTOC = FlatNavItem[];
-
 export class EPub {
-  private _tocAnchorLinks?: Map<string, Set<string>>;
+  private _toc?: TableOfContents;
 
   constructor(
     public readonly container: XMLFile,
     public readonly opf: XMLFile,
   ) {}
+
+  /**
+   * Get the table of contents handler
+   */
+  get toc(): TableOfContents {
+    if (!this._toc) {
+      this._toc = new TableOfContents(this);
+    }
+    return this._toc;
+  }
 
   static async init(resolver: DataResolver): Promise<EPub> {
     // Parse container.xml
@@ -198,228 +193,5 @@ export class EPub {
       if (!chapter) continue;
       yield chapter;
     }
-  }
-
-  async toc(): Promise<XMLFile | undefined> {
-    // First check for EPUB3 nav document
-    const navFile = await this.nav();
-    if (navFile) {
-      return navFile;
-    }
-
-    // Otherwise try to convert NCX to HTML
-    return await this.ncxToHTML();
-  }
-
-  async nav(): Promise<XMLFile | undefined> {
-    const manifest = this.opf.querySelector("manifest");
-    if (!manifest) return undefined;
-
-    const navItem = manifest.querySelector('item[properties~="nav"]');
-    if (!navItem) return undefined;
-
-    const href = navItem.getAttribute("href");
-    if (!href) return undefined;
-
-    return this.opf.readXMLFile(href);
-  }
-
-  async ncx(): Promise<XMLFile | undefined> {
-    const manifest = this.opf.querySelector("manifest");
-    if (!manifest) return undefined;
-
-    const ncxItem = manifest.querySelector(
-      'item[media-type="application/x-dtbncx+xml"]',
-    );
-    if (!ncxItem) return undefined;
-
-    const href = ncxItem.getAttribute("href");
-    if (!href) return undefined;
-
-    return this.opf.readXMLFile(href);
-  }
-
-  async ncxToHTML(): Promise<XMLFile | undefined> {
-    const ncxFile = await this.ncx();
-    if (!ncxFile) return undefined;
-
-    const navMap = ncxFile.querySelector("navMap");
-    if (!navMap) {
-      return undefined;
-    }
-
-    const convertNavPoints = (parent: Element): string => {
-      const navPoints = Array.from(
-        parent.querySelectorAll(":scope > navPoint"),
-      );
-      if (navPoints.length === 0) {
-        return "";
-      }
-
-      const items = navPoints
-        .map((navPoint) => {
-          const label =
-            navPoint.querySelector("text")?.textContent?.trim() || "";
-          const href =
-            navPoint.querySelector("content")?.getAttribute("src") || "";
-          const children = convertNavPoints(navPoint);
-
-          return `<li><a href="${href}">${label}</a>${children}</li>`;
-        })
-        .join("\n");
-
-      return `<ul>\n${items}\n</ul>`;
-    };
-
-    const olMarkup = convertNavPoints(navMap);
-    const html = `<nav epub:type="toc">\n${olMarkup}\n</nav>`;
-
-    return new XMLFile(
-      ncxFile.base,
-      "ncx.xml.html",
-      html,
-      parseXml(html) as XMLDocument,
-      ncxFile.resolver,
-    );
-  }
-
-  /**
-   * Parse the table of contents and return nested navigation items
-   */
-  async tocNavItems(): Promise<NavItem[]> {
-    const tocFile = await this.toc();
-    if (!tocFile) {
-      return [];
-    }
-
-    // Parse the nav element
-    const navElement = tocFile.querySelector('nav[epub\\:type="toc"]');
-    if (!navElement) {
-      return [];
-    }
-
-    const parseNavList = (listElement: Element): NavItem[] => {
-      const items = Array.from(listElement.querySelectorAll(":scope > li"));
-      const navItems: NavItem[] = [];
-
-      for (const item of items) {
-        const link = item.querySelector(":scope > a");
-        if (!link) continue;
-
-        const href = link.getAttribute("href") || "";
-        const label = link.textContent?.trim() || "";
-
-        // Parse id from href fragment
-        const fragmentIndex = href.indexOf("#");
-        const id =
-          fragmentIndex !== -1 ? href.substring(fragmentIndex + 1) : undefined;
-
-        // Create the nav item
-        const navItem: NavItem = {
-          href,
-          label,
-        };
-
-        if (id) {
-          navItem.id = id;
-        }
-
-        // Check for nested list and parse recursively
-        const nestedList = item.querySelector(":scope > ul, :scope > ol");
-        if (nestedList) {
-          navItem.subitems = parseNavList(nestedList);
-        }
-
-        navItems.push(navItem);
-      }
-
-      return navItems;
-    };
-
-    // Find the main list (ol or ul) within the nav element
-    const mainList = navElement.querySelector(":scope > ol, :scope > ul");
-    if (mainList) {
-      return parseNavList(mainList);
-    }
-
-    return [];
-  }
-
-  /**
-   * Parse the table of contents and return a flattened array of navigation items
-   * Each item includes its hierarchical level and parent reference
-   */
-  async tocFlat(): Promise<FlatTOC> {
-    const navItems = await this.tocNavItems();
-
-    const flattenNavItems = (
-      items: NavItem[],
-      level = 0,
-      parentHref?: string,
-    ): FlatNavItem[] => {
-      return items.reduce<FlatNavItem[]>((acc, item) => {
-        const flatItem: FlatNavItem = {
-          ...item,
-          level,
-          parentHref,
-        };
-
-        acc.push(flatItem);
-
-        if (item.subitems && item.subitems.length > 0) {
-          // Use the item's href as parent for subitems
-          acc.push(...flattenNavItems(item.subitems, level + 1, item.href));
-        }
-
-        return acc;
-      }, []);
-    };
-
-    return flattenNavItems(navItems);
-  }
-
-  /**
-   * Extract all anchor links from the table of contents
-   * Returns a Map where keys are resolved file paths and values are Sets of anchor IDs
-   * Results are memoized for performance
-   */
-  async tocAnchorLinks(): Promise<Map<string, Set<string>>> {
-    // Return memoized result if available
-    if (this._tocAnchorLinks) {
-      return this._tocAnchorLinks;
-    }
-
-    const tocFile = await this.toc();
-    if (!tocFile) {
-      this._tocAnchorLinks = new Map();
-      return this._tocAnchorLinks;
-    }
-
-    const anchorMap = new Map<string, Set<string>>();
-
-    // Find all links in the TOC
-    const links = tocFile.querySelectorAll(`nav[epub\\:type="toc"] a[href]`);
-
-    for (const link of Array.from(links)) {
-      const href = link.getAttribute("href");
-      if (!href) continue;
-
-      // Split href into file path and anchor
-      const [filePath, anchor] = href.split("#");
-      if (!filePath || !anchor) continue;
-
-      // Resolve the file path relative to the TOC file
-      const resolvedPath = join(tocFile.base, filePath);
-
-      // Add anchor to the set for this file
-      if (!anchorMap.has(resolvedPath)) {
-        anchorMap.set(resolvedPath, new Set());
-      }
-      anchorMap.get(resolvedPath)?.add(anchor);
-    }
-
-    // Memoize the result
-    this._tocAnchorLinks = anchorMap;
-    return anchorMap;
   }
 }

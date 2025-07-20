@@ -9,6 +9,8 @@ export type {
   DCProperty,
   MetaProperty,
 } from "./Metadata";
+export { TableOfContents } from "./TableOfContents";
+export type { NavItem, FlatNavItem, FlatTOC } from "./TableOfContents";
 
 // Content conversion
 export { ContentToMarkdown } from "./ContentToMarkdown";

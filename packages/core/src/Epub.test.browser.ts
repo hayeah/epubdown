@@ -70,16 +70,19 @@ describe("EPub - Browser Tests", () => {
   });
 
   it("should get table of contents", async () => {
-    const toc = await epub.toc();
+    const toc = epub.toc;
     expect(toc).toBeDefined();
 
+    const tocHtml = await toc.html();
+    expect(tocHtml).toBeDefined();
+
     // TOC should have navigation structure
-    const navElement = toc?.querySelector("nav");
+    const navElement = tocHtml?.querySelector("nav");
     expect(navElement).toBeDefined();
   });
 
   it("should extract TOC anchor links", async () => {
-    const anchorLinks = await epub.tocAnchorLinks();
+    const anchorLinks = await epub.toc.anchorLinks();
     expect(anchorLinks).toBeInstanceOf(Map);
 
     // Should have some anchor links
