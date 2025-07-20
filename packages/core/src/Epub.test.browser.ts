@@ -24,7 +24,7 @@ describe("EPub - Browser Tests", () => {
   });
 
   it("should get manifest items", async () => {
-    const manifest = epub.getManifest();
+    const manifest = epub.manifest();
     expect(manifest).toBeInstanceOf(Array);
     expect(manifest.length).toBeGreaterThan(0);
 
@@ -37,7 +37,7 @@ describe("EPub - Browser Tests", () => {
   });
 
   it("should get spine items", async () => {
-    const spine = epub.getSpine();
+    const spine = epub.spine();
     expect(spine).toBeInstanceOf(Array);
     expect(spine.length).toBeGreaterThan(0);
 
@@ -46,7 +46,7 @@ describe("EPub - Browser Tests", () => {
   });
 
   it("should get spine with manifest details", async () => {
-    const spineWithManifest = epub.getSpineWithManifest();
+    const spineWithManifest = epub.spineWithManifest();
     expect(spineWithManifest).toBeInstanceOf(Array);
     expect(spineWithManifest.length).toBeGreaterThan(0);
 
@@ -56,7 +56,7 @@ describe("EPub - Browser Tests", () => {
 
   it("should read chapters from EPUB", async () => {
     const chapters = [];
-    for await (const chapter of epub.getChapters()) {
+    for await (const chapter of epub.chapters()) {
       chapters.push(chapter);
     }
 

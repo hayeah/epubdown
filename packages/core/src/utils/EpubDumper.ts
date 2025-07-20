@@ -120,11 +120,11 @@ export class EpubDumper {
     await this.writeJSON("metadata.dump.json", metadata.toJSON());
 
     // Dump manifest
-    const manifest = this.epub.getManifest();
+    const manifest = this.epub.manifest();
     await this.writeJSON("manifest.dump.json", manifest);
 
     // Dump spine with manifest context
-    const spineManifest = this.epub.getSpineWithManifest(false);
+    const spineManifest = this.epub.spineWithManifest(false);
     await this.writeJSON("spineManifest.dump.json", spineManifest);
 
     // Dump nav file if exists
@@ -169,12 +169,12 @@ export class EpubDumper {
       [];
     let index = 0;
 
-    for await (const chapter of this.epub.getChapters(false)) {
+    for await (const chapter of this.epub.chapters(false)) {
       index += 1;
 
       await this.time(`chapter ${index}`, async () => {
         // Get markdown content
-        const content = await this.epub.getChapterMD(chapter.path);
+        const content = await this.epub.chapterMarkdown(chapter.path);
 
         // Extract title from the content (typically the first H1)
         const titleMatch = content.match(/^#\s+(.+)$/m);

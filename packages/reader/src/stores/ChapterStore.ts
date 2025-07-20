@@ -1,4 +1,4 @@
-import { type EPub, EPubMarkdownConverter, type XMLFile } from "@epubdown/core";
+import { ContentToMarkdown, type EPub, type XMLFile } from "@epubdown/core";
 import { action, computed, makeObservable, observable } from "mobx";
 import { markdownToReact } from "../markdownToReact";
 
@@ -12,7 +12,7 @@ export class ChapterStore {
   loadingChapters = new Set<string>();
   errors = new Map<string, string>();
 
-  converter: EPubMarkdownConverter | null = null;
+  converter: ContentToMarkdown | null = null;
 
   constructor() {
     makeObservable(this, {
@@ -29,7 +29,7 @@ export class ChapterStore {
   }
 
   setConverter(epub: EPub) {
-    this.converter = new EPubMarkdownConverter(epub);
+    this.converter = ContentToMarkdown.create();
   }
 
   async loadChapter(xmlFile: XMLFile): Promise<MarkdownResult | null> {
@@ -54,11 +54,7 @@ export class ChapterStore {
     this.errors.delete(key);
 
     try {
-      const htmlContent = xmlFile.content;
-      const markdown = await this.converter.convertHtmlToMarkdown(
-        htmlContent,
-        xmlFile,
-      );
+      const markdown = await this.converter.convertXMLFile(xmlFile);
       const reactTree = await markdownToReact(markdown);
 
       const result: MarkdownResult = { markdown, reactTree };

@@ -37,7 +37,7 @@ describe("EPubShortener", () => {
       const epub = await EPub.init(new FileDataResolver(tempDir));
       let chaptersChecked = 0;
 
-      for await (const chapter of epub.getChapters()) {
+      for await (const chapter of epub.chapters()) {
         // Check that text content has been replaced with public domain text
         // The text should be from Moby Dick but may not start at the beginning
         const publicDomainText =
@@ -182,7 +182,7 @@ describe("EPubShortener", () => {
       const publicDomainText =
         "Call me Ishmael. Some years ago—never mind how long precisely—having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world.";
 
-      for await (const chapter of epub.getChapters()) {
+      for await (const chapter of epub.chapters()) {
         // The content should have public domain text
         const contentWithoutTags = chapter.content
           .replace(/<[^>]*>/g, "")
@@ -212,12 +212,12 @@ describe("EPubShortener", () => {
 
       // Compare chapter lengths
       const originalChapters = [];
-      for await (const chapter of originalEpub.getChapters()) {
+      for await (const chapter of originalEpub.chapters()) {
         originalChapters.push(chapter.content);
       }
 
       const shortenedChapters = [];
-      for await (const chapter of shortenedEpub.getChapters()) {
+      for await (const chapter of shortenedEpub.chapters()) {
         shortenedChapters.push(chapter.content);
       }
 

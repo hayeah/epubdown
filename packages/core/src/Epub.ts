@@ -99,7 +99,7 @@ export class EPub {
     return this._metadata;
   }
 
-  getManifest(): ManifestItem[] {
+  manifest(): ManifestItem[] {
     const manifest = this.opf.querySelector("manifest");
     if (!manifest) return [];
 
@@ -112,7 +112,7 @@ export class EPub {
     }));
   }
 
-  getSpine(linearOnly = true): SpineItem[] {
+  spine(linearOnly = true): SpineItem[] {
     const spine = this.opf.querySelector("spine");
     if (!spine) return [];
 
@@ -126,11 +126,11 @@ export class EPub {
   }
 
   // Helper to get spine items with their manifest details
-  getSpineWithManifest(
+  spineWithManifest(
     linearOnly = true,
   ): (SpineItem & { manifestItem: ManifestItem })[] {
-    const spine = this.getSpine(linearOnly);
-    const manifest = this.getManifest();
+    const spine = this.spine(linearOnly);
+    const manifest = this.manifest();
     const manifestMap = new Map(manifest.map((item) => [item.id, item]));
 
     const result: (SpineItem & { manifestItem: ManifestItem })[] = [];
@@ -158,8 +158,8 @@ export class EPub {
    * @param linearOnly If true, skip non-linear spine items
    * @returns Generator yielding XMLFile objects with href and title properties
    */
-  async *getChapters(linearOnly = true): AsyncGenerator<XMLFile> {
-    const spineItems = this.getSpineWithManifest(linearOnly).filter(
+  async *chapters(linearOnly = true): AsyncGenerator<XMLFile> {
+    const spineItems = this.spineWithManifest(linearOnly).filter(
       (item) =>
         item.manifestItem.mediaType.includes("xhtml") ||
         item.manifestItem.mediaType.includes("html"),
@@ -178,7 +178,7 @@ export class EPub {
    * @param href The href string to load the chapter
    * @returns Promise<string> The markdown content
    */
-  async getChapterMD(href: string): Promise<string> {
+  async chapterMarkdown(href: string): Promise<string> {
     // Get the chapter XMLFile
     const chapter = await this.getChapter(href);
     if (!chapter) {
