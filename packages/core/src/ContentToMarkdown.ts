@@ -35,6 +35,18 @@ function addMetadataRemovalRules(td: TurndownService): void {
     filter: ["head", "title", "meta", "link"],
     replacement: () => "",
   });
+
+  // Remove style tags to prevent CSS content from appearing in markdown
+  td.addRule("remove-style-tags", {
+    filter: ["style"],
+    replacement: () => "",
+  });
+
+  // Remove script tags for security and cleanliness
+  td.addRule("remove-script-tags", {
+    filter: ["script"],
+    replacement: () => "",
+  });
 }
 
 function addIdPreservationRules(

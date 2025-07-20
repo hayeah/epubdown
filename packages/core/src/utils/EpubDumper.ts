@@ -73,10 +73,7 @@ export class EpubDumper {
     );
   }
 
-  private async writeFile(
-    filePath: string,
-    content: string,
-  ): Promise<void> {
+  private async writeFile(filePath: string, content: string): Promise<void> {
     // If the path is absolute, use it directly, otherwise join with outputDir
     const fullPath = filePath.startsWith("/")
       ? filePath
