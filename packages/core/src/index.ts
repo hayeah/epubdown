@@ -1,7 +1,6 @@
 // Main EPub classes
 export { EPub } from "./Epub";
 export { XMLFile } from "./XMLFile";
-export { FileDataResolver } from "./resolvers/FileDataResolver";
 export { Metadata } from "./Metadata";
 export type {
   Metadata as MetadataType,
