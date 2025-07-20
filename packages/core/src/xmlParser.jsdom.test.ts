@@ -29,14 +29,14 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
         "element",
       );
       expect(elementsNS.length).toBe(1);
-      expect(elementsNS[0].textContent).toBe("test");
+      expect(elementsNS[0]?.textContent).toBe("test");
 
       // Check element namespace properties
       const customElement = xmlDoc.getElementsByTagName("custom:element")[0];
       expect(customElement).toBeTruthy();
-      expect(customElement.namespaceURI).toBe("http://example.com");
-      expect(customElement.localName).toBe("element");
-      expect(customElement.prefix).toBe("custom");
+      expect(customElement?.namespaceURI).toBe("http://example.com");
+      expect(customElement?.localName).toBe("element");
+      expect(customElement?.prefix).toBe("custom");
     });
 
     it("should handle default namespaces correctly", () => {
@@ -56,7 +56,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
         "child",
       )[0];
       expect(child).toBeTruthy();
-      expect(child.textContent).toBe("content");
+      expect(child?.textContent).toBe("content");
     });
   });
 
@@ -220,7 +220,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
       let piFound = false;
       for (let i = 0; i < root.childNodes.length; i++) {
         const node = root.childNodes[i];
-        if (node.nodeType === 7) {
+        if (node && node.nodeType === 7) {
           // PROCESSING_INSTRUCTION_NODE
           piFound = true;
           expect(node.nodeName).toBe("custom-pi");
@@ -242,7 +242,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
       let commentFound = false;
       for (let i = 0; i < root.childNodes.length; i++) {
         const node = root.childNodes[i];
-        if (node.nodeType === 8) {
+        if (node && node.nodeType === 8) {
           // COMMENT_NODE
           commentFound = true;
           expect(node.nodeValue).toBe(" This is a comment ");

@@ -10,7 +10,7 @@ export type {
   MetaProperty,
 } from "./Metadata";
 export { TableOfContents } from "./TableOfContents";
-export type { NavItem, FlatNavItem, FlatTOC } from "./TableOfContents";
+export type { NavItem, FlatNavItem } from "./TableOfContents";
 
 // Content conversion
 export { ContentToMarkdown } from "./ContentToMarkdown";

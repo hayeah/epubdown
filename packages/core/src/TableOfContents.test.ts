@@ -38,11 +38,12 @@ describe("TableOfContents", () => {
       // If there are nested items, verify their structure
       if (itemsWithSubitems.length > 0) {
         const parentItem = itemsWithSubitems[0];
-        expect(parentItem.subitems).toBeDefined();
-        expect(parentItem.subitems?.length).toBeGreaterThan(0);
+        expect(parentItem).toBeDefined();
+        expect(parentItem?.subitems).toBeDefined();
+        expect(parentItem?.subitems?.length).toBeGreaterThan(0);
 
         // Verify subitem structure
-        if (parentItem.subitems) {
+        if (parentItem?.subitems) {
           for (const subitem of parentItem.subitems) {
             expect(subitem).toHaveProperty("href");
             expect(subitem).toHaveProperty("label");
@@ -86,9 +87,10 @@ describe("TableOfContents", () => {
       // Verify ordering - parent always comes before children
       for (let i = 0; i < flatToc.length; i++) {
         const item = flatToc[i];
-        if (item.parentHref) {
+        expect(item).toBeDefined();
+        if (item?.parentHref) {
           const parentIndex = flatToc.findIndex(
-            (p) => p.href === item.parentHref,
+            (p) => p.href === item?.parentHref,
           );
           expect(parentIndex).toBeGreaterThanOrEqual(0);
           expect(parentIndex).toBeLessThan(i);

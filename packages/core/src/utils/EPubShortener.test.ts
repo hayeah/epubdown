@@ -233,7 +233,7 @@ describe("EPubShortener", () => {
           .trim();
 
         // Content should be anonymized (different)
-        if (originalText.length > 50) {
+        if (originalText && originalText.length > 50) {
           expect(shortenedText).not.toBe(originalText);
         }
       }
