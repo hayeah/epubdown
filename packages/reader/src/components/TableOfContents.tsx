@@ -1,7 +1,7 @@
-import type { EPub, XMLFile } from "@epubdown/core";
-import parse, { type Element, type DOMNode } from "html-react-parser";
+import type { EPub, FlatNavItem } from "@epubdown/core";
 import { ChevronLeft } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 // Simple path join for browser
 const joinPath = (base: string, path: string): string => {
@@ -12,7 +12,7 @@ const joinPath = (base: string, path: string): string => {
   const pathParts = path.split("/").filter(Boolean);
 
   // Remove filename from base if present
-  if (baseParts.length > 0 && baseParts[baseParts.length - 1].includes(".")) {
+  if (baseParts.length > 0 && baseParts[baseParts.length - 1]?.includes(".")) {
     baseParts.pop();
   }
 
@@ -41,7 +41,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
   onChapterSelect,
   onClose,
 }) => {
-  const [tocFile, setTocFile] = useState<XMLFile | null>(null);
+  const [navItems, setNavItems] = useState<FlatNavItem[]>([]);
+  const [tocBase, setTocBase] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +50,16 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
     const loadToc = async () => {
       try {
         setIsLoading(true);
-        const toc = await epub.toc();
-        setTocFile(toc || null);
+
+        // Get the flat navigation items
+        const items = await epub.toc.flatNavItems();
+        setNavItems(items);
+
+        // Get the TOC base path for resolving relative URLs
+        const tocFile = await epub.toc.html();
+        if (tocFile) {
+          setTocBase(tocFile.base);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load TOC");
       } finally {
@@ -61,55 +70,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
     loadToc();
   }, [epub]);
 
-  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    const href = e.currentTarget.getAttribute("href");
-    if (href) {
-      onChapterSelect(href);
-    }
-  };
-
-  const transformElement = (
-    node: DOMNode,
-  ): React.ReactElement | string | null => {
-    if (node.type === "tag" && node.name === "a") {
-      const element = node as Element;
-      const href = element.attribs?.href;
-      const isActive =
-        currentChapterPath &&
-        href &&
-        joinPath(tocFile?.base || "", href.split("#")[0]) ===
-          currentChapterPath;
-
-      return (
-        <a
-          href={href}
-          onClick={handleLinkClick}
-          className={`block py-1 px-2 rounded hover:bg-gray-100 transition-colors ${
-            isActive ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700"
-          }`}
-        >
-          {element.children?.map((child, index) =>
-            typeof child === "string" ? child : transformElement(child),
-          )}
-        </a>
-      );
-    }
-
-    if (node.type === "tag") {
-      const element = node as Element;
-      return React.createElement(
-        element.name,
-        { key: Math.random() },
-        element.children?.map(transformElement),
-      );
-    }
-
-    if (node.type === "text") {
-      return node.data || null;
-    }
-
-    return null;
+  const handleLinkClick = (href: string) => {
+    onChapterSelect(href);
   };
 
   if (isLoading) {
@@ -122,20 +84,14 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
     return <div className="p-4 text-red-500">Error loading TOC: {error}</div>;
   }
 
-  if (!tocFile) {
+  if (navItems.length === 0) {
     return (
-      <div className="p-4 text-gray-500">No table of contents available</div>
+      <div className="p-4 text-gray-500">
+        No table of contents available
+        {tocBase && <div className="text-xs mt-2">TOC base: {tocBase}</div>}
+      </div>
     );
   }
-
-  const tocContent = parse(tocFile.content, {
-    replace: (domNode) => {
-      if (domNode.type === "tag" || domNode.type === "text") {
-        return transformElement(domNode);
-      }
-      return domNode;
-    },
-  });
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -153,7 +109,38 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
         )}
       </div>
       <div className="flex-1 overflow-y-auto p-4 epubtoc bg-white">
-        {tocContent}
+        <ul>
+          {navItems.map((item) => {
+            const href = item.href;
+            const hrefPath = href.split("#")[0] || "";
+            const resolvedPath = tocBase
+              ? joinPath(tocBase, hrefPath)
+              : hrefPath;
+            const isActive = currentChapterPath === resolvedPath;
+
+            // Calculate indentation based on level
+            const indent = item.level * 1.5; // 1.5rem per level
+
+            return (
+              <li key={item.href} style={{ paddingLeft: `${indent}rem` }}>
+                <a
+                  href={href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLinkClick(href);
+                  }}
+                  className={`block py-1 px-2 rounded hover:bg-gray-100 transition-colors ${
+                    isActive
+                      ? "bg-blue-50 text-blue-600 font-medium"
+                      : "text-gray-700"
+                  }`}
+                >
+                  {item.label}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </div>
   );

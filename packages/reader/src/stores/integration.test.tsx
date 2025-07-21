@@ -76,8 +76,10 @@ describe("MobX Store Integration", () => {
 
       // Mock EPub.fromZip
       const mockEpub = {
-        getMetadata: () => mockEpubContent,
-        getChapters: async function* () {
+        metadata: {
+          toJSON: () => mockEpubContent,
+        },
+        chapters: async function* () {
           for (const chapter of mockEpubContent.chapters) {
             yield createMockXMLFile(chapter.path, chapter.content);
           }

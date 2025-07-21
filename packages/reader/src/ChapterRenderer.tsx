@@ -1,4 +1,4 @@
-import type { EPub, MarkdownResult, XMLFile } from "@epubdown/core";
+import type { EPub, XMLFile } from "@epubdown/core";
 import parse, { domToReact, Element, type DOMNode } from "html-react-parser";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { marked } from "marked";

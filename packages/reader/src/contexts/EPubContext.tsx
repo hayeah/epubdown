@@ -1,5 +1,10 @@
-import type { EPubResolverContext as EPubResolverContextType } from "@epubdown/core";
+import type { XMLFile } from "@epubdown/core";
 import React from "react";
+
+// Define the context type locally
+export interface EPubResolverContextType {
+  resolver: XMLFile;
+}
 
 // React Context (to be used in your React components)
 export const EPubResolverContext =

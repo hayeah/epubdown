@@ -60,7 +60,7 @@ export class BookLibraryStore {
     const blobStoreKey = `book-${bookId}`;
 
     // Extract metadata from epub
-    const epubMetadata = epub.getMetadata();
+    const epubMetadata = epub.metadata.toJSON();
 
     // Store the book file
     await this.blobStore.put(blobStoreKey, file);

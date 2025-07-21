@@ -1,14 +1,62 @@
-import {
-  createImageDataUrl,
-  detectImageMimeType,
-  loadImageData,
-  resolveFootnoteContent,
-} from "@epubdown/core";
+import type { XMLFile } from "@epubdown/core";
 import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EPubResolverContext, useEPubResolver } from "./contexts/EPubContext";
 import { useResourceStore } from "./stores/RootStore";
+
+// Helper functions that were previously in @epubdown/core
+export async function loadImageData(
+  resolver: XMLFile,
+  href: string,
+): Promise<Uint8Array | undefined> {
+  return await resolver.readRaw(href);
+}
+
+export function createImageDataUrl(data: Uint8Array, mimeType: string): string {
+  const base64 = btoa(
+    Array.from(data).reduce(
+      (result, byte) => result + String.fromCharCode(byte),
+      "",
+    ),
+  );
+  return `data:${mimeType};base64,${base64}`;
+}
+
+export async function resolveFootnoteContent(
+  resolver: XMLFile,
+  href: string,
+): Promise<string | undefined> {
+  // If href is a fragment identifier, we need to find it in the current document
+  if (href.startsWith("#")) {
+    const id = href.substring(1);
+    const element = resolver.dom.getElementById(id);
+    return element?.textContent?.trim();
+  }
+
+  // Otherwise, load the referenced file
+  const content = await resolver.read(href);
+  return content;
+}
+
+export function detectImageMimeType(href: string): string {
+  const ext = href.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "gif":
+      return "image/gif";
+    case "svg":
+      return "image/svg+xml";
+    case "webp":
+      return "image/webp";
+    default:
+      return "image/jpeg";
+  }
+}
 
 // Image component with viewport detection and lazy loading
 export interface ImageProps {
