@@ -67,39 +67,3 @@
 .book-reader em {
   font-style: italic;
 }
-
-/* Table of Contents styles */
-.epubtoc {
-  font-size: 0.875rem; /* 14px */
-  line-height: 1.25rem; /* 20px */
-}
-
-.epubtoc ul {
-  padding-left: 1rem; /* 16px */
-}
-
-.epubtoc ul > li {
-  margin-bottom: 0.25rem; /* 4px */
-}
-
-.epubtoc li {
-  list-style: none;
-}
-
-.epubtoc > ul {
-  padding-left: 0;
-}
-
-.epubtoc nav[epub\:type="toc"] > ul {
-  padding-left: 0;
-}
-
-/* Nested list indentation */
-.epubtoc ul ul {
-  margin-top: 0.25rem; /* 4px */
-}
-
-/* Remove default nav styles */
-.epubtoc nav {
-  display: block;
-}
