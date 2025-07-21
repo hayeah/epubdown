@@ -8,6 +8,7 @@ import {
   it,
   vi,
 } from "vitest";
+import { loadEpub } from "../../test/helpers/epub";
 import { getDb } from "../lib/DatabaseProvider";
 import { BookLibraryStore } from "./BookLibraryStore";
 import { nukeIndexedDBDatabases } from "./testUtils";
@@ -40,33 +41,13 @@ describe("BookLibraryStore", () => {
     // No shared database connections to clean up
   });
 
-  async function loadEpubAsFile(url: string, filename: string): Promise<File> {
-    // Add 3s timeout to the fetch
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-    try {
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      const blob = await response.blob();
-      return new File([blob], filename, { type: "application/epub+zip" });
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
-  }
-
   it("should initialize with empty books array", () => {
     expect(store.books).toEqual([]);
     expect(store.isLoading).toBe(false);
   });
 
   it("should add a book from epub file", async () => {
-    const file = await loadEpubAsFile(
-      "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
-    );
+    const file = await loadEpub("/Alice's Adventures in Wonderland.epub");
     const bookId = await store.addBook(file);
 
     expect(bookId).toBeTruthy();
@@ -75,14 +56,8 @@ describe("BookLibraryStore", () => {
   });
 
   it("should add multiple books", async () => {
-    const aliceFile = await loadEpubAsFile(
-      "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
-    );
-    const proposalFile = await loadEpubAsFile(
-      "/A Modest Proposal.epub",
-      "proposal.epub",
-    );
+    const aliceFile = await loadEpub("/Alice's Adventures in Wonderland.epub");
+    const proposalFile = await loadEpub("/A Modest Proposal.epub");
 
     await store.addBook(aliceFile);
     await store.addBook(proposalFile);
@@ -96,10 +71,7 @@ describe("BookLibraryStore", () => {
   });
 
   it("should delete a book", async () => {
-    const file = await loadEpubAsFile(
-      "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
-    );
+    const file = await loadEpub("/Alice's Adventures in Wonderland.epub");
     const bookId = await store.addBook(file);
     expect(store.books.length).toBe(1);
 
@@ -108,10 +80,7 @@ describe("BookLibraryStore", () => {
   });
 
   it("should load book for reading", async () => {
-    const file = await loadEpubAsFile(
-      "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
-    );
+    const file = await loadEpub("/Alice's Adventures in Wonderland.epub");
     const bookId = await store.addBook(file);
 
     const result = await store.loadBookForReading(bookId);
@@ -123,10 +92,7 @@ describe("BookLibraryStore", () => {
   });
 
   it("should update last opened timestamp when loading book", async () => {
-    const file = await loadEpubAsFile(
-      "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
-    );
+    const file = await loadEpub("/Alice's Adventures in Wonderland.epub");
     const bookId = await store.addBook(file);
     const originalLastOpened = store.books[0].lastOpenedAt;
 
