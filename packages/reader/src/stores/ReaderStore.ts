@@ -1,6 +1,7 @@
 import { ContentToMarkdown, EPub, type XMLFile } from "@epubdown/core";
 import { action, computed, makeObservable, observable } from "mobx";
 import { markdownToReact } from "../markdownToReact";
+import type { BookLibraryStore } from "./BookLibraryStore";
 
 export interface MarkdownResult {
   markdown: string;
@@ -24,18 +25,22 @@ export class ReaderStore {
       metadata: observable,
       currentChapterIndex: observable,
       converter: observable,
-      loadBook: action,
+      handleLoadBook: action,
       setChapter: action,
       nextChapter: action,
       previousChapter: action,
       reset: action,
+      handleChapterChange: action,
+      handleTocChapterSelect: action,
+      handleCloseBook: action,
+      loadBookFromLibrary: action,
       currentChapter: computed,
       hasNextChapter: computed,
       hasPreviousChapter: computed,
     });
   }
 
-  async loadBook(file: File) {
+  async handleLoadBook(file: File) {
     const arrayBuffer = await file.arrayBuffer();
     const epub = await EPub.fromZip(arrayBuffer);
     this.epub = epub;
@@ -162,6 +167,90 @@ export class ReaderStore {
     this.chapters = [];
     this.metadata = {};
     this.converter = null;
+  }
+
+  handleChapterChange(
+    navigate: (path: string, options?: { replace?: boolean }) => void,
+    bookId: string,
+    index: number,
+  ) {
+    navigate(`/book/${bookId}/${index}`, {
+      replace: true,
+    });
+    this.setChapter(index);
+  }
+
+  handleTocChapterSelect(
+    navigate: (path: string, options?: { replace?: boolean }) => void,
+    bookId: string,
+    href: string,
+  ) {
+    // Extract the file path without anchor
+    const filePath = href.split("#")[0];
+
+    // Find the chapter index by matching the path
+    const chapterIndex = this.chapters.findIndex((chapter) => {
+      // Compare the relative paths
+      const chapterPath = chapter.path;
+      const tocBasePath = this.epub?.opf.base || "";
+
+      // Simple path resolution - might need adjustment based on actual epub structure
+      const resolvedHref = filePath?.startsWith("/")
+        ? filePath
+        : `${tocBasePath}/${filePath}`.replace(/\/+/g, "/");
+
+      return (
+        chapterPath === resolvedHref ||
+        (filePath ? chapterPath.endsWith(filePath) : false)
+      );
+    });
+
+    if (chapterIndex !== -1) {
+      navigate(`/book/${bookId}/${chapterIndex}`, {
+        replace: true,
+      });
+      this.setChapter(chapterIndex);
+      return true; // Indicate successful navigation
+    }
+    return false; // Indicate navigation failed
+  }
+
+  handleCloseBook(navigate: (path: string) => void) {
+    this.reset();
+    navigate("/");
+  }
+
+  async loadBookFromLibrary(
+    navigate: (path: string) => void,
+    bookId: string,
+    bookLibraryStore: BookLibraryStore,
+    initialChapter?: number,
+  ) {
+    try {
+      const bookData = await bookLibraryStore.loadBookForReading(bookId);
+      if (!bookData) {
+        throw new Error("Book not found");
+      }
+
+      // Convert Blob to File for ReaderStore
+      const file = new File(
+        [bookData.blob],
+        `${bookData.metadata.title}.epub`,
+        {
+          type: "application/epub+zip",
+        },
+      );
+
+      await this.handleLoadBook(file);
+
+      // Set initial chapter
+      const chapterToLoad = initialChapter || 0;
+      this.setChapter(chapterToLoad);
+    } catch (error) {
+      console.error("Failed to load book:", error);
+      navigate("/");
+      throw error;
+    }
   }
 
   // Computed getters
