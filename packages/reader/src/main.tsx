@@ -8,11 +8,8 @@ const rootElement = document.getElementById("root");
 if (!rootElement) {
   throw new Error("Root element not found");
 }
-// Create root store instance
-const rootStore = new RootStore();
-
-// Initialize async stores
-rootStore.initializeBookLibrary().then(() => {
+// Initialize async stores and render
+RootStore.create().then((rootStore) => {
   createRoot(rootElement).render(
     <StrictMode>
       <StoreProvider value={rootStore}>

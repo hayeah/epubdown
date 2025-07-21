@@ -27,7 +27,7 @@ export async function markdownToReact(
 
           return (
             <Image
-              href={href}
+              href={href || ""}
               alt={alt}
               title={title}
               width={width ? Number.parseInt(width) : undefined}
@@ -41,7 +41,7 @@ export async function markdownToReact(
           const { href, id, class: className } = domNode.attribs;
           const children = domToReact(domNode.children as DOMNode[]);
           return (
-            <Footnote href={href} id={id} className={className}>
+            <Footnote href={href || ""} id={id} className={className}>
               {children}
             </Footnote>
           );

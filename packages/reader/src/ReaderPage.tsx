@@ -3,60 +3,37 @@ import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { BookReader } from "./ChapterRenderer";
-import { NotFound } from "./components/NotFound";
 import { TableOfContents } from "./components/TableOfContents";
-import {
-  useBookLibraryStore,
-  useEpubStore,
-  useRootStore,
-} from "./stores/RootStore";
+import { useBookLibraryStore, useReaderStore } from "./stores/RootStore";
 
 export const ReaderPage = observer(() => {
-  const epubStore = useEpubStore();
+  const readerStore = useReaderStore();
   const bookLibraryStore = useBookLibraryStore();
-  const rootStore = useRootStore();
   const [, navigate] = useLocation();
   const [match, params] = useRoute("/book/:bookId/:chapterIndex?");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { epub, isLoading, currentChapterIndex, chapters } = epubStore;
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { epub, currentChapterIndex, chapters } = readerStore;
 
   const bookId = match ? params?.bookId : null;
   const initialChapter = match ? Number(params?.chapterIndex ?? 0) : 0;
 
   const loadBook = useCallback(
     async (bookId: string) => {
-      const bookData = await bookLibraryStore.loadBookForReading(bookId);
-      if (!bookData) {
-        throw new Error("Book not found");
-      }
-
-      // Convert Blob to File for EPubStore
-      const file = new File(
-        [bookData.blob],
-        `${bookData.metadata.title}.epub`,
-        {
-          type: "application/epub+zip",
-        },
+      await readerStore.loadBookFromLibrary(
+        navigate,
+        bookId,
+        bookLibraryStore,
+        initialChapter,
       );
-
-      await epubStore.loadEpub(file);
-
-      // Set initial chapter from URL or saved state
-      const chapterToLoad =
-        initialChapter || bookData.metadata.currentChapter || 0;
-      epubStore.setCurrentChapter(chapterToLoad);
     },
-    [bookLibraryStore, epubStore, initialChapter],
+    [bookLibraryStore, readerStore, initialChapter, navigate],
   );
 
   // Load book when component mounts or bookId changes
   useEffect(() => {
     if (bookId && match) {
-      setLoadError(null);
-      loadBook(bookId).catch((error) => {
-        console.error("Failed to load book:", error);
-        setLoadError("Book not found");
+      loadBook(bookId).catch(() => {
+        // Error handling is done in loadBookFromLibrary
       });
     }
   }, [bookId, match, loadBook]);
@@ -69,7 +46,7 @@ export const ReaderPage = observer(() => {
         newChapterIndex !== currentChapterIndex &&
         newChapterIndex < chapters.length
       ) {
-        epubStore.setCurrentChapter(newChapterIndex);
+        readerStore.setChapter(newChapterIndex);
       }
     }
   }, [
@@ -78,65 +55,34 @@ export const ReaderPage = observer(() => {
     params?.chapterIndex,
     currentChapterIndex,
     chapters.length,
-    epubStore,
+    readerStore,
   ]);
 
   const closeBook = useCallback(() => {
-    navigate("/");
-    rootStore.reset();
-  }, [navigate, rootStore]);
+    readerStore.handleCloseBook(navigate);
+  }, [readerStore, navigate]);
 
   const handleChapterChange = (index: number) => {
     if (bookId) {
-      navigate(`/book/${bookId}/${index}`, { replace: true });
-      epubStore.setCurrentChapter(index);
+      readerStore.handleChapterChange(navigate, bookId, index);
     }
   };
 
   const handleTocChapterSelect = useCallback(
     (href: string) => {
-      // Extract the file path without anchor
-      const filePath = href.split("#")[0];
-
-      // Find the chapter index by matching the path
-      const chapterIndex = chapters.findIndex((chapter) => {
-        // Compare the relative paths
-        const chapterPath = chapter.path;
-        const tocBasePath = epub?.opf.base || "";
-
-        // Simple path resolution - might need adjustment based on actual epub structure
-        const resolvedHref = filePath.startsWith("/")
-          ? filePath
-          : `${tocBasePath}/${filePath}`.replace(/\/+/g, "/");
-
-        return chapterPath === resolvedHref || chapterPath.endsWith(filePath);
-      });
-
-      if (chapterIndex !== -1 && bookId) {
-        navigate(`/book/${bookId}/${chapterIndex}`, { replace: true });
-        epubStore.setCurrentChapter(chapterIndex);
+      if (
+        bookId &&
+        readerStore.handleTocChapterSelect(navigate, bookId, href)
+      ) {
         setIsSidebarOpen(false); // Close sidebar on mobile after selection
       }
     },
-    [chapters, epub, epubStore, bookId, navigate],
+    [readerStore, bookId, navigate],
   );
-
-  // Handle errors
-  if (loadError) {
-    return <NotFound />;
-  }
 
   // Not a reader route
   if (!match) {
     return null;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-xl">Loading EPUB...</div>
-      </div>
-    );
   }
 
   if (epub && bookId) {

@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EPubResolverContext, useEPubResolver } from "./contexts/EPubContext";
-import { useResourceStore } from "./stores/RootStore";
+import { useReaderStore } from "./stores/RootStore";
 
 // Helper functions that were previously in @epubdown/core
 export async function loadImageData(
@@ -71,16 +71,13 @@ export interface ImageProps {
 export const Image: React.FC<ImageProps> = observer(
   ({ href, alt = "", title, width, height, className }) => {
     const { resolver } = useEPubResolver();
-    const resourceStore = useResourceStore();
+    const readerStore = useReaderStore();
     const [isInView, setIsInView] = useState(false);
+    const [imageSrc, setImageSrc] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const imgRef = useRef<HTMLImageElement>(null);
     const observerRef = useRef<IntersectionObserver | null>(null);
-
-    // Get cached data from store
-    const imageSrc = resourceStore.getImage(resolver, href);
-    const isLoading = resourceStore.isLoading(resolver, href);
-    const error = resourceStore.getError(resolver, href);
-    const hasError = !!error;
 
     // Intersection Observer for viewport detection
     useEffect(() => {
@@ -112,15 +109,40 @@ export const Image: React.FC<ImageProps> = observer(
     useEffect(() => {
       if (!isInView || imageSrc || isLoading) return;
 
-      resourceStore.loadImage(resolver, href);
-    }, [isInView, href, resolver, imageSrc, isLoading, resourceStore]);
+      let cancelled = false;
 
-    const handleImageError = useCallback(
-      (error: Error) => {
-        console.error("img on error:", href, error);
-      },
-      [href],
-    );
+      const loadImage = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+          const dataUrl = await readerStore.getImage(resolver, href);
+          if (!cancelled) {
+            setImageSrc(dataUrl);
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setError(
+              err instanceof Error ? err.message : "Failed to load image",
+            );
+          }
+        } finally {
+          if (!cancelled) {
+            setIsLoading(false);
+          }
+        }
+      };
+
+      loadImage();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [isInView, href, resolver, imageSrc, isLoading, readerStore]);
+
+    const handleImageError = useCallback(() => {
+      console.error("img on error:", href);
+      setError("Failed to display image");
+    }, [href]);
 
     // Placeholder dimensions
     const placeholderStyle: React.CSSProperties = {
@@ -136,7 +158,7 @@ export const Image: React.FC<ImageProps> = observer(
       fontSize: "14px",
     };
 
-    if (hasError) {
+    if (error) {
       return (
         <div style={placeholderStyle} className={className}>
           Failed to load image: {href}
@@ -179,23 +201,30 @@ export interface FootnoteProps {
 export const Footnote: React.FC<FootnoteProps> = observer(
   ({ href, id, children, className }) => {
     const { resolver } = useEPubResolver();
-    const resourceStore = useResourceStore();
+    const readerStore = useReaderStore();
     const [isPopoverVisible, setIsPopoverVisible] = useState(false);
     const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
+    const [footnoteContent, setFootnoteContent] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const footnoteRef = useRef<HTMLSpanElement>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
     const loadTimeoutRef = useRef<NodeJS.Timeout>();
-
-    // Get cached data from store
-    const footnoteContent = resourceStore.getFootnote(resolver, href);
-    const isLoading = resourceStore.isLoading(resolver, href);
 
     // Load footnote content
     const loadFootnoteContent = useCallback(async () => {
       if (footnoteContent || isLoading) return;
 
-      resourceStore.loadFootnote(resolver, href);
-    }, [footnoteContent, isLoading, resolver, href, resourceStore]);
+      setIsLoading(true);
+      try {
+        const content = await readerStore.getFootnote(resolver, href);
+        setFootnoteContent(content);
+      } catch (err) {
+        console.error("Failed to load footnote:", err);
+        setFootnoteContent("Failed to load footnote");
+      } finally {
+        setIsLoading(false);
+      }
+    }, [footnoteContent, isLoading, resolver, href, readerStore]);
 
     // Calculate popover position
     const updatePopoverPosition = useCallback((event: React.MouseEvent) => {
@@ -274,7 +303,7 @@ export const Footnote: React.FC<FootnoteProps> = observer(
     return (
       <>
         <button
-          ref={footnoteRef}
+          ref={footnoteRef as any}
           type="button"
           className={`footnote-link ${className || ""}`}
           onMouseEnter={handleMouseEnter}
@@ -283,7 +312,7 @@ export const Footnote: React.FC<FootnoteProps> = observer(
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              handleClick();
+              handleClick(e as any);
             }
           }}
           style={{

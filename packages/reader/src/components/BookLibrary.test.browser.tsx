@@ -16,6 +16,7 @@ import {
   it,
   vi,
 } from "vitest";
+import { loadEpub } from "../../test/helpers/epub";
 import { getDb } from "../lib/DatabaseProvider";
 import { BookLibraryStore } from "../stores/BookLibraryStore";
 import { type RootStore, StoreProvider } from "../stores/RootStore";
@@ -27,23 +28,6 @@ describe("BookLibrary (Browser)", () => {
   let mockOnOpenBook: ReturnType<typeof vi.fn>;
   let bookLibraryStore: BookLibraryStore;
   let db: SQLiteDB;
-
-  async function loadEpubAsFile(url: string, filename: string): Promise<File> {
-    // Add 3s timeout to the fetch
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-    try {
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      const blob = await response.blob();
-      return new File([blob], filename, { type: "application/epub+zip" });
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
-  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -102,9 +86,8 @@ describe("BookLibrary (Browser)", () => {
     renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
 
     // Load a real EPUB file
-    const epubContent = await loadEpubAsFile(
+    const epubContent = await loadEpub(
       "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
     );
 
     // Find the file input inside the dropzone
@@ -123,7 +106,9 @@ describe("BookLibrary (Browser)", () => {
         expect(
           screen.getByText("Alice's Adventures in Wonderland"),
         ).toBeInTheDocument();
-        expect(screen.getByText("alice.epub")).toBeInTheDocument();
+        expect(
+          screen.getByText("Alice's Adventures in Wonderland.epub"),
+        ).toBeInTheDocument();
       },
       { timeout: 5000 },
     );
@@ -134,16 +119,13 @@ describe("BookLibrary (Browser)", () => {
     // Verify the book was persisted in storage
     const books = bookLibraryStore.books;
     expect(books).toHaveLength(1);
-    expect(books[0].title).toBe("Alice's Adventures in Wonderland");
-    expect(books[0].filename).toBe("alice.epub");
+    expect(books[0]?.title).toBe("Alice's Adventures in Wonderland");
+    expect(books[0]?.filename).toBe("Alice's Adventures in Wonderland.epub");
   });
 
   it("should handle book deletion with real storage", async () => {
     // First add a book
-    const epubContent = await loadEpubAsFile(
-      "/A Modest Proposal.epub",
-      "proposal.epub",
-    );
+    const epubContent = await loadEpub("/A Modest Proposal.epub");
     const bookId = await bookLibraryStore.addBook(epubContent);
 
     renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
@@ -175,9 +157,8 @@ describe("BookLibrary (Browser)", () => {
 
   it("should persist books across store instances", async () => {
     // Add a book with the first store
-    const epubContent = await loadEpubAsFile(
+    const epubContent = await loadEpub(
       "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
     );
     await bookLibraryStore.addBook(epubContent);
 
@@ -201,7 +182,7 @@ describe("BookLibrary (Browser)", () => {
 
     // Verify the book is there
     expect(newStore.books).toHaveLength(1);
-    expect(newStore.books[0].title).toBe("Alice's Adventures in Wonderland");
+    expect(newStore.books[0]?.title).toBe("Alice's Adventures in Wonderland");
 
     // Clean up the new store and db
     await newStore.close();
@@ -249,14 +230,8 @@ describe("BookLibrary (Browser)", () => {
 
   it("should display multiple books with correct formatting", async () => {
     // Add multiple books before rendering
-    const book1 = await loadEpubAsFile(
-      "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
-    );
-    const book2 = await loadEpubAsFile(
-      "/A Modest Proposal.epub",
-      "proposal.epub",
-    );
+    const book1 = await loadEpub("/Alice's Adventures in Wonderland.epub");
+    const book2 = await loadEpub("/A Modest Proposal.epub");
 
     await bookLibraryStore.addBook(book1);
     await bookLibraryStore.addBook(book2);
@@ -282,9 +257,8 @@ describe("BookLibrary (Browser)", () => {
 
   it("should not delete book when confirm is cancelled", async () => {
     // Add a book
-    const epubContent = await loadEpubAsFile(
+    const epubContent = await loadEpub(
       "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
     );
     await bookLibraryStore.addBook(epubContent);
 
@@ -316,9 +290,8 @@ describe("BookLibrary (Browser)", () => {
 
   it("should handle book click to open", async () => {
     // Add a book
-    const epubContent = await loadEpubAsFile(
+    const epubContent = await loadEpub(
       "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
     );
     const bookId = await bookLibraryStore.addBook(epubContent);
 
@@ -341,10 +314,7 @@ describe("BookLibrary (Browser)", () => {
 
   it("should format dates correctly", async () => {
     // Add a book
-    const epubContent = await loadEpubAsFile(
-      "/A Modest Proposal.epub",
-      "proposal.epub",
-    );
+    const epubContent = await loadEpub("/A Modest Proposal.epub");
     await bookLibraryStore.addBook(epubContent);
 
     renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
@@ -358,8 +328,11 @@ describe("BookLibrary (Browser)", () => {
     expect(screen.getByText(/Added:/)).toBeInTheDocument();
 
     // Open the book to set lastOpenedAt
-    const bookId = bookLibraryStore.books[0].id;
-    await bookLibraryStore.loadBookForReading(bookId);
+    const bookId = bookLibraryStore.books[0]?.id;
+    expect(bookId).toBeDefined();
+    if (bookId) {
+      await bookLibraryStore.loadBookForReading(bookId);
+    }
 
     // Reload to see updated dates
     await bookLibraryStore.loadBooks();
@@ -372,9 +345,8 @@ describe("BookLibrary (Browser)", () => {
 
   it("should update last opened timestamp when opening a book", async () => {
     // Add a book
-    const epubContent = await loadEpubAsFile(
+    const epubContent = await loadEpub(
       "/Alice's Adventures in Wonderland.epub",
-      "alice.epub",
     );
     const bookId = await bookLibraryStore.addBook(epubContent);
 
@@ -402,7 +374,7 @@ describe("BookLibrary (Browser)", () => {
 
     // Verify last opened was updated
     const books = bookLibraryStore.books;
-    expect(books[0].lastOpenedAt).toBeDefined();
-    expect(books[0].lastOpenedAt).toBeGreaterThan(0);
+    expect(books[0]?.lastOpenedAt).toBeDefined();
+    expect(books[0]?.lastOpenedAt).toBeGreaterThan(0);
   });
 });

@@ -63,7 +63,9 @@ describe("BlobStore", () => {
       const data = new TextEncoder().encode("Hello, World!");
       const buffer = data.buffer;
 
-      await expect(blobStore.put("test-key", buffer)).resolves.toBeUndefined();
+      await expect(
+        blobStore.put("test-key", buffer as ArrayBuffer),
+      ).resolves.toBeUndefined();
     });
 
     it("should store a Uint8Array with a key", async () => {
@@ -103,8 +105,8 @@ describe("BlobStore", () => {
       const data1 = new TextEncoder().encode("First data");
       const data2 = new TextEncoder().encode("Second data");
 
-      await blobStore.put("same-key", data1.buffer);
-      await blobStore.put("same-key", data2.buffer);
+      await blobStore.put("same-key", data1.buffer as ArrayBuffer);
+      await blobStore.put("same-key", data2.buffer as ArrayBuffer);
 
       const retrieved = await blobStore.getBytes("same-key");
       expect(retrieved).not.toBeNull();
@@ -118,7 +120,7 @@ describe("BlobStore", () => {
   describe("getBytes", () => {
     it("should retrieve stored ArrayBuffer as Uint8Array", async () => {
       const originalData = new TextEncoder().encode("Test data");
-      await blobStore.put("retrieve-key", originalData.buffer);
+      await blobStore.put("retrieve-key", originalData.buffer as ArrayBuffer);
 
       const retrieved = await blobStore.getBytes("retrieve-key");
       expect(retrieved).not.toBeNull();
@@ -165,7 +167,7 @@ describe("BlobStore", () => {
 
     it("should convert ArrayBuffer to Blob", async () => {
       const data = new TextEncoder().encode("ArrayBuffer data");
-      await blobStore.put("buffer-key", data.buffer);
+      await blobStore.put("buffer-key", data.buffer as ArrayBuffer);
 
       const retrieved = await blobStore.getBlob("buffer-key");
       expect(retrieved).not.toBeNull();
@@ -185,7 +187,7 @@ describe("BlobStore", () => {
   describe("delete", () => {
     it("should delete data by key", async () => {
       const data = new TextEncoder().encode("To be deleted");
-      await blobStore.put("delete-key", data.buffer);
+      await blobStore.put("delete-key", data.buffer as ArrayBuffer);
 
       // Verify it exists
       let result = await blobStore.getBytes("delete-key");
@@ -211,9 +213,9 @@ describe("BlobStore", () => {
       const data2 = new TextEncoder().encode("Data 2");
       const data3 = new TextEncoder().encode("Data 3");
 
-      await blobStore.put("key1", data1.buffer);
-      await blobStore.put("key2", data2.buffer);
-      await blobStore.put("key3", data3.buffer);
+      await blobStore.put("key1", data1.buffer as ArrayBuffer);
+      await blobStore.put("key2", data2.buffer as ArrayBuffer);
+      await blobStore.put("key3", data3.buffer as ArrayBuffer);
 
       // Clear all
       await expect(blobStore.clear()).resolves.toBeUndefined();
@@ -252,8 +254,8 @@ describe("BlobStore", () => {
       const data1 = new TextEncoder().encode("Store 1 data");
       const data2 = new TextEncoder().encode("Store 2 data");
 
-      await store1.put("key", data1.buffer);
-      await store2.put("key", data2.buffer);
+      await store1.put("key", data1.buffer as ArrayBuffer);
+      await store2.put("key", data2.buffer as ArrayBuffer);
 
       const retrieved1 = await store1.getBytes("key");
       const retrieved2 = await store2.getBytes("key");

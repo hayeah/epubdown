@@ -43,27 +43,17 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
 }) => {
   const [navItems, setNavItems] = useState<FlatNavItem[]>([]);
   const [tocBase, setTocBase] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadToc = async () => {
-      try {
-        setIsLoading(true);
+      // Get the flat navigation items
+      const items = await epub.toc.flatNavItems();
+      setNavItems(items);
 
-        // Get the flat navigation items
-        const items = await epub.toc.flatNavItems();
-        setNavItems(items);
-
-        // Get the TOC base path for resolving relative URLs
-        const tocFile = await epub.toc.html();
-        if (tocFile) {
-          setTocBase(tocFile.base);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load TOC");
-      } finally {
-        setIsLoading(false);
+      // Get the TOC base path for resolving relative URLs
+      const tocFile = await epub.toc.html();
+      if (tocFile) {
+        setTocBase(tocFile.base);
       }
     };
 
@@ -73,16 +63,6 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
   const handleLinkClick = (href: string) => {
     onChapterSelect(href);
   };
-
-  if (isLoading) {
-    return (
-      <div className="p-4 text-gray-500">Loading table of contents...</div>
-    );
-  }
-
-  if (error) {
-    return <div className="p-4 text-red-500">Error loading TOC: {error}</div>;
-  }
 
   if (navItems.length === 0) {
     return (
@@ -108,7 +88,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
           </button>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 epubtoc bg-white">
+      <div className="flex-1 overflow-y-auto p-4 bg-white">
         <ul>
           {navItems.map((item) => {
             const href = item.href;

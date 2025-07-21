@@ -5,7 +5,7 @@ import { marked } from "marked";
 import { observer } from "mobx-react-lite";
 import React, { useState, useEffect } from "react";
 import { EPubResolverProvider, Footnote, Image } from "./MarkdownComponents";
-import { useChapterStore, useEpubStore } from "./stores/RootStore";
+import { useReaderStore } from "./stores/RootStore";
 
 import htmlToDOM from "html-dom-parser";
 
@@ -17,34 +17,41 @@ export interface ChapterRendererProps {
 
 export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
   ({ xmlFile, className }) => {
-    const chapterStore = useChapterStore();
-    const epubStore = useEpubStore();
-
-    // Get cached data from store
-    const markdownResult = chapterStore.getChapterResult(xmlFile.path);
-    const isLoading = chapterStore.isChapterLoading(xmlFile.path);
-    const error = chapterStore.getChapterError(xmlFile.path);
+    const readerStore = useReaderStore();
+    const [markdownResult, setMarkdownResult] = useState<{
+      markdown: string;
+      reactTree: React.ReactNode;
+    } | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     React.useEffect(() => {
-      // Set converter if epub is loaded
-      if (epubStore.epub && !chapterStore.converter) {
-        chapterStore.setConverter(epubStore.epub);
-      }
+      let cancelled = false;
 
-      // Load chapter if not already loaded or loading
-      if (!markdownResult && !isLoading && !error) {
-        chapterStore.loadChapter(xmlFile);
-      }
-    }, [
-      xmlFile,
-      epubStore.epub,
-      markdownResult,
-      isLoading,
-      error,
-      chapterStore,
-    ]);
+      const loadChapter = async () => {
+        try {
+          const result = await readerStore.getChapterReactTree(xmlFile);
+          if (!cancelled) {
+            setMarkdownResult(result);
+            setError(null);
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setError(
+              err instanceof Error ? err.message : "Failed to load chapter",
+            );
+            setMarkdownResult(null);
+          }
+        }
+      };
 
-    if (isLoading) {
+      loadChapter();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [xmlFile, readerStore]);
+
+    if (!markdownResult && !error) {
       return (
         <div className={`chapter-loading ${className || ""}`}>
           <div className="text-center p-8 text-gray-500">
@@ -54,11 +61,11 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
       );
     }
 
-    if (error || (!markdownResult && !isLoading)) {
+    if (error) {
       return (
         <div className={`chapter-error ${className || ""}`}>
           <div className="text-center p-8 text-red-600 bg-red-50 border border-red-200 rounded">
-            Error: {error || "Failed to load chapter"}
+            Error: {error}
           </div>
         </div>
       );
@@ -86,23 +93,8 @@ export interface BookReaderProps {
 
 export const BookReader: React.FC<BookReaderProps> = observer(
   ({ epub, currentChapterIndex = 0, onChapterChange, className }) => {
-    const epubStore = useEpubStore();
-    const { chapters, metadata, isLoading } = epubStore;
-
-    if (isLoading) {
-      return (
-        <div className={`book-loading ${className || ""}`}>
-          <div className="text-center p-16">
-            <h2 className="text-xl font-semibold mb-4">
-              Loading "{metadata.title || "Book"}"...
-            </h2>
-            <p className="text-gray-600">
-              Please wait while we prepare your reading experience.
-            </p>
-          </div>
-        </div>
-      );
-    }
+    const readerStore = useReaderStore();
+    const { chapters, metadata } = readerStore;
 
     const currentChapter = chapters[currentChapterIndex];
     const hasPrevious = currentChapterIndex > 0;
