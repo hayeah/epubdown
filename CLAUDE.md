@@ -12,6 +12,23 @@
 - In general don't use `try ... catch`, let error bubble up, so it's easier for the dev to debug.
   - Use `try ... catch` for cleanup.
 
+## Null Checks in Tests
+
+- An assertion inside a branch may never execute if the branch condition is false, yet the test still reports success.
+
+```ts
+// BAD: assertion can be skipped
+if (result !== null) {
+  expect(result.value).toBe(42);
+}
+```
+
+
+```ts
+// GOOD: make the expectation unconditional
+expect(result?.value).toBe(42);
+```
+
 ## Typescript Class
 
 - how you should write typescript class
