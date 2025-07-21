@@ -134,8 +134,8 @@ describe("BookLibrary (Browser)", () => {
     // Verify the book was persisted in storage
     const books = bookLibraryStore.books;
     expect(books).toHaveLength(1);
-    expect(books[0].title).toBe("Alice's Adventures in Wonderland");
-    expect(books[0].filename).toBe("alice.epub");
+    expect(books[0]?.title).toBe("Alice's Adventures in Wonderland");
+    expect(books[0]?.filename).toBe("alice.epub");
   });
 
   it("should handle book deletion with real storage", async () => {
@@ -201,7 +201,7 @@ describe("BookLibrary (Browser)", () => {
 
     // Verify the book is there
     expect(newStore.books).toHaveLength(1);
-    expect(newStore.books[0].title).toBe("Alice's Adventures in Wonderland");
+    expect(newStore.books[0]?.title).toBe("Alice's Adventures in Wonderland");
 
     // Clean up the new store and db
     await newStore.close();
@@ -358,8 +358,11 @@ describe("BookLibrary (Browser)", () => {
     expect(screen.getByText(/Added:/)).toBeInTheDocument();
 
     // Open the book to set lastOpenedAt
-    const bookId = bookLibraryStore.books[0].id;
-    await bookLibraryStore.loadBookForReading(bookId);
+    const bookId = bookLibraryStore.books[0]?.id;
+    expect(bookId).toBeDefined();
+    if (bookId) {
+      await bookLibraryStore.loadBookForReading(bookId);
+    }
 
     // Reload to see updated dates
     await bookLibraryStore.loadBooks();
@@ -402,7 +405,7 @@ describe("BookLibrary (Browser)", () => {
 
     // Verify last opened was updated
     const books = bookLibraryStore.books;
-    expect(books[0].lastOpenedAt).toBeDefined();
-    expect(books[0].lastOpenedAt).toBeGreaterThan(0);
+    expect(books[0]?.lastOpenedAt).toBeDefined();
+    expect(books[0]?.lastOpenedAt).toBeGreaterThan(0);
   });
 });
