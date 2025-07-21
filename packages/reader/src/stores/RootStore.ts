@@ -1,20 +1,14 @@
 import { createContext, useContext } from "react";
 import { getDb } from "../lib/DatabaseProvider";
 import { BookLibraryStore } from "./BookLibraryStore";
-import { ChapterStore } from "./ChapterStore";
-import { EPubStore } from "./EPubStore";
-import { ResourceStore } from "./ResourceStore";
+import { ReaderStore } from "./ReaderStore";
 
 export class RootStore {
-  epubStore: EPubStore;
-  chapterStore: ChapterStore;
-  resourceStore: ResourceStore;
+  readerStore: ReaderStore;
   bookLibraryStore: BookLibraryStore | null = null;
 
   constructor() {
-    this.epubStore = new EPubStore();
-    this.chapterStore = new ChapterStore();
-    this.resourceStore = new ResourceStore();
+    this.readerStore = new ReaderStore();
   }
 
   async initializeBookLibrary(): Promise<void> {
@@ -25,9 +19,7 @@ export class RootStore {
   }
 
   reset() {
-    this.epubStore.reset();
-    this.chapterStore.clearCache();
-    this.resourceStore.clearCache();
+    this.readerStore.reset();
   }
 }
 
@@ -43,19 +35,9 @@ export function useRootStore(): RootStore {
   return store;
 }
 
-export function useEpubStore(): EPubStore {
+export function useReaderStore(): ReaderStore {
   const rootStore = useRootStore();
-  return rootStore.epubStore;
-}
-
-export function useChapterStore(): ChapterStore {
-  const rootStore = useRootStore();
-  return rootStore.chapterStore;
-}
-
-export function useResourceStore(): ResourceStore {
-  const rootStore = useRootStore();
-  return rootStore.resourceStore;
+  return rootStore.readerStore;
 }
 
 export function useBookLibraryStore(): BookLibraryStore {
