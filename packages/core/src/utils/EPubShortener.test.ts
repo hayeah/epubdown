@@ -36,6 +36,7 @@ describe("EPubShortener", () => {
       // Verify that chapters have been shortened
       const epub = await EPub.init(new FileDataResolver(tempDir));
       let chaptersChecked = 0;
+      let longChapterSeen = false;
 
       for await (const chapter of epub.chapters()) {
         // Check that text content has been replaced with public domain text
@@ -48,6 +49,7 @@ describe("EPubShortener", () => {
         const textContent = doc.body?.textContent?.trim() || "";
 
         if (textContent.length > 15) {
+          longChapterSeen = true;
           // Check that the text is part of the public domain text
           const first15 = textContent.slice(0, 15);
           expect(publicDomainText).toContain(first15);
@@ -57,6 +59,7 @@ describe("EPubShortener", () => {
       }
 
       expect(chaptersChecked).toBeGreaterThan(0);
+      expect(longChapterSeen).toBe(true);
     });
 
     it("should strip images when stripImages option is enabled", async () => {
@@ -179,6 +182,7 @@ describe("EPubShortener", () => {
 
       // Check that chapters have been shortened
       let chaptersChecked = 0;
+      let longChapterSeen = false;
       const publicDomainText =
         "Call me Ishmael. Some years ago—never mind how long precisely—having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world.";
 
@@ -188,6 +192,7 @@ describe("EPubShortener", () => {
           .replace(/<[^>]*>/g, "")
           .trim();
         if (contentWithoutTags.length > 15) {
+          longChapterSeen = true;
           // Each chapter starts with a fresh anonymizer, so should start with "Call me Ishmael"
           expect(contentWithoutTags.slice(0, 15)).toBe("Call me Ishmael");
         }
@@ -195,6 +200,7 @@ describe("EPubShortener", () => {
       }
 
       expect(chaptersChecked).toBeGreaterThan(0);
+      expect(longChapterSeen).toBe(true);
     });
 
     it("should respect the preserveLength option", async () => {
@@ -223,6 +229,12 @@ describe("EPubShortener", () => {
 
       expect(originalChapters.length).toBe(shortenedChapters.length);
 
+      // Ensure at least one original chapter exceeds 50 characters
+      const lengthyExists = originalChapters.some(
+        (chapter) => chapter.replace(/<[^>]*>/g, "").trim().length > 50,
+      );
+      expect(lengthyExists).toBe(true);
+
       // When preserveLength is false, the content lengths will likely differ
       for (let i = 0; i < originalChapters.length; i++) {
         const originalText = originalChapters[i]
@@ -232,7 +244,7 @@ describe("EPubShortener", () => {
           ?.replace(/<[^>]*>/g, "")
           .trim();
 
-        // Content should be anonymized (different)
+        // Content should be anonymized (different) for chapters with meaningful content
         if (originalText && originalText.length > 50) {
           expect(shortenedText).not.toBe(originalText);
         }
