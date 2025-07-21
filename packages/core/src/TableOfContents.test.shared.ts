@@ -24,15 +24,15 @@ export function createTableOfContentsTests(deps: TestDependencies) {
         expect(navItems).toBeDefined();
         expect(navItems).toBeInstanceOf(Array);
 
-        // Check structure if there are items
-        if (navItems.length > 0) {
-          const firstItem = navItems[0];
-          expect(firstItem).toBeDefined();
-          expect(firstItem).toHaveProperty("href");
-          expect(firstItem).toHaveProperty("label");
-          expect(typeof firstItem?.href).toBe("string");
-          expect(typeof firstItem?.label).toBe("string");
-        }
+        // Ensure there are items to test
+        expect(navItems.length).toBeGreaterThan(0);
+
+        const firstItem = navItems[0];
+        expect(firstItem).toBeDefined();
+        expect(firstItem).toHaveProperty("href");
+        expect(firstItem).toHaveProperty("label");
+        expect(typeof firstItem.href).toBe("string");
+        expect(typeof firstItem.label).toBe("string");
       });
 
       it("should handle nested navigation if present", async () => {
@@ -43,23 +43,29 @@ export function createTableOfContentsTests(deps: TestDependencies) {
           (item) => item.subitems && item.subitems.length > 0,
         );
 
-        // If there are nested items, verify their structure
-        if (itemsWithSubitems.length > 0) {
-          const parentItem = itemsWithSubitems[0];
-          expect(parentItem).toBeDefined();
-          expect(parentItem?.subitems).toBeDefined();
-          expect(parentItem?.subitems?.length).toBeGreaterThan(0);
+        // If there are no nested items, skip the test
+        if (itemsWithSubitems.length === 0) {
+          // Verify that the navigation structure is flat (no subitems)
+          for (const item of navItems) {
+            expect(
+              item.subitems === undefined || item.subitems.length === 0,
+            ).toBe(true);
+          }
+          return;
+        }
 
-          // Verify subitem structure
-          if (parentItem?.subitems) {
-            for (const subitem of parentItem.subitems) {
-              expect(subitem).toHaveProperty("href");
-              expect(subitem).toHaveProperty("label");
-              // id is optional, parsed from href fragment if present
-              if (subitem.href.includes("#")) {
-                expect(subitem).toHaveProperty("id");
-              }
-            }
+        const parentItem = itemsWithSubitems[0];
+        expect(parentItem).toBeDefined();
+        expect(parentItem.subitems).toBeDefined();
+        expect(parentItem.subitems?.length).toBeGreaterThan(0);
+
+        // Verify subitem structure
+        for (const subitem of parentItem.subitems || []) {
+          expect(subitem).toHaveProperty("href");
+          expect(subitem).toHaveProperty("label");
+          // id is optional, parsed from href fragment if present
+          if (subitem.href.includes("#")) {
+            expect(subitem).toHaveProperty("id");
           }
         }
       });
@@ -73,15 +79,15 @@ export function createTableOfContentsTests(deps: TestDependencies) {
         expect(flatToc).toBeDefined();
         expect(flatToc).toBeInstanceOf(Array);
 
-        // Check structure if there are items
-        if (flatToc.length > 0) {
-          for (const item of flatToc) {
-            expect(item).toHaveProperty("href");
-            expect(item).toHaveProperty("label");
-            expect(item).toHaveProperty("level");
-            expect(typeof item.level).toBe("number");
-            expect(item.level).toBeGreaterThanOrEqual(0);
-          }
+        // Ensure there are items to test
+        expect(flatToc.length).toBeGreaterThan(0);
+
+        for (const item of flatToc) {
+          expect(item).toHaveProperty("href");
+          expect(item).toHaveProperty("label");
+          expect(item).toHaveProperty("level");
+          expect(typeof item.level).toBe("number");
+          expect(item.level).toBeGreaterThanOrEqual(0);
         }
       });
 
@@ -103,9 +109,9 @@ export function createTableOfContentsTests(deps: TestDependencies) {
         for (let i = 0; i < flatToc.length; i++) {
           const item = flatToc[i];
           expect(item).toBeDefined();
-          if (item?.parentHref) {
+          if (item.parentHref) {
             const parentIndex = flatToc.findIndex(
-              (p) => p.href === item?.parentHref,
+              (p) => p.href === item.parentHref,
             );
             expect(parentIndex).toBeGreaterThanOrEqual(0);
             expect(parentIndex).toBeLessThan(i);
@@ -123,9 +129,8 @@ export function createTableOfContentsTests(deps: TestDependencies) {
             const parentItem = flatToc.find((i) => i.href === item.parentHref);
             expect(parentItem).toBeDefined();
             // Child's level should be parent's level + 1
-            if (parentItem) {
-              expect(item.level).toBe(parentItem.level + 1);
-            }
+            expect(parentItem).toBeDefined();
+            expect(item.level).toBe(parentItem?.level + 1);
           } else {
             // Items without parents should be at level 0
             expect(item.level).toBe(0);
