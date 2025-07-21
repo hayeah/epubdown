@@ -20,7 +20,8 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
-    "test": "vitest"
+    "test": "vitest run",
+    "test:browser": "vitest run -c vitest.config.browser.ts"
   },
   "dependencies": {
     "@types/jsdom": "^21.1.7",

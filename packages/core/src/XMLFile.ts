@@ -1,5 +1,6 @@
 import { basename, dirname, join } from "node:path";
 import { DataResolver } from "./resolvers/DataResolver";
+import { querySelectorNamespaced } from "./utils/querySelectorNamespaced";
 import { parseXml } from "./xmlParser";
 
 export class XMLFile extends DataResolver {
@@ -52,5 +53,20 @@ export class XMLFile extends DataResolver {
 
   querySelectorAll(selector: string): NodeListOf<Element> {
     return this.dom.querySelectorAll(selector);
+  }
+
+  /**
+   * Query selector helper for namespaced attributes that works across different browser environments
+   * @param tag - The tag name to search for
+   * @param attribute - The attribute to match (e.g., 'type="toc"')
+   * @param ns - Optional namespace prefix (e.g., 'epub')
+   * @returns The first matching element or null
+   */
+  querySelectorNamespaced(
+    tag: string,
+    attribute: string,
+    ns?: string | null,
+  ): Element | null {
+    return querySelectorNamespaced(this.dom, tag, attribute, ns);
   }
 }

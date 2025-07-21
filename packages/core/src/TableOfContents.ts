@@ -123,8 +123,12 @@ export class TableOfContents {
       return [];
     }
 
-    // Parse the nav element
-    const navElement = tocFile.querySelector('nav[epub\\:type="toc"]');
+    // Parse the nav element using browser-compatible selector
+    const navElement = tocFile.querySelectorNamespaced(
+      "nav",
+      'type="toc"',
+      "epub",
+    );
     if (!navElement) {
       return [];
     }
@@ -222,8 +226,16 @@ export class TableOfContents {
 
     const anchorMap = new Map<string, Set<string>>();
 
-    // Find all links in the TOC
-    const links = tocFile.querySelectorAll(`nav[epub\\:type="toc"] a[href]`);
+    // Find all links in the TOC using browser-compatible selector
+    const navElement = tocFile.querySelectorNamespaced(
+      "nav",
+      'type="toc"',
+      "epub",
+    );
+    if (!navElement) {
+      return new Map();
+    }
+    const links = navElement.querySelectorAll("a[href]");
 
     for (const link of Array.from(links)) {
       const href = link.getAttribute("href");
