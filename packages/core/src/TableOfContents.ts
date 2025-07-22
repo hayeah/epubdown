@@ -103,7 +103,7 @@ export class TableOfContents {
     };
 
     const olMarkup = convertNavPoints(navMap);
-    const html = `<nav epub:type="toc">\n${olMarkup}\n</nav>`;
+    const html = `<nav xmlns:epub="http://www.idpf.org/2007/ops" epub:type="toc">\n${olMarkup}\n</nav>`;
 
     return new XMLFile(
       ncxFile.base,

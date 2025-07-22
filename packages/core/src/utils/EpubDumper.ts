@@ -162,6 +162,14 @@ export class EpubDumper {
         });
       }
     }
+
+    // Dump parsed TOC navigation items
+    const navItems = await this.epub.toc.navItems();
+    await this.writeJSON("toc.navItems.dump.json", navItems);
+
+    // Dump flattened TOC navigation items
+    const flatNavItems = await this.epub.toc.flatNavItems();
+    await this.writeJSON("toc.flatNavItems.dump.json", flatNavItems);
   }
 
   private async dumpChapters(): Promise<void> {
