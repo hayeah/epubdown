@@ -10,7 +10,10 @@ export interface NavItem {
   subitems?: NavItem[];
 }
 
-export interface FlatNavItem extends NavItem {
+export interface FlatNavItem {
+  id?: string;
+  href: string;
+  label: string;
   level: number;
   parentHref?: string;
 }
@@ -193,11 +196,18 @@ export class TableOfContents {
       parentHref?: string,
     ): FlatNavItem[] => {
       return items.reduce<FlatNavItem[]>((acc, item) => {
+        // Create flat item without subitems
         const flatItem: FlatNavItem = {
-          ...item,
+          href: item.href,
+          label: item.label,
           level,
           parentHref,
         };
+
+        // Include id if present
+        if (item.id) {
+          flatItem.id = item.id;
+        }
 
         acc.push(flatItem);
 

@@ -32,3 +32,10 @@ STAR MAKER
 ```
 
 This structure is correctly handled by the implementation.
+
+## FlatNavItem vs NavItem
+
+- `NavItem`: Hierarchical representation with nested `subitems` arrays
+- `FlatNavItem`: Flattened representation without `subitems`, includes `level` and `parentHref` to maintain hierarchy information
+
+The `FlatNavItem` interface was designed to be more compact for serialization and processing, avoiding the redundancy of nested structures in the flattened output.
