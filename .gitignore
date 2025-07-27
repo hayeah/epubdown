@@ -138,6 +138,7 @@ dist
 
 dist
 corpus
+tmp
 
 .forks
 __screenshots__
