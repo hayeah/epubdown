@@ -112,50 +112,56 @@ export const BookReader: React.FC<BookReaderProps> = observer(
 
     return (
       <div className={`book-reader ${className || ""}`}>
-        {/* Chapter navigation */}
-        <nav className="flex justify-between items-center mb-6">
-          <button
-            type="button"
-            onClick={handlePrevious}
-            disabled={!hasPrevious}
-            className={`p-2 rounded-full transition-colors border border-gray-200 ${
-              hasPrevious
-                ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
-                : "text-gray-300 cursor-not-allowed"
-            }`}
-            aria-label="Previous chapter"
-          >
-            <ChevronLeft size={20} />
-          </button>
+        {/* Chapter navigation - redesigned for top of content */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <button
+              type="button"
+              onClick={handlePrevious}
+              disabled={!hasPrevious}
+              className={`p-2 rounded-lg transition-colors ${
+                hasPrevious
+                  ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
+                  : "text-gray-300 cursor-not-allowed"
+              }`}
+              aria-label="Previous chapter"
+            >
+              <ChevronLeft size={24} />
+            </button>
 
-          <span className="text-sm text-gray-500">
-            Chapter {currentChapterIndex + 1} of {chapters.length}
-          </span>
+            <span className="text-sm text-gray-500">
+              Chapter {currentChapterIndex + 1} of {chapters.length}
+            </span>
 
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={!hasNext}
-            className={`p-2 rounded-full transition-colors border border-gray-200 ${
-              hasNext
-                ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
-                : "text-gray-300 cursor-not-allowed"
-            }`}
-            aria-label="Next chapter"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </nav>
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!hasNext}
+              className={`p-2 rounded-lg transition-colors ${
+                hasNext
+                  ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
+                  : "text-gray-300 cursor-not-allowed"
+              }`}
+              aria-label="Next chapter"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
 
-        {/* Book header */}
-        <header className="border-b border-gray-200 pb-4 mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900 leading-tight m-0">
-            {metadata.title}
-          </h1>
-          {metadata.author && (
-            <p className="text-gray-600 mt-2 mb-0">by {metadata.author}</p>
-          )}
-        </header>
+          {/* Book header */}
+          <header className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900 leading-tight m-0">
+              {metadata.title}
+            </h1>
+            {metadata.author && (
+              <p className="text-gray-600 mt-2 mb-0 text-lg">
+                by {metadata.author}
+              </p>
+            )}
+          </header>
+        </div>
+
+        <hr className="border-gray-200 mb-8" />
 
         {/* Current chapter */}
         {currentChapter && (

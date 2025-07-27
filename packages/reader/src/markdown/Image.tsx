@@ -20,7 +20,7 @@ export const Image: React.FC<ImageProps> = observer(
     const [isInView, setIsInView] = useState(false);
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const imgRef = useRef<HTMLDivElement>(null);
+    const imgRef = useRef<HTMLSpanElement>(null);
     const observerRef = useRef<IntersectionObserver | null>(null);
 
     // Intersection Observer for viewport detection
@@ -96,28 +96,28 @@ export const Image: React.FC<ImageProps> = observer(
 
     if (error) {
       return (
-        <div
-          style={placeholderStyle}
-          className={`bg-gray-100 flex flex-col items-center justify-center border border-dashed border-gray-300 rounded text-red-600 text-sm gap-2 ${className || ""}`}
+        <span
+          style={{ ...placeholderStyle, display: "inline-block" }}
+          className={`bg-gray-100 inline-flex flex-col items-center justify-center border border-dashed border-gray-300 rounded text-red-600 text-sm gap-2 ${className || ""}`}
         >
           <AlertCircle className="w-8 h-8" />
           <span>Failed to load image</span>
           <span className="text-xs text-gray-500 px-2 text-center break-words">
             {src}
           </span>
-        </div>
+        </span>
       );
     }
 
     if (!imageSrc) {
       return (
-        <div
+        <span
           ref={imgRef}
-          style={placeholderStyle}
-          className={`bg-gray-100 flex items-center justify-center border border-dashed border-gray-300 rounded text-gray-500 ${className || ""}`}
+          style={{ ...placeholderStyle, display: "inline-block" }}
+          className={`bg-gray-100 inline-flex items-center justify-center border border-dashed border-gray-300 rounded text-gray-500 ${className || ""}`}
         >
           <ImageIcon className="w-8 h-8" />
-        </div>
+        </span>
       );
     }
 
