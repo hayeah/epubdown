@@ -1,4 +1,4 @@
-import { Book, ChevronRight, Search, X } from "lucide-react";
+import { Book, Menu, Search, X } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useEffect } from "react";
@@ -36,7 +36,7 @@ export const Sidebar = observer(
       <>
         {/* Collapsed sidebar - icon buttons positioned to the left of content */}
         <div
-          className={`absolute -left-16 top-0 h-full w-16 transition-opacity duration-200 ${
+          className={`absolute -left-16 top-0 h-full w-16 ${
             isOpen ? "opacity-0 pointer-events-none" : "opacity-100"
           } hidden lg:flex flex-col items-center py-8 space-y-4`}
         >
@@ -47,9 +47,9 @@ export const Sidebar = observer(
             className="p-3 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all"
             aria-label="Open sidebar"
           >
-            <ChevronRight className="w-6 h-6" />
+            <Menu className="w-6 h-6" />
           </button>
-          
+
           {/* Library button */}
           <button
             type="button"
@@ -59,7 +59,7 @@ export const Sidebar = observer(
           >
             <Book className="w-6 h-6" />
           </button>
-          
+
           {/* Find book button (placeholder) */}
           <button
             type="button"
@@ -73,16 +73,15 @@ export const Sidebar = observer(
 
         {/* Expanded sidebar - positioned at the start of content */}
         <div
-          className={`absolute left-0 top-0 h-full bg-gray-50 border-r border-gray-200 z-50 transition-all duration-300 ${
+          className={`absolute left-0 top-0 h-full bg-gray-50 border-r border-gray-200 z-50 ${
             isOpen ? "w-80" : "w-0"
           } overflow-hidden`}
         >
           <div className="h-full flex flex-col">
             {/* Sidebar header with core features */}
-            <div className="border-b border-gray-200">
+            <div>
               <div className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Menu</h2>
+                <div className="flex items-center justify-end mb-4">
                   <button
                     type="button"
                     onClick={onToggle}
@@ -92,7 +91,7 @@ export const Sidebar = observer(
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                
+
                 {/* Core feature buttons */}
                 <div className="space-y-2">
                   <button
@@ -106,7 +105,7 @@ export const Sidebar = observer(
                     </div>
                     <span className="text-xs text-gray-500">⌘L</span>
                   </button>
-                  
+
                   <button
                     type="button"
                     onClick={() => {}}
@@ -121,11 +120,9 @@ export const Sidebar = observer(
                 </div>
               </div>
             </div>
-            
+
             {/* Table of contents or other content */}
-            <div className="flex-1 overflow-y-auto bg-gray-50">
-              {children}
-            </div>
+            <div className="flex-1 overflow-y-auto bg-gray-50">{children}</div>
           </div>
         </div>
       </>

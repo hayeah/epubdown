@@ -75,8 +75,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
 
   return (
     <div className="h-full flex flex-col bg-white">
-      <div className="flex items-center justify-between p-4 border-b bg-white">
-        <h2 className="text-lg font-semibold">Table of Contents</h2>
+      <div className="flex items-center justify-end bg-white">
         {onClose && (
           <button
             type="button"
