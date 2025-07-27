@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { marked } from "marked";
 import { observer } from "mobx-react-lite";
 import React, { useState, useEffect } from "react";
-import { EPubResolverProvider, Footnote, Image } from "./MarkdownComponents";
+import { Footnote, Image } from "./MarkdownComponents";
 import { useReaderStore } from "./stores/RootStore";
 
 import htmlToDOM from "html-dom-parser";
@@ -72,13 +72,11 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
     }
 
     return (
-      <EPubResolverProvider resolver={xmlFile}>
-        <article className={`epub-chapter ${className || ""}`}>
-          {markdownResult?.reactTree && (
-            <div className="chapter-content">{markdownResult.reactTree}</div>
-          )}
-        </article>
-      </EPubResolverProvider>
+      <article className={`epub-chapter ${className || ""}`}>
+        {markdownResult?.reactTree && (
+          <div className="chapter-content">{markdownResult.reactTree}</div>
+        )}
+      </article>
     );
   },
 );

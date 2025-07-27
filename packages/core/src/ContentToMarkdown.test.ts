@@ -159,4 +159,31 @@ describe("ContentToMarkdown", () => {
     expect(result).toContain("Item 1");
     expect(result).toContain("Item 2");
   });
+
+  it("converts img tags to x-image elements", async () => {
+    const html = `
+      <html>
+        <body>
+          <p>Text before image</p>
+          <img src="images/photo.jpg" alt="A photo" />
+          <p>Text after image</p>
+          <img src="images/9780262538459.jpg" alt="" />
+          <img src="images/no-alt.png" />
+        </body>
+      </html>
+    `;
+    const xmlFile = createMockXMLFile(html);
+    const converter = ContentToMarkdown.create();
+    const result = await converter.convertXMLFile(xmlFile);
+
+    expect(result).toContain("Text before image");
+    expect(result).toContain(
+      '<x-image src="images/photo.jpg" alt="A photo"></x-image>',
+    );
+    expect(result).toContain("Text after image");
+    expect(result).toContain(
+      '<x-image src="images/9780262538459.jpg" alt=""></x-image>',
+    );
+    expect(result).toContain('<x-image src="images/no-alt.png"></x-image>');
+  });
 });
