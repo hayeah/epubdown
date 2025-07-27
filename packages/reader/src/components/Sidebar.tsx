@@ -1,7 +1,7 @@
 import { Book, Menu, Search, X } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type React from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 
 interface SidebarProps {
@@ -13,6 +13,7 @@ interface SidebarProps {
 export const Sidebar = observer(
   ({ isOpen, onToggle, children }: SidebarProps) => {
     const [, navigate] = useLocation();
+    const sidebarRef = useRef<HTMLDivElement>(null);
 
     // Keyboard shortcut handler
     useEffect(() => {
@@ -27,6 +28,23 @@ export const Sidebar = observer(
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }, [onToggle]);
+
+    // Click outside handler
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (
+          isOpen &&
+          sidebarRef.current &&
+          !sidebarRef.current.contains(e.target as Node)
+        ) {
+          onToggle();
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }, [isOpen, onToggle]);
 
     const handleLibraryClick = () => {
       navigate("/");
@@ -73,6 +91,7 @@ export const Sidebar = observer(
 
         {/* Expanded sidebar - positioned at the start of content */}
         <div
+          ref={sidebarRef}
           className={`absolute left-0 top-0 h-full bg-gray-50 border-r border-gray-200 z-50 ${
             isOpen ? "w-80" : "w-0"
           } overflow-hidden`}
