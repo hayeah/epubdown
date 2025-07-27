@@ -30,6 +30,13 @@ export const ReaderPage = observer(() => {
     [bookLibraryStore, readerStore, initialChapter, navigate],
   );
 
+  // Shared callback to scroll reader content to top
+  const scrollToTop = useCallback(() => {
+    if (readerContentRef.current) {
+      readerContentRef.current.scrollTop = 0;
+    }
+  }, []);
+
   // Load book when component mounts or bookId changes
   useEffect(() => {
     if (bookId && match) {
@@ -48,10 +55,7 @@ export const ReaderPage = observer(() => {
         newChapterIndex < chapters.length
       ) {
         readerStore.setChapter(newChapterIndex);
-        // Scroll to top when chapter changes
-        if (readerContentRef.current) {
-          readerContentRef.current.scrollTop = 0;
-        }
+        scrollToTop();
       }
     }
   }, [
@@ -61,6 +65,7 @@ export const ReaderPage = observer(() => {
     currentChapterIndex,
     chapters.length,
     readerStore,
+    scrollToTop,
   ]);
 
   const closeBook = useCallback(() => {
@@ -70,10 +75,7 @@ export const ReaderPage = observer(() => {
   const handleChapterChange = (index: number) => {
     if (bookId) {
       readerStore.handleChapterChange(navigate, bookId, index);
-      // Scroll to top when using navigation buttons
-      if (readerContentRef.current) {
-        readerContentRef.current.scrollTop = 0;
-      }
+      scrollToTop();
     }
   };
 
@@ -84,13 +86,10 @@ export const ReaderPage = observer(() => {
         readerStore.handleTocChapterSelect(navigate, bookId, href)
       ) {
         setIsSidebarOpen(false); // Close sidebar on mobile after selection
-        // Scroll to top when selecting from TOC
-        if (readerContentRef.current) {
-          readerContentRef.current.scrollTop = 0;
-        }
+        scrollToTop();
       }
     },
-    [readerStore, bookId, navigate],
+    [readerStore, bookId, navigate, scrollToTop],
   );
 
   // Not a reader route
