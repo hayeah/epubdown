@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useReaderStore } from "../stores/RootStore";
 
 // Footnote component that uses ReaderStore directly
@@ -19,8 +19,6 @@ export const Footnote: React.FC<FootnoteProps> = observer(
     const [footnoteContent, setFootnoteContent] = useState<string | null>(null);
     const footnoteRef = useRef<HTMLSpanElement>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
-    const loadTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-
     // Load footnote content
     const loadFootnoteContent = useCallback(async () => {
       if (footnoteContent) return;
@@ -53,20 +51,14 @@ export const Footnote: React.FC<FootnoteProps> = observer(
 
     const handleMouseEnter = useCallback(
       (event: React.MouseEvent) => {
-        // Delay showing popover to avoid flickering
-        loadTimeoutRef.current = setTimeout(() => {
-          updatePopoverPosition(event);
-          setIsPopoverVisible(true);
-          loadFootnoteContent();
-        }, 300);
+        updatePopoverPosition(event);
+        setIsPopoverVisible(true);
+        loadFootnoteContent();
       },
       [updatePopoverPosition, loadFootnoteContent],
     );
 
     const handleMouseLeave = useCallback(() => {
-      if (loadTimeoutRef.current) {
-        clearTimeout(loadTimeoutRef.current);
-      }
       setIsPopoverVisible(false);
     }, []);
 
@@ -84,14 +76,6 @@ export const Footnote: React.FC<FootnoteProps> = observer(
       },
       [isPopoverVisible, updatePopoverPosition, loadFootnoteContent],
     );
-
-    useEffect(() => {
-      return () => {
-        if (loadTimeoutRef.current) {
-          clearTimeout(loadTimeoutRef.current);
-        }
-      };
-    }, []);
 
     const popoverStyle: React.CSSProperties = {
       position: "absolute",
