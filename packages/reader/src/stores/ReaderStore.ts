@@ -14,6 +14,7 @@ export class ReaderStore {
   chapters: XMLFile[] = [];
   metadata: Record<string, any> = {};
   currentChapterIndex = 0;
+  currentBookId: string | null = null;
 
   // Converter
   converter: ContentToMarkdown | null = null;
@@ -24,6 +25,7 @@ export class ReaderStore {
       chapters: observable,
       metadata: observable,
       currentChapterIndex: observable,
+      currentBookId: observable,
       converter: observable,
       handleLoadBook: action,
       setChapter: action,
@@ -167,6 +169,7 @@ export class ReaderStore {
     this.chapters = [];
     this.metadata = {};
     this.converter = null;
+    this.currentBookId = null;
   }
 
   handleChapterChange(
@@ -226,10 +229,13 @@ export class ReaderStore {
     bookLibraryStore: BookLibraryStore,
     initialChapter?: number,
   ) {
-    // Always reset to prevent flash of previous book content
-    this.reset();
+    // Check if we're loading a different book
+    const isNewBook = this.currentBookId !== bookId;
 
-    try {
+    // Only reset if loading a different book to prevent flash during chapter changes
+    if (isNewBook) {
+      this.reset();
+
       const bookData = await bookLibraryStore.loadBookForReading(bookId);
       if (!bookData) {
         throw new Error("Book not found");
@@ -245,15 +251,12 @@ export class ReaderStore {
       );
 
       await this.handleLoadBook(file);
-
-      // Set initial chapter
-      const chapterToLoad = initialChapter || 0;
-      this.setChapter(chapterToLoad);
-    } catch (error) {
-      console.error("Failed to load book:", error);
-      navigate("/");
-      throw error;
+      this.currentBookId = bookId;
     }
+
+    // Set initial chapter
+    const chapterToLoad = initialChapter || 0;
+    this.setChapter(chapterToLoad);
   }
 
   // Computed getters

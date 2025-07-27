@@ -40,9 +40,7 @@ export const ReaderPage = observer(() => {
   // Load book when component mounts or bookId changes
   useEffect(() => {
     if (bookId && match) {
-      loadBook(bookId).catch(() => {
-        // Error handling is done in loadBookFromLibrary
-      });
+      loadBook(bookId);
     }
   }, [bookId, match, loadBook]);
 
