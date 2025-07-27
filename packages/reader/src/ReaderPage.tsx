@@ -1,6 +1,6 @@
 import { ArrowLeft, Menu } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { BookReader } from "./ChapterRenderer";
 import { TableOfContents } from "./components/TableOfContents";
@@ -13,6 +13,7 @@ export const ReaderPage = observer(() => {
   const [match, params] = useRoute("/book/:bookId/:chapterIndex?");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { epub, currentChapterIndex, chapters } = readerStore;
+  const readerContentRef = useRef<HTMLDivElement>(null);
 
   const bookId = match ? params?.bookId : null;
   const initialChapter = match ? Number(params?.chapterIndex ?? 0) : 0;
@@ -47,6 +48,10 @@ export const ReaderPage = observer(() => {
         newChapterIndex < chapters.length
       ) {
         readerStore.setChapter(newChapterIndex);
+        // Scroll to top when chapter changes
+        if (readerContentRef.current) {
+          readerContentRef.current.scrollTop = 0;
+        }
       }
     }
   }, [
@@ -65,6 +70,10 @@ export const ReaderPage = observer(() => {
   const handleChapterChange = (index: number) => {
     if (bookId) {
       readerStore.handleChapterChange(navigate, bookId, index);
+      // Scroll to top when using navigation buttons
+      if (readerContentRef.current) {
+        readerContentRef.current.scrollTop = 0;
+      }
     }
   };
 
@@ -75,6 +84,10 @@ export const ReaderPage = observer(() => {
         readerStore.handleTocChapterSelect(navigate, bookId, href)
       ) {
         setIsSidebarOpen(false); // Close sidebar on mobile after selection
+        // Scroll to top when selecting from TOC
+        if (readerContentRef.current) {
+          readerContentRef.current.scrollTop = 0;
+        }
       }
     },
     [readerStore, bookId, navigate],
@@ -131,7 +144,7 @@ export const ReaderPage = observer(() => {
           </div>
 
           {/* Reader */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto" ref={readerContentRef}>
             <div className="max-w-4xl mx-auto p-4">
               <BookReader
                 epub={epub}
