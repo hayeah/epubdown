@@ -226,6 +226,9 @@ export class ReaderStore {
     bookLibraryStore: BookLibraryStore,
     initialChapter?: number,
   ) {
+    // Always reset to prevent flash of previous book content
+    this.reset();
+
     try {
       const bookData = await bookLibraryStore.loadBookForReading(bookId);
       if (!bookData) {
