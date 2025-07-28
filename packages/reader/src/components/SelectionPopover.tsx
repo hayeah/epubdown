@@ -24,8 +24,25 @@ export const SelectionPopover: React.FC<SelectionPopoverProps> = ({
         return;
       }
 
-      selectionRef.current = selection;
+      // Check if selection is within chapter content
       const range = selection.getRangeAt(0);
+      const commonAncestor = range.commonAncestorContainer;
+      const element =
+        commonAncestor.nodeType === Node.TEXT_NODE
+          ? commonAncestor.parentElement
+          : (commonAncestor as Element);
+
+      // Check if the selection is within a chapter content area
+      const isInChapterContent = element?.closest(
+        ".chapter-content, .epub-chapter",
+      );
+      if (!isInChapterContent) {
+        setIsVisible(false);
+        selectionRef.current = null;
+        return;
+      }
+
+      selectionRef.current = selection;
       const rect = range.getBoundingClientRect();
 
       // Position the popover above the selection
