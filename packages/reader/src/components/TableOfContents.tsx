@@ -4,31 +4,7 @@ import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useReaderStore } from "../stores/RootStore";
-
-// Simple path join for browser
-const joinPath = (base: string, path: string): string => {
-  if (!base) return path;
-  if (path.startsWith("/")) return path;
-
-  const baseParts = base.split("/").filter(Boolean);
-  const pathParts = path.split("/").filter(Boolean);
-
-  // Remove filename from base if present
-  if (baseParts.length > 0 && baseParts[baseParts.length - 1]?.includes(".")) {
-    baseParts.pop();
-  }
-
-  // Handle relative paths
-  for (const part of pathParts) {
-    if (part === "..") {
-      baseParts.pop();
-    } else if (part !== ".") {
-      baseParts.push(part);
-    }
-  }
-
-  return baseParts.join("/");
-};
+import { resolveTocHref } from "../utils/pathUtils";
 
 interface TableOfContentsProps {
   epub: EPub;
@@ -45,19 +21,15 @@ export const TableOfContents: React.FC<TableOfContentsProps> = observer(
 
     useEffect(() => {
       const loadToc = async () => {
-        // Get the flat navigation items
-        const items = await epub.toc.flatNavItems();
-        setNavItems(items);
-
-        // Get the TOC base path for resolving relative URLs
-        const tocFile = await epub.toc.html();
-        if (tocFile) {
-          setTocBase(tocFile.base);
+        const tocInfo = await readerStore.getTocInfo();
+        if (tocInfo) {
+          setNavItems(tocInfo.navItems);
+          setTocBase(tocInfo.tocBase);
         }
       };
 
       loadToc();
-    }, [epub]);
+    }, [readerStore]);
 
     const handleLinkClick = (
       e: React.MouseEvent<HTMLAnchorElement>,
@@ -101,29 +73,14 @@ export const TableOfContents: React.FC<TableOfContentsProps> = observer(
           <ul>
             {navItems.map((item) => {
               const href = item.href;
-              const hrefPath = href.split("#")[0] || "";
-              const resolvedPath = tocBase
-                ? joinPath(tocBase, hrefPath)
-                : hrefPath;
+              const resolvedPath = resolveTocHref(tocBase, href);
               const isActive = currentChapterPath === resolvedPath;
 
               // Calculate indentation based on level
               const indent = item.level * 1.5; // 1.5rem per level
 
               // Find chapter index for this href
-              const chapterIndex = readerStore.chapters.findIndex((chapter) => {
-                const chapterPath = chapter.path;
-                const tocBasePath = readerStore.epub?.opf.base || "";
-
-                const resolvedHref = hrefPath?.startsWith("/")
-                  ? hrefPath
-                  : `${tocBasePath}/${hrefPath}`.replace(/\/+/g, "/");
-
-                return (
-                  chapterPath === resolvedHref ||
-                  (hrefPath ? chapterPath.endsWith(hrefPath) : false)
-                );
-              });
+              const chapterIndex = readerStore.findChapterIndexByHref(href);
 
               // Generate the full URL for this chapter
               const fullHref =

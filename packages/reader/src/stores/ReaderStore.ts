@@ -1,4 +1,9 @@
-import { ContentToMarkdown, EPub, type XMLFile } from "@epubdown/core";
+import {
+  ContentToMarkdown,
+  EPub,
+  type FlatNavItem,
+  type XMLFile,
+} from "@epubdown/core";
 import {
   action,
   computed,
@@ -8,6 +13,7 @@ import {
 } from "mobx";
 import { markdownToReact } from "../markdownToReact";
 import { benchmark } from "../utils/benchmark";
+import { resolveTocHref } from "../utils/pathUtils";
 import type { BookLibraryStore } from "./BookLibraryStore";
 
 export interface MarkdownResult {
@@ -295,5 +301,52 @@ export class ReaderStore {
 
   get hasPreviousChapter() {
     return this.currentChapterIndex > 0;
+  }
+
+  // TOC-related utilities
+  async getTocInfo() {
+    if (!this.epub) return null;
+
+    const navItems = await this.epub.toc.flatNavItems();
+    const tocFile = await this.epub.toc.html();
+    const tocBase = tocFile?.base || "";
+
+    return { navItems, tocBase };
+  }
+
+  async getChapterTitleFromToc(chapterPath: string): Promise<string | null> {
+    if (!this.epub || !chapterPath) return null;
+
+    const tocInfo = await this.getTocInfo();
+    if (!tocInfo) return null;
+
+    const { navItems, tocBase } = tocInfo;
+
+    // Find matching nav item for the chapter
+    const matchingItem = navItems.find((item) => {
+      const resolvedPath = resolveTocHref(tocBase, item.href);
+      return (
+        chapterPath === resolvedPath ||
+        (resolvedPath && chapterPath.endsWith(resolvedPath))
+      );
+    });
+
+    return matchingItem?.label || null;
+  }
+
+  findChapterIndexByHref(href: string): number {
+    const hrefPath = href.split("#")[0] || "";
+    const tocBasePath = this.epub?.opf.base || "";
+
+    return this.chapters.findIndex((chapter) => {
+      const resolvedHref = hrefPath?.startsWith("/")
+        ? hrefPath
+        : `${tocBasePath}/${hrefPath}`.replace(/\/+/g, "/");
+
+      return (
+        chapter.path === resolvedHref ||
+        (hrefPath ? chapter.path.endsWith(hrefPath) : false)
+      );
+    });
   }
 }
