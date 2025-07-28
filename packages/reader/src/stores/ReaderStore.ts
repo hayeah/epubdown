@@ -85,19 +85,22 @@ export class ReaderStore {
       throw new Error("Converter not initialized");
     }
 
-    const result = await benchmark(`getChapterReactTree: ${xmlFile.path}`, async () => {
-      const markdown = await benchmark(
-        `convertXMLFile: ${xmlFile.path}`,
-        this.converter.convertXMLFile(xmlFile),
-      );
+    const result = await benchmark(
+      `getChapterReactTree: ${xmlFile.path}`,
+      async () => {
+        const markdown = await benchmark(
+          `convertXMLFile: ${xmlFile.path}`,
+          this.converter.convertXMLFile(xmlFile),
+        );
 
-      const reactTree = await benchmark(
-        "markdownToReact",
-        markdownToReact(markdown),
-      );
+        const reactTree = await benchmark(
+          "markdownToReact",
+          markdownToReact(markdown),
+        );
 
-      return { markdown, reactTree };
-    });
+        return { markdown, reactTree };
+      },
+    );
 
     return result;
   }

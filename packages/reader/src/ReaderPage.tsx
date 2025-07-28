@@ -109,24 +109,27 @@ export const ReaderPage = observer(() => {
 
     return (
       <div className="h-screen bg-gray-50 overflow-hidden">
-        {/* Fixed container for centering */}
-        <div className="h-full flex justify-center">
-          <div className="max-w-4xl w-full relative">
-            {/* Sidebar - absolutely positioned */}
-            <Sidebar
-              isOpen={isSidebarOpen}
-              onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-            >
-              <TableOfContents
-                epub={epub}
-                currentChapterPath={currentChapter?.path}
-                onChapterSelect={handleTocChapterSelect}
-                onClose={() => setIsSidebarOpen(false)}
-              />
-            </Sidebar>
+        {/* Main content - scrollable full screen */}
+        <div
+          className="h-screen overflow-auto"
+          ref={readerContentRef}
+        >
+          {/* Fixed container for centering content */}
+          <div className="min-h-full flex justify-center relative">
+            <div className="max-w-4xl w-full relative">
+              {/* Sidebar - absolutely positioned */}
+              <Sidebar
+                isOpen={isSidebarOpen}
+                onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+              >
+                <TableOfContents
+                  epub={epub}
+                  currentChapterPath={currentChapter?.path}
+                  onChapterSelect={handleTocChapterSelect}
+                  onClose={() => setIsSidebarOpen(false)}
+                />
+              </Sidebar>
 
-            {/* Main content - scrollable */}
-            <div className="h-screen overflow-auto" ref={readerContentRef}>
               <div className="p-8">
                 {/* Mobile menu button */}
                 {isMobile && (
