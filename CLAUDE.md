@@ -91,7 +91,7 @@ For isomorphic JS code that need to work both in the browser and node/bun, we'd 
 
 - If you worked on typescript, run `tsc` to type check and fix errors.
   - run in package root
-- `pnpm run check` to do automatic lint fixing, format.
+- `pnpm -w run check` to do automatic lint fixing, format.
   - run in repo root
 
 # Commit Message
@@ -103,3 +103,16 @@ For isomorphic JS code that need to work both in the browser and node/bun, we'd 
 
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
+
+# Done Notification
+
+- After you are with a task (after lint, test, & commit), notify the user.
+- Run `fork.py status`
+  - project name
+  - workspace number
+  - one-line HEAD commit msg
+    - you should report this as succinctly as possible.
+    - 5~10 words. fewer the better.
+- exec `say.py --voice shimmer "{project name} {workspace number} for review. {super concise commit msg}"`
+  - This will play a voice msg to the user. It shouldn't be too long.
+
