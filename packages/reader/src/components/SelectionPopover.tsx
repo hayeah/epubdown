@@ -50,12 +50,21 @@ export const SelectionPopover: React.FC<SelectionPopoverProps> = ({
     };
     document.addEventListener("selectionchange", handleSelectionChange);
 
+    // Hide popover on scroll
+    const handleScroll = () => {
+      if (isVisible) {
+        setIsVisible(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, true);
+
     return () => {
       document.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("touchend", handleMouseUp);
       document.removeEventListener("selectionchange", handleSelectionChange);
+      window.removeEventListener("scroll", handleScroll, true);
     };
-  }, []);
+  }, [isVisible]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
