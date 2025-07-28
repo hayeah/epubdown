@@ -1,5 +1,11 @@
 import { ContentToMarkdown, EPub, type XMLFile } from "@epubdown/core";
-import { action, computed, makeObservable, observable } from "mobx";
+import {
+  action,
+  computed,
+  makeObservable,
+  observable,
+  runInAction,
+} from "mobx";
 import { markdownToReact } from "../markdownToReact";
 import { benchmark } from "../utils/benchmark";
 import type { BookLibraryStore } from "./BookLibraryStore";
@@ -46,20 +52,21 @@ export class ReaderStore {
   async handleLoadBook(file: File) {
     const arrayBuffer = await file.arrayBuffer();
     const epub = await EPub.fromZip(arrayBuffer);
-    this.epub = epub;
 
     // Load chapters
     const chapterArray: XMLFile[] = [];
     for await (const chapter of epub.chapters()) {
       chapterArray.push(chapter);
     }
-    this.chapters = chapterArray;
 
-    this.metadata = epub.metadata.toJSON();
-    this.currentChapterIndex = 0;
-
-    // Initialize converter
-    this.converter = ContentToMarkdown.create();
+    runInAction(() => {
+      this.epub = epub;
+      this.chapters = chapterArray;
+      this.metadata = epub.metadata.toJSON();
+      this.currentChapterIndex = 0;
+      // Initialize converter
+      this.converter = ContentToMarkdown.create();
+    });
   }
 
   setChapter(index: number) {
@@ -85,12 +92,13 @@ export class ReaderStore {
       throw new Error("Converter not initialized");
     }
 
+    const converter = this.converter;
     const result = await benchmark(
       `getChapterReactTree: ${xmlFile.path}`,
       async () => {
         const markdown = await benchmark(
           `convertXMLFile: ${xmlFile.path}`,
-          this.converter.convertXMLFile(xmlFile),
+          converter.convertXMLFile(xmlFile),
         );
 
         const reactTree = await benchmark(
@@ -266,7 +274,9 @@ export class ReaderStore {
       );
 
       await this.handleLoadBook(file);
-      this.currentBookId = bookId;
+      runInAction(() => {
+        this.currentBookId = bookId;
+      });
     }
 
     // Set initial chapter
