@@ -54,9 +54,9 @@ export const Sidebar = observer(
       <>
         {/* Collapsed sidebar - icon buttons positioned to the left of content */}
         <div
-          className={`absolute -left-16 top-0 h-full w-16 ${
+          className={`absolute left-0 top-0 pt-8 w-16 ${
             isOpen ? "opacity-0 pointer-events-none" : "opacity-100"
-          } hidden lg:flex flex-col items-center py-8 space-y-4`}
+          } hidden lg:flex flex-col items-center`}
         >
           {/* Toggle button */}
           <button
@@ -89,14 +89,14 @@ export const Sidebar = observer(
           </button>
         </div>
 
-        {/* Expanded sidebar - positioned at the start of content */}
+        {/* Expanded sidebar - absolutely positioned within sticky anchor */}
         <div
           ref={sidebarRef}
-          className={`absolute left-0 top-0 h-full bg-gray-50 border-r border-gray-200 z-50 ${
+          className={`absolute left-0 top-0 ${
             isOpen ? "w-80" : "w-0"
-          } overflow-hidden`}
+          } h-screen pointer-events-auto`}
         >
-          <div className="h-full flex flex-col">
+          <div className="h-full flex flex-col overflow-y-auto bg-gray-50">
             {/* Sidebar header with core features */}
             <div>
               <div className="p-4">
@@ -141,7 +141,7 @@ export const Sidebar = observer(
             </div>
 
             {/* Table of contents or other content */}
-            <div className="flex-1 overflow-y-auto bg-gray-50">{children}</div>
+            <div className="flex-1">{children}</div>
           </div>
         </div>
       </>

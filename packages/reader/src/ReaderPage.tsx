@@ -114,18 +114,20 @@ export const ReaderPage = observer(() => {
           {/* Fixed container for centering content */}
           <div className="min-h-full flex justify-center relative">
             <div className="max-w-4xl w-full relative">
-              {/* Sidebar - absolutely positioned */}
-              <Sidebar
-                isOpen={isSidebarOpen}
-                onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-              >
-                <TableOfContents
-                  epub={epub}
-                  currentChapterPath={currentChapter?.path}
-                  onChapterSelect={handleTocChapterSelect}
-                  onClose={() => setIsSidebarOpen(false)}
-                />
-              </Sidebar>
+              {/* Sticky anchor for sidebar positioning */}
+              <div className="sticky top-0 h-0 relative">
+                <Sidebar
+                  isOpen={isSidebarOpen}
+                  onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                >
+                  <TableOfContents
+                    epub={epub}
+                    currentChapterPath={currentChapter?.path}
+                    onChapterSelect={handleTocChapterSelect}
+                    onClose={() => setIsSidebarOpen(false)}
+                  />
+                </Sidebar>
+              </div>
 
               <div className="p-8">
                 {/* Mobile menu button */}
