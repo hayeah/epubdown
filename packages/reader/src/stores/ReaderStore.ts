@@ -1,6 +1,7 @@
 import { ContentToMarkdown, EPub, type XMLFile } from "@epubdown/core";
 import { action, computed, makeObservable, observable } from "mobx";
 import { markdownToReact } from "../markdownToReact";
+import { benchmark } from "../utils/benchmark";
 import type { BookLibraryStore } from "./BookLibraryStore";
 
 export interface MarkdownResult {
@@ -84,10 +85,21 @@ export class ReaderStore {
       throw new Error("Converter not initialized");
     }
 
-    const markdown = await this.converter.convertXMLFile(xmlFile);
-    const reactTree = await markdownToReact(markdown);
+    const result = await benchmark(`getChapterReactTree: ${xmlFile.path}`, async () => {
+      const markdown = await benchmark(
+        `convertXMLFile: ${xmlFile.path}`,
+        this.converter.convertXMLFile(xmlFile),
+      );
 
-    return { markdown, reactTree };
+      const reactTree = await benchmark(
+        "markdownToReact",
+        markdownToReact(markdown),
+      );
+
+      return { markdown, reactTree };
+    });
+
+    return result;
   }
 
   async getImage(resolver: XMLFile, href: string): Promise<string> {
