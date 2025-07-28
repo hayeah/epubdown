@@ -16,7 +16,7 @@ export const SelectionPopover: React.FC<SelectionPopoverProps> = ({
   const selectionRef = useRef<Selection | null>(null);
 
   useEffect(() => {
-    const handleSelectionChange = () => {
+    const handleMouseUp = () => {
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed || !selection.toString().trim()) {
         setIsVisible(false);
@@ -36,33 +36,26 @@ export const SelectionPopover: React.FC<SelectionPopoverProps> = ({
       setIsVisible(true);
     };
 
-    // Debounce selection change events
-    let timeoutId: NodeJS.Timeout;
-    const debouncedSelectionChange = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(handleSelectionChange, 200);
-    };
+    // Only show popover on mouseup/touchend
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchend", handleMouseUp);
 
-    document.addEventListener("selectionchange", debouncedSelectionChange);
-    document.addEventListener("mouseup", debouncedSelectionChange);
-    document.addEventListener("touchend", debouncedSelectionChange);
-
-    // Hide popover on scroll
-    const handleScroll = () => {
-      if (isVisible) {
+    // Hide popover when selection is cleared
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || !selection.toString().trim()) {
         setIsVisible(false);
+        selectionRef.current = null;
       }
     };
-    window.addEventListener("scroll", handleScroll, true);
+    document.addEventListener("selectionchange", handleSelectionChange);
 
     return () => {
-      clearTimeout(timeoutId);
-      document.removeEventListener("selectionchange", debouncedSelectionChange);
-      document.removeEventListener("mouseup", debouncedSelectionChange);
-      document.removeEventListener("touchend", debouncedSelectionChange);
-      window.removeEventListener("scroll", handleScroll, true);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchend", handleMouseUp);
+      document.removeEventListener("selectionchange", handleSelectionChange);
     };
-  }, [isVisible]);
+  }, []);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
