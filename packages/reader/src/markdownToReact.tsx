@@ -7,7 +7,10 @@ export async function markdownToReact(
   markdown: string,
 ): Promise<React.ReactNode> {
   // Convert markdown to HTML using marked
-  const html = await marked.parse(markdown);
+  const html = await marked.parse(markdown, {
+    mangle: false,
+    headerIds: false,
+  });
 
   // Parse HTML to React components
   return parse(html, {
