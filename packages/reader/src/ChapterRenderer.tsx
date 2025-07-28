@@ -3,9 +3,15 @@ import parse, { domToReact, Element, type DOMNode } from "html-react-parser";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { marked } from "marked";
 import { observer } from "mobx-react-lite";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Footnote, Image } from "./MarkdownComponents";
+import { SelectionPopover } from "./components/SelectionPopover";
 import { useReaderStore } from "./stores/RootStore";
+import {
+  copyToClipboard,
+  formatSelectionWithContext,
+  getSelectionContext,
+} from "./utils/selectionUtils";
 
 import htmlToDOM from "html-dom-parser";
 
@@ -110,8 +116,41 @@ export const BookReader: React.FC<BookReaderProps> = observer(
       }
     };
 
+    const handleCopyWithContext = useCallback(() => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed) return;
+
+      const context = getSelectionContext(selection);
+      const formatted = formatSelectionWithContext(
+        metadata.title || "Unknown Book",
+        context,
+      );
+      copyToClipboard(formatted);
+    }, [metadata.title]);
+
+    // Keyboard shortcut for copy with context
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        // Cmd+Shift+C (Mac) or Ctrl+Shift+C (Windows/Linux)
+        if (
+          (e.metaKey || e.ctrlKey) &&
+          e.shiftKey &&
+          e.key.toLowerCase() === "c"
+        ) {
+          e.preventDefault();
+          handleCopyWithContext();
+        }
+      };
+
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
+    }, [handleCopyWithContext]);
+
     return (
       <div className={`book-reader ${className || ""}`}>
+        {/* Selection popover for copy with context */}
+        <SelectionPopover onCopyWithContext={handleCopyWithContext} />
+
         {/* Chapter navigation - redesigned for top of content */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
