@@ -98,7 +98,18 @@ export class TableOfContents {
             navPoint.querySelector("content")?.getAttribute("src") || "";
           const children = convertNavPoints(navPoint);
 
-          return `<li><a href="${href}">${label}</a>${children}</li>`;
+          // Escape HTML entities in label and href
+          const escapedLabel = label
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+          const escapedHref = href
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;");
+
+          return `<li><a href="${escapedHref}">${escapedLabel}</a>${children}</li>`;
         })
         .join("\n");
 
