@@ -1,11 +1,16 @@
 import type { EPub, XMLFile } from "@epubdown/core";
-import parse, { domToReact, Element, type DOMNode } from "html-react-parser";
+import parse, {
+  domToReact,
+  type Element,
+  type DOMNode,
+} from "html-react-parser";
 import { marked } from "marked";
 import { observer } from "mobx-react-lite";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Footnote, Image } from "./MarkdownComponents";
 import { ChapterNavigation } from "./components/ChapterNavigation";
 import { SelectionPopover } from "./components/SelectionPopover";
+import { useReadingProgress } from "./stores/ReadingProgressStore";
 import { useReaderStore } from "./stores/RootStore";
 import {
   copyToClipboard,
@@ -24,11 +29,13 @@ export interface ChapterRendererProps {
 export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
   ({ xmlFile, className }) => {
     const readerStore = useReaderStore();
+    const readingProgress = useReadingProgress();
     const [markdownResult, setMarkdownResult] = useState<{
       markdown: string;
       reactTree: React.ReactNode;
     } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
       let cancelled = false;
@@ -57,6 +64,20 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
       };
     }, [xmlFile, readerStore]);
 
+    // Set up IntersectionObserver for reading position tracking and restore scroll
+    React.useEffect(() => {
+      if (!markdownResult || !contentRef.current) return;
+
+      readingProgress.startTracking(contentRef.current);
+
+      // Restore scroll position after content is rendered and tracked
+      readingProgress.restoreScrollPosition();
+
+      return () => {
+        readingProgress.stopTracking();
+      };
+    }, [markdownResult, readingProgress]);
+
     if (!markdownResult && !error) {
       return (
         <div className={`chapter-loading ${className || ""}`}>
@@ -80,7 +101,9 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
     return (
       <article className={`epub-chapter ${className || ""}`}>
         {markdownResult?.reactTree && (
-          <div className="chapter-content">{markdownResult.reactTree}</div>
+          <div className="chapter-content" ref={contentRef}>
+            {markdownResult.reactTree}
+          </div>
         )}
       </article>
     );
@@ -98,6 +121,7 @@ export interface BookReaderProps {
 export const BookReader: React.FC<BookReaderProps> = observer(
   ({ epub, currentChapterIndex = 0, onChapterChange, className }) => {
     const readerStore = useReaderStore();
+    const readingProgress = useReadingProgress();
     const { chapters, metadata } = readerStore;
 
     const currentChapter = chapters[currentChapterIndex];
