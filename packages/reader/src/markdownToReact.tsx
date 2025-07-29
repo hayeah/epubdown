@@ -7,7 +7,10 @@ export async function markdownToReact(
   markdown: string,
 ): Promise<React.ReactNode> {
   // Convert markdown to HTML using marked
-  const html = await marked.parse(markdown);
+  const html = await marked.parse(markdown, {
+    mangle: false,
+    headerIds: false,
+  });
 
   // Parse HTML to React components
   return parse(html, {
@@ -17,7 +20,7 @@ export async function markdownToReact(
 
         if (tag === "x-image") {
           const {
-            href,
+            src,
             alt,
             title,
             width,
@@ -25,9 +28,13 @@ export async function markdownToReact(
             class: className,
           } = domNode.attribs;
 
+          // IMPORTANT: x-image tags must use explicit closing tags <x-image></x-image>
+          // html-react-parser doesn't recognize custom tags as void elements
+          // and will incorrectly parse self-closing tags, treating subsequent
+          // content as children
           return (
             <Image
-              href={href || ""}
+              src={src || ""}
               alt={alt}
               title={title}
               width={width ? Number.parseInt(width) : undefined}

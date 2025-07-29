@@ -1,11 +1,17 @@
 import type { EPub, XMLFile } from "@epubdown/core";
 import parse, { domToReact, Element, type DOMNode } from "html-react-parser";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { marked } from "marked";
 import { observer } from "mobx-react-lite";
-import React, { useState, useEffect } from "react";
-import { EPubResolverProvider, Footnote, Image } from "./MarkdownComponents";
+import React, { useState, useEffect, useCallback } from "react";
+import { Footnote, Image } from "./MarkdownComponents";
+import { ChapterNavigation } from "./components/ChapterNavigation";
+import { SelectionPopover } from "./components/SelectionPopover";
 import { useReaderStore } from "./stores/RootStore";
+import {
+  copyToClipboard,
+  formatSelectionWithContext,
+  getSelectionContext,
+} from "./utils/selectionUtils";
 
 import htmlToDOM from "html-dom-parser";
 
@@ -72,13 +78,11 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
     }
 
     return (
-      <EPubResolverProvider resolver={xmlFile}>
-        <article className={`epub-chapter ${className || ""}`}>
-          {markdownResult?.reactTree && (
-            <div className="chapter-content">{markdownResult.reactTree}</div>
-          )}
-        </article>
-      </EPubResolverProvider>
+      <article className={`epub-chapter ${className || ""}`}>
+        {markdownResult?.reactTree && (
+          <div className="chapter-content">{markdownResult.reactTree}</div>
+        )}
+      </article>
     );
   },
 );
@@ -97,67 +101,51 @@ export const BookReader: React.FC<BookReaderProps> = observer(
     const { chapters, metadata } = readerStore;
 
     const currentChapter = chapters[currentChapterIndex];
-    const hasPrevious = currentChapterIndex > 0;
-    const hasNext = currentChapterIndex < chapters.length - 1;
 
-    const handlePrevious = () => {
-      if (hasPrevious) {
-        onChapterChange?.(currentChapterIndex - 1);
-      }
-    };
+    const handleCopyWithContext = useCallback(() => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed) return;
 
-    const handleNext = () => {
-      if (hasNext) {
-        onChapterChange?.(currentChapterIndex + 1);
-      }
-    };
+      const context = getSelectionContext(selection);
+      const formatted = formatSelectionWithContext(
+        metadata.title || "Unknown Book",
+        context,
+      );
+      copyToClipboard(formatted);
+    }, [metadata.title]);
+
+    // Keyboard shortcut for copy with context
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        // Cmd+Shift+C (Mac) or Ctrl+Shift+C (Windows/Linux)
+        if (
+          (e.metaKey || e.ctrlKey) &&
+          e.shiftKey &&
+          e.key.toLowerCase() === "c"
+        ) {
+          e.preventDefault();
+          handleCopyWithContext();
+        }
+      };
+
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
+    }, [handleCopyWithContext]);
 
     return (
       <div className={`book-reader ${className || ""}`}>
-        {/* Chapter navigation */}
-        <nav className="flex justify-between items-center mb-6">
-          <button
-            type="button"
-            onClick={handlePrevious}
-            disabled={!hasPrevious}
-            className={`p-2 rounded-full transition-colors border border-gray-200 ${
-              hasPrevious
-                ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
-                : "text-gray-300 cursor-not-allowed"
-            }`}
-            aria-label="Previous chapter"
-          >
-            <ChevronLeft size={20} />
-          </button>
+        {/* Selection popover for copy with context */}
+        <SelectionPopover onCopyWithContext={handleCopyWithContext} />
 
-          <span className="text-sm text-gray-500">
-            Chapter {currentChapterIndex + 1} of {chapters.length}
-          </span>
-
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={!hasNext}
-            className={`p-2 rounded-full transition-colors border border-gray-200 ${
-              hasNext
-                ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
-                : "text-gray-300 cursor-not-allowed"
-            }`}
-            aria-label="Next chapter"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </nav>
-
-        {/* Book header */}
-        <header className="border-b border-gray-200 pb-4 mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900 leading-tight m-0">
-            {metadata.title}
-          </h1>
-          {metadata.author && (
-            <p className="text-gray-600 mt-2 mb-0">by {metadata.author}</p>
-          )}
-        </header>
+        {/* Chapter Navigation Widget */}
+        <ChapterNavigation
+          epub={epub}
+          currentChapterIndex={currentChapterIndex}
+          totalChapters={chapters.length}
+          currentChapterPath={currentChapter?.path}
+          bookTitle={metadata.title}
+          onChapterChange={onChapterChange}
+        />
 
         {/* Current chapter */}
         {currentChapter && (

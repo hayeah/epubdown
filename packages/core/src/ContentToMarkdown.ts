@@ -21,12 +21,38 @@ function createTurndownService(
 
   // Apply all rules
   addMetadataRemovalRules(td);
+  addImageConversionRules(td);
 
   if (options?.keepIds && options.keepIds.size > 0) {
     addIdPreservationRules(td, options.keepIds);
   }
 
   return td;
+}
+
+function addImageConversionRules(td: TurndownService): void {
+  // Convert img tags to x-image elements
+  td.addRule("convert-img-to-x-image", {
+    filter: "img",
+    replacement: (content, node) => {
+      const element = node as HTMLImageElement;
+      const src = element.getAttribute("src");
+      const alt = element.getAttribute("alt");
+
+      if (!src) return "";
+
+      // Build x-image element with attributes
+      const attributes = [`src="${src}"`];
+      if (alt !== null) {
+        attributes.push(`alt="${alt}"`);
+      }
+
+      // IMPORTANT: Use explicit closing tag instead of self-closing
+      // html-react-parser doesn't recognize custom tags as void elements
+      // and will incorrectly parse subsequent content as children
+      return `<x-image ${attributes.join(" ")}></x-image>`;
+    },
+  });
 }
 
 function addMetadataRemovalRules(td: TurndownService): void {

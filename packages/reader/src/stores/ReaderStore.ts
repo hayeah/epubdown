@@ -1,6 +1,19 @@
-import { ContentToMarkdown, EPub, type XMLFile } from "@epubdown/core";
-import { action, computed, makeObservable, observable } from "mobx";
+import {
+  ContentToMarkdown,
+  EPub,
+  type FlatNavItem,
+  type XMLFile,
+} from "@epubdown/core";
+import {
+  action,
+  computed,
+  makeObservable,
+  observable,
+  runInAction,
+} from "mobx";
 import { markdownToReact } from "../markdownToReact";
+import { benchmark } from "../utils/benchmark";
+import { resolveTocHref } from "../utils/pathUtils";
 import type { BookLibraryStore } from "./BookLibraryStore";
 
 export interface MarkdownResult {
@@ -14,6 +27,7 @@ export class ReaderStore {
   chapters: XMLFile[] = [];
   metadata: Record<string, any> = {};
   currentChapterIndex = 0;
+  currentBookId: string | null = null;
 
   // Converter
   converter: ContentToMarkdown | null = null;
@@ -24,6 +38,7 @@ export class ReaderStore {
       chapters: observable,
       metadata: observable,
       currentChapterIndex: observable,
+      currentBookId: observable,
       converter: observable,
       handleLoadBook: action,
       setChapter: action,
@@ -43,20 +58,21 @@ export class ReaderStore {
   async handleLoadBook(file: File) {
     const arrayBuffer = await file.arrayBuffer();
     const epub = await EPub.fromZip(arrayBuffer);
-    this.epub = epub;
 
     // Load chapters
     const chapterArray: XMLFile[] = [];
     for await (const chapter of epub.chapters()) {
       chapterArray.push(chapter);
     }
-    this.chapters = chapterArray;
 
-    this.metadata = epub.metadata.toJSON();
-    this.currentChapterIndex = 0;
-
-    // Initialize converter
-    this.converter = ContentToMarkdown.create();
+    runInAction(() => {
+      this.epub = epub;
+      this.chapters = chapterArray;
+      this.metadata = epub.metadata.toJSON();
+      this.currentChapterIndex = 0;
+      // Initialize converter
+      this.converter = ContentToMarkdown.create();
+    });
   }
 
   setChapter(index: number) {
@@ -82,10 +98,25 @@ export class ReaderStore {
       throw new Error("Converter not initialized");
     }
 
-    const markdown = await this.converter.convertXMLFile(xmlFile);
-    const reactTree = await markdownToReact(markdown);
+    const converter = this.converter;
+    const result = await benchmark(
+      `getChapterReactTree: ${xmlFile.path}`,
+      async () => {
+        const markdown = await benchmark(
+          `convertXMLFile: ${xmlFile.path}`,
+          converter.convertXMLFile(xmlFile),
+        );
 
-    return { markdown, reactTree };
+        const reactTree = await benchmark(
+          "markdownToReact",
+          markdownToReact(markdown),
+        );
+
+        return { markdown, reactTree };
+      },
+    );
+
+    return result;
   }
 
   async getImage(resolver: XMLFile, href: string): Promise<string> {
@@ -167,6 +198,7 @@ export class ReaderStore {
     this.chapters = [];
     this.metadata = {};
     this.converter = null;
+    this.currentBookId = null;
   }
 
   handleChapterChange(
@@ -226,7 +258,13 @@ export class ReaderStore {
     bookLibraryStore: BookLibraryStore,
     initialChapter?: number,
   ) {
-    try {
+    // Check if we're loading a different book
+    const isNewBook = this.currentBookId !== bookId;
+
+    // Only reset if loading a different book to prevent flash during chapter changes
+    if (isNewBook) {
+      this.reset();
+
       const bookData = await bookLibraryStore.loadBookForReading(bookId);
       if (!bookData) {
         throw new Error("Book not found");
@@ -242,15 +280,14 @@ export class ReaderStore {
       );
 
       await this.handleLoadBook(file);
-
-      // Set initial chapter
-      const chapterToLoad = initialChapter || 0;
-      this.setChapter(chapterToLoad);
-    } catch (error) {
-      console.error("Failed to load book:", error);
-      navigate("/");
-      throw error;
+      runInAction(() => {
+        this.currentBookId = bookId;
+      });
     }
+
+    // Set initial chapter
+    const chapterToLoad = initialChapter || 0;
+    this.setChapter(chapterToLoad);
   }
 
   // Computed getters
@@ -264,5 +301,52 @@ export class ReaderStore {
 
   get hasPreviousChapter() {
     return this.currentChapterIndex > 0;
+  }
+
+  // TOC-related utilities
+  async getTocInfo() {
+    if (!this.epub) return null;
+
+    const navItems = await this.epub.toc.flatNavItems();
+    const tocFile = await this.epub.toc.html();
+    const tocBase = tocFile?.base || "";
+
+    return { navItems, tocBase };
+  }
+
+  async getChapterTitleFromToc(chapterPath: string): Promise<string | null> {
+    if (!this.epub || !chapterPath) return null;
+
+    const tocInfo = await this.getTocInfo();
+    if (!tocInfo) return null;
+
+    const { navItems, tocBase } = tocInfo;
+
+    // Find matching nav item for the chapter
+    const matchingItem = navItems.find((item) => {
+      const resolvedPath = resolveTocHref(tocBase, item.href);
+      return (
+        chapterPath === resolvedPath ||
+        (resolvedPath && chapterPath.endsWith(resolvedPath))
+      );
+    });
+
+    return matchingItem?.label || null;
+  }
+
+  findChapterIndexByHref(href: string): number {
+    const hrefPath = href.split("#")[0] || "";
+    const tocBasePath = this.epub?.opf.base || "";
+
+    return this.chapters.findIndex((chapter) => {
+      const resolvedHref = hrefPath?.startsWith("/")
+        ? hrefPath
+        : `${tocBasePath}/${hrefPath}`.replace(/\/+/g, "/");
+
+      return (
+        chapter.path === resolvedHref ||
+        (hrefPath ? chapter.path.endsWith(hrefPath) : false)
+      );
+    });
   }
 }

@@ -10,7 +10,10 @@ export interface NavItem {
   subitems?: NavItem[];
 }
 
-export interface FlatNavItem extends NavItem {
+export interface FlatNavItem {
+  id?: string;
+  href: string;
+  label: string;
   level: number;
   parentHref?: string;
 }
@@ -103,7 +106,7 @@ export class TableOfContents {
     };
 
     const olMarkup = convertNavPoints(navMap);
-    const html = `<nav epub:type="toc">\n${olMarkup}\n</nav>`;
+    const html = `<nav xmlns:epub="http://www.idpf.org/2007/ops" epub:type="toc">\n${olMarkup}\n</nav>`;
 
     return new XMLFile(
       ncxFile.base,
@@ -193,11 +196,18 @@ export class TableOfContents {
       parentHref?: string,
     ): FlatNavItem[] => {
       return items.reduce<FlatNavItem[]>((acc, item) => {
+        // Create flat item without subitems
         const flatItem: FlatNavItem = {
-          ...item,
+          href: item.href,
+          label: item.label,
           level,
           parentHref,
         };
+
+        // Include id if present
+        if (item.id) {
+          flatItem.id = item.id;
+        }
 
         acc.push(flatItem);
 

@@ -31,8 +31,8 @@ export function createTableOfContentsTests(deps: TestDependencies) {
         expect(firstItem).toBeDefined();
         expect(firstItem).toHaveProperty("href");
         expect(firstItem).toHaveProperty("label");
-        expect(typeof firstItem.href).toBe("string");
-        expect(typeof firstItem.label).toBe("string");
+        expect(typeof firstItem?.href).toBe("string");
+        expect(typeof firstItem?.label).toBe("string");
       });
 
       it("should handle nested navigation if present", async () => {
@@ -56,11 +56,11 @@ export function createTableOfContentsTests(deps: TestDependencies) {
 
         const parentItem = itemsWithSubitems[0];
         expect(parentItem).toBeDefined();
-        expect(parentItem.subitems).toBeDefined();
-        expect(parentItem.subitems?.length).toBeGreaterThan(0);
+        expect(parentItem?.subitems).toBeDefined();
+        expect(parentItem?.subitems?.length).toBeGreaterThan(0);
 
         // Verify subitem structure
-        for (const subitem of parentItem.subitems || []) {
+        for (const subitem of parentItem?.subitems || []) {
           expect(subitem).toHaveProperty("href");
           expect(subitem).toHaveProperty("label");
           // id is optional, parsed from href fragment if present
@@ -88,6 +88,9 @@ export function createTableOfContentsTests(deps: TestDependencies) {
           expect(item).toHaveProperty("level");
           expect(typeof item.level).toBe("number");
           expect(item.level).toBeGreaterThanOrEqual(0);
+
+          // Verify FlatNavItem doesn't have subitems
+          expect(item).not.toHaveProperty("subitems");
         }
       });
 
@@ -109,9 +112,9 @@ export function createTableOfContentsTests(deps: TestDependencies) {
         for (let i = 0; i < flatToc.length; i++) {
           const item = flatToc[i];
           expect(item).toBeDefined();
-          if (item.parentHref) {
+          if (item?.parentHref) {
             const parentIndex = flatToc.findIndex(
-              (p) => p.href === item.parentHref,
+              (p) => p.href === item?.parentHref,
             );
             expect(parentIndex).toBeGreaterThanOrEqual(0);
             expect(parentIndex).toBeLessThan(i);
@@ -129,11 +132,42 @@ export function createTableOfContentsTests(deps: TestDependencies) {
             const parentItem = flatToc.find((i) => i.href === item.parentHref);
             expect(parentItem).toBeDefined();
             // Child's level should be parent's level + 1
-            expect(parentItem).toBeDefined();
-            expect(item.level).toBe(parentItem?.level + 1);
+            expect(item.level).toBe((parentItem?.level ?? 0) + 1);
           } else {
             // Items without parents should be at level 0
             expect(item.level).toBe(0);
+          }
+        }
+      });
+
+      it("should have FlatNavItem properties only (no subitems)", async () => {
+        const flatToc = await toc.flatNavItems();
+
+        for (const item of flatToc) {
+          // Required properties
+          expect(item).toHaveProperty("href");
+          expect(item).toHaveProperty("label");
+          expect(item).toHaveProperty("level");
+
+          // Optional properties
+          // parentHref is optional (top-level items don't have it)
+          if (item.level > 0) {
+            expect(item).toHaveProperty("parentHref");
+          }
+
+          // id is optional (only items with fragment in href have it)
+          if (item.href.includes("#")) {
+            expect(item).toHaveProperty("id");
+          }
+
+          // Explicitly verify no subitems property
+          expect(item).not.toHaveProperty("subitems");
+
+          // Verify the shape matches FlatNavItem interface
+          const allowedKeys = ["href", "label", "level", "parentHref", "id"];
+          const actualKeys = Object.keys(item);
+          for (const key of actualKeys) {
+            expect(allowedKeys).toContain(key);
           }
         }
       });
