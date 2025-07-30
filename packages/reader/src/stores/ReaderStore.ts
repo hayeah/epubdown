@@ -61,6 +61,7 @@ export class ReaderStore {
       handleUrlChange: action,
       handleChapterChange: action,
       handleTocChapterSelect: action,
+      updatePageTitle: action,
       currentChapter: computed,
       hasNextChapter: computed,
       hasPreviousChapter: computed,
@@ -98,6 +99,8 @@ export class ReaderStore {
   setChapter(index: number) {
     if (index >= 0 && index < this.chapters.length) {
       this.currentChapterIndex = index;
+      // Update page title when chapter changes
+      this.updatePageTitle();
     }
   }
 
@@ -308,6 +311,9 @@ export class ReaderStore {
     if (this.currentChapterIndex !== chapterIndex) {
       this.setChapter(chapterIndex);
     }
+
+    // Update page title after loading book/chapter
+    await this.updatePageTitle();
   }
 
   // Computed getters
@@ -368,5 +374,25 @@ export class ReaderStore {
         (hrefPath ? chapter.path.endsWith(hrefPath) : false)
       );
     });
+  }
+
+  async updatePageTitle(): Promise<void> {
+    if (!this.epub || !this.currentChapter) return;
+
+    // Get chapter title from TOC
+    const chapterTitle = await this.getChapterTitleFromToc(
+      this.currentChapter.path,
+    );
+    const bookTitle = this.metadata.title || "Unknown Book";
+
+    // Update document title
+    if (chapterTitle) {
+      document.title = `${chapterTitle} | ${bookTitle}`;
+    } else {
+      // Fallback to chapter filename if no TOC entry
+      const chapterName =
+        this.currentChapter.name || `Chapter ${this.currentChapterIndex + 1}`;
+      document.title = `${chapterName} | ${bookTitle}`;
+    }
   }
 }

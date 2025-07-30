@@ -42,34 +42,6 @@ export const ReaderPage = observer(() => {
     }
   }, [match, params?.bookId, location, readerStore]);
 
-  // Update page title when chapter or book changes
-  useEffect(() => {
-    const updatePageTitle = async () => {
-      if (!epub || !bookId) return;
-
-      const currentChapter = chapters[currentChapterIndex];
-      if (!currentChapter) return;
-
-      // Get chapter title from TOC
-      const chapterTitle = await readerStore.getChapterTitleFromToc(
-        currentChapter.path,
-      );
-      const bookTitle = readerStore.metadata.title || "Unknown Book";
-
-      // Update document title
-      if (chapterTitle) {
-        document.title = `${chapterTitle} | ${bookTitle}`;
-      } else {
-        // Fallback to chapter filename if no TOC entry
-        const chapterName =
-          currentChapter.name || `Chapter ${currentChapterIndex + 1}`;
-        document.title = `${chapterName} | ${bookTitle}`;
-      }
-    };
-
-    updatePageTitle();
-  }, [epub, bookId, currentChapterIndex, chapters, readerStore]);
-
   // Not a reader route
   if (!match) {
     return null;
