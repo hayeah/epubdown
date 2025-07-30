@@ -21,6 +21,8 @@ export interface MarkdownResult {
   reactTree: React.ReactNode;
 }
 
+export type NavigateFunction = (path: string) => void;
+
 export class ReaderStore {
   // EPub state
   epub: EPub | null = null;
@@ -29,8 +31,15 @@ export class ReaderStore {
   currentChapterIndex = 0;
   currentBookId: string | null = null;
 
+  // UI state
+  isSidebarOpen = false;
+
   // Converter
   converter: ContentToMarkdown | null = null;
+
+  // Dependencies
+  private bookLibraryStore: BookLibraryStore | null = null;
+  private navigate: NavigateFunction | null = null;
 
   constructor() {
     makeObservable(this, {
@@ -39,20 +48,31 @@ export class ReaderStore {
       metadata: observable,
       currentChapterIndex: observable,
       currentBookId: observable,
+      isSidebarOpen: observable,
       converter: observable,
       handleLoadBook: action,
       setChapter: action,
       nextChapter: action,
       previousChapter: action,
       reset: action,
+      loadBookAndChapter: action,
+      setSidebarOpen: action,
+      toggleSidebar: action,
+      handleUrlChange: action,
       handleChapterChange: action,
       handleTocChapterSelect: action,
-      handleCloseBook: action,
-      loadBookFromLibrary: action,
       currentChapter: computed,
       hasNextChapter: computed,
       hasPreviousChapter: computed,
     });
+  }
+
+  setBookLibraryStore(bookLibraryStore: BookLibraryStore): void {
+    this.bookLibraryStore = bookLibraryStore;
+  }
+
+  setNavigate(navigate: NavigateFunction): void {
+    this.navigate = navigate;
   }
 
   async handleLoadBook(file: File) {
@@ -199,73 +219,72 @@ export class ReaderStore {
     this.metadata = {};
     this.converter = null;
     this.currentBookId = null;
+    this.isSidebarOpen = false;
   }
 
-  handleChapterChange(
-    navigate: (path: string, options?: { replace?: boolean }) => void,
-    bookId: string,
-    index: number,
-  ) {
-    navigate(`/book/${bookId}/${index}`, {
-      replace: true,
-    });
-    this.setChapter(index);
+  // UI state management
+  setSidebarOpen(isOpen: boolean) {
+    this.isSidebarOpen = isOpen;
   }
 
-  handleTocChapterSelect(
-    navigate: (path: string, options?: { replace?: boolean }) => void,
-    bookId: string,
-    href: string,
-  ) {
-    // Extract the file path without anchor
-    const filePath = href.split("#")[0];
+  toggleSidebar() {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
 
-    // Find the chapter index by matching the path
-    const chapterIndex = this.chapters.findIndex((chapter) => {
-      // Compare the relative paths
-      const chapterPath = chapter.path;
-      const tocBasePath = this.epub?.opf.base || "";
+  // Navigation methods
+  async handleUrlChange(location: string): Promise<void> {
+    // Parse the location to extract bookId and chapterIndex
+    const match = location.match(/\/book\/([^\/]+)(?:\/(\d+))?/);
+    if (!match || !match[1]) return;
 
-      // Simple path resolution - might need adjustment based on actual epub structure
-      const resolvedHref = filePath?.startsWith("/")
-        ? filePath
-        : `${tocBasePath}/${filePath}`.replace(/\/+/g, "/");
+    const bookId = match[1];
+    const chapterIndex = match[2] ? Number(match[2]) : 0;
 
-      return (
-        chapterPath === resolvedHref ||
-        (filePath ? chapterPath.endsWith(filePath) : false)
-      );
-    });
+    // Load book and chapter
+    await this.loadBookAndChapter(bookId, chapterIndex);
+  }
 
-    if (chapterIndex !== -1) {
-      navigate(`/book/${bookId}/${chapterIndex}`, {
-        replace: true,
-      });
-      this.setChapter(chapterIndex);
-      return true; // Indicate successful navigation
+  handleChapterChange(index: number) {
+    if (this.currentBookId && this.navigate) {
+      this.navigate(`/book/${this.currentBookId}/${index}`);
     }
-    return false; // Indicate navigation failed
   }
 
-  handleCloseBook(navigate: (path: string) => void) {
-    this.reset();
-    navigate("/");
+  handleTocChapterSelect(href: string) {
+    if (!this.currentBookId || !this.navigate) return;
+
+    // Find chapter index from href
+    const chapterIndex = this.findChapterIndexByHref(href);
+    if (chapterIndex !== -1) {
+      this.navigate(`/book/${this.currentBookId}/${chapterIndex}`);
+      this.setSidebarOpen(false); // Close sidebar on mobile after selection
+    }
   }
 
-  async loadBookFromLibrary(
-    navigate: (path: string) => void,
+  async loadBookAndChapter(
     bookId: string,
-    bookLibraryStore: BookLibraryStore,
-    initialChapter?: number,
-  ) {
+    chapterIndex: number,
+  ): Promise<void> {
+    if (!this.bookLibraryStore) {
+      throw new Error("BookLibraryStore not set");
+    }
+
+    // Check if we're already at the requested book and chapter
+    if (
+      this.currentBookId === bookId &&
+      this.currentChapterIndex === chapterIndex
+    ) {
+      return; // No need to update
+    }
+
     // Check if we're loading a different book
     const isNewBook = this.currentBookId !== bookId;
 
-    // Only reset if loading a different book to prevent flash during chapter changes
+    // Only load book if it's different from current
     if (isNewBook) {
       this.reset();
 
-      const bookData = await bookLibraryStore.loadBookForReading(bookId);
+      const bookData = await this.bookLibraryStore.loadBookForReading(bookId);
       if (!bookData) {
         throw new Error("Book not found");
       }
@@ -285,9 +304,10 @@ export class ReaderStore {
       });
     }
 
-    // Set initial chapter
-    const chapterToLoad = initialChapter || 0;
-    this.setChapter(chapterToLoad);
+    // Set chapter only if different
+    if (this.currentChapterIndex !== chapterIndex) {
+      this.setChapter(chapterIndex);
+    }
   }
 
   // Computed getters

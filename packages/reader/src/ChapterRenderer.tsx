@@ -64,14 +64,27 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
       };
     }, [xmlFile, readerStore]);
 
-    // Set up IntersectionObserver for reading position tracking and restore scroll
-    React.useEffect(() => {
+    // Set up IntersectionObserver for reading position tracking
+    useEffect(() => {
       if (!markdownResult || !contentRef.current) return;
 
-      readingProgress.startTracking(contentRef.current);
+      const contentElement = contentRef.current;
 
-      // Restore scroll position after content is rendered and tracked
-      readingProgress.restoreScrollPosition();
+      readingProgress.setup(contentElement);
+
+      // Check if we should restore scroll position based on hash
+      const hash = window.location.hash;
+      if (hash && hash.startsWith("#p_")) {
+        readingProgress.restoreScrollPosition(hash);
+      } else {
+        // No reading progress, scroll to top
+        window.scrollTo(0, 0);
+      }
+
+      setTimeout(() => {
+        // Start tracking only after scroll restoration is complete
+        readingProgress.startTracking(contentElement);
+      }, 100);
 
       return () => {
         readingProgress.stopTracking();

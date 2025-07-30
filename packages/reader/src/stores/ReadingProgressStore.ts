@@ -13,8 +13,7 @@ export class ReadingProgressStore {
     },
   ) {}
 
-  // Initialize tracking for content container
-  startTracking(contentEl: HTMLElement): void {
+  setup(contentEl: HTMLElement): void {
     this.stopTracking();
     this.contentEl = contentEl;
     this.blocks = this.extractBlocks(contentEl);
@@ -24,7 +23,10 @@ export class ReadingProgressStore {
     this.blocks.forEach((block, index) => {
       this.indexMap.set(block, index);
     });
+  }
 
+  // Initialize tracking for content container
+  startTracking(contentEl: HTMLElement): void {
     // Create observer
     this.observer = new IntersectionObserver(
       (entries) => {

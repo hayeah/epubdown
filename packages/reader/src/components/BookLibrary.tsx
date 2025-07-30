@@ -36,7 +36,7 @@ export const BookLibrary = observer(({ onOpenBook }: BookLibraryProps) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleFiles,
     accept: {
-      "application/epub+zip": [".epub"],
+      // "application/epub+zip": [".epub"],
     },
     multiple: true,
   });

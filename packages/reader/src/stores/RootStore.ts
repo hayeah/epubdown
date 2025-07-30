@@ -14,6 +14,10 @@ export class RootStore {
     const readerStore = new ReaderStore();
     const sqliteDb = db ?? (await getDb());
     const library = await BookLibraryStore.create(sqliteDb);
+
+    // Wire up dependencies
+    readerStore.setBookLibraryStore(library);
+
     return new RootStore(readerStore, library);
   }
 
@@ -49,3 +53,21 @@ export function useBookLibraryStore(): BookLibraryStore {
   const rootStore = useRootStore();
   return rootStore.bookLibraryStore;
 }
+
+// Singleton instance for stores to access each other
+let rootStoreInstance: RootStore | null = null;
+
+export function getRootStore(): RootStore {
+  if (!rootStoreInstance) {
+    throw new Error("RootStore not initialized");
+  }
+  return rootStoreInstance;
+}
+
+// Update create method to set singleton
+const originalCreate = RootStore.create;
+RootStore.create = async (db?: SQLiteDB): Promise<RootStore> => {
+  const store = await originalCreate.call(RootStore, db);
+  rootStoreInstance = store;
+  return store;
+};

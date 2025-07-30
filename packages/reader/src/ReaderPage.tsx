@@ -1,19 +1,18 @@
 import { Menu } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { BookReader } from "./ChapterRenderer";
 import { Sidebar } from "./components/Sidebar";
 import { TableOfContents } from "./components/TableOfContents";
-import { useBookLibraryStore, useReaderStore } from "./stores/RootStore";
+import { useReaderStore } from "./stores/RootStore";
 
 export const ReaderPage = observer(() => {
   const readerStore = useReaderStore();
-  const bookLibraryStore = useBookLibraryStore();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [match, params] = useRoute("/book/:bookId/:chapterIndex?");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const lastProcessedUrl = useRef<string>("");
 
   // Check if mobile on mount and window resize
   useEffect(() => {
@@ -26,78 +25,22 @@ export const ReaderPage = observer(() => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
   const { epub, currentChapterIndex, chapters } = readerStore;
-  const readerContentRef = useRef<HTMLDivElement>(null);
 
   const bookId = match ? params?.bookId : null;
   const initialChapter = match ? Number(params?.chapterIndex ?? 0) : 0;
 
-  const loadBook = useCallback(
-    async (bookId: string) => {
-      await readerStore.loadBookFromLibrary(
-        navigate,
-        bookId,
-        bookLibraryStore,
-        initialChapter,
-      );
-    },
-    [bookLibraryStore, readerStore, initialChapter, navigate],
-  );
-
-  // Shared callback to scroll reader content to top
-  const scrollToTop = useCallback(() => {
-    if (readerContentRef.current) {
-      readerContentRef.current.scrollTop = 0;
-    }
-  }, []);
-
-  // Load book when component mounts or bookId changes
+  // Set navigate function on ReaderStore
   useEffect(() => {
-    if (bookId && match) {
-      loadBook(bookId);
-    }
-  }, [bookId, match, loadBook]);
+    readerStore.setNavigate(navigate);
+  }, [readerStore, navigate]);
 
-  // Update chapter when URL changes
+  // Handle URL changes
   useEffect(() => {
-    if (epub && match && params?.chapterIndex !== undefined) {
-      const newChapterIndex = Number(params.chapterIndex);
-      if (
-        newChapterIndex !== currentChapterIndex &&
-        newChapterIndex < chapters.length
-      ) {
-        readerStore.setChapter(newChapterIndex);
-        scrollToTop();
-      }
+    if (match && params?.bookId && location !== lastProcessedUrl.current) {
+      lastProcessedUrl.current = location;
+      readerStore.handleUrlChange(location);
     }
-  }, [
-    epub,
-    match,
-    params?.chapterIndex,
-    currentChapterIndex,
-    chapters.length,
-    readerStore,
-    scrollToTop,
-  ]);
-
-  const handleChapterChange = (index: number) => {
-    if (bookId) {
-      readerStore.handleChapterChange(navigate, bookId, index);
-      scrollToTop();
-    }
-  };
-
-  const handleTocChapterSelect = useCallback(
-    (href: string) => {
-      if (
-        bookId &&
-        readerStore.handleTocChapterSelect(navigate, bookId, href)
-      ) {
-        setIsSidebarOpen(false); // Close sidebar on mobile after selection
-        scrollToTop();
-      }
-    },
-    [readerStore, bookId, navigate, scrollToTop],
-  );
+  }, [match, params?.bookId, location, readerStore]);
 
   // Not a reader route
   if (!match) {
@@ -108,24 +51,19 @@ export const ReaderPage = observer(() => {
     const currentChapter = chapters[currentChapterIndex];
 
     return (
-      <div className="h-screen bg-gray-50 overflow-hidden">
+      <div className="min-h-screen bg-gray-50">
         {/* Main content - scrollable full screen */}
-        <div className="h-screen overflow-auto" ref={readerContentRef}>
+        <div className="min-h-screen">
           {/* Fixed container for centering content */}
           <div className="min-h-full flex justify-center relative">
             <div className="max-w-4xl w-full relative">
               {/* Sticky anchor for sidebar positioning */}
               <div className="sticky top-0 h-0 relative">
                 <Sidebar
-                  isOpen={isSidebarOpen}
-                  onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                  isOpen={readerStore.isSidebarOpen}
+                  onToggle={() => readerStore.toggleSidebar()}
                 >
-                  <TableOfContents
-                    epub={epub}
-                    currentChapterPath={currentChapter?.path}
-                    onChapterSelect={handleTocChapterSelect}
-                    onClose={() => setIsSidebarOpen(false)}
-                  />
+                  <TableOfContents />
                 </Sidebar>
               </div>
 
@@ -135,7 +73,7 @@ export const ReaderPage = observer(() => {
                   <div className="fixed top-4 left-4 z-30">
                     <button
                       type="button"
-                      onClick={() => setIsSidebarOpen(true)}
+                      onClick={() => readerStore.setSidebarOpen(true)}
                       className="p-2 bg-white shadow-md rounded-lg hover:shadow-lg transition-shadow"
                       aria-label="Open menu"
                     >
@@ -147,7 +85,9 @@ export const ReaderPage = observer(() => {
                 <BookReader
                   epub={epub}
                   currentChapterIndex={currentChapterIndex}
-                  onChapterChange={handleChapterChange}
+                  onChapterChange={(index) =>
+                    readerStore.handleChapterChange(index)
+                  }
                 />
               </div>
             </div>

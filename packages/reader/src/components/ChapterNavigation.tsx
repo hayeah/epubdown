@@ -74,13 +74,13 @@ export const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
 
   const handlePrevious = () => {
     if (hasPrevious) {
-      onChapterChange?.(currentChapterIndex - 1);
+      readerStore.handleChapterChange(currentChapterIndex - 1);
     }
   };
 
   const handleNext = () => {
     if (hasNext) {
-      onChapterChange?.(currentChapterIndex + 1);
+      readerStore.handleChapterChange(currentChapterIndex + 1);
     }
   };
 
