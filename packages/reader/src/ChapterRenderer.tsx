@@ -75,6 +75,19 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
       // Check if we should restore scroll position based on hash
       const hash = window.location.hash;
       if (hash && hash.startsWith("#p_")) {
+        const position = readingProgress.parsePositionHash(hash);
+        if (position !== null) {
+          const targetBlock = readingProgress.getBlockByIndex(position);
+          if (targetBlock) {
+            // Add highlight class before scrolling
+            targetBlock.classList.add("reading-progress-highlight");
+
+            // Remove the highlight after animation completes
+            setTimeout(() => {
+              targetBlock.classList.remove("reading-progress-highlight");
+            }, 5000);
+          }
+        }
         readingProgress.restoreScrollPosition(hash);
       } else {
         // No reading progress, scroll to top

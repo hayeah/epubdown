@@ -67,3 +67,17 @@
 .book-reader em {
   font-style: italic;
 }
+
+/* Reading progress highlight animation */
+.reading-progress-highlight {
+  animation: readingProgressHighlight 5000ms ease-in;
+}
+
+@keyframes readingProgressHighlight {
+  0% {
+    background-color: #fffbed; /* Light beige (amber-100) */
+  }
+  100% {
+    background-color: transparent;
+  }
+}
