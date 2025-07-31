@@ -12,7 +12,7 @@ export class Driver {
     public readonly module: any,
     public readonly vfs: any | null,
     public readonly handle: number,
-    private readonly databaseName: string,
+    public readonly databaseName: string,
   ) {}
 
   get indexedDBStore(): string | null {

@@ -55,7 +55,7 @@ export function useBookLibraryStore(): BookLibraryStore {
 }
 
 // Singleton instance for stores to access each other
-let rootStoreInstance: RootStore | null = null;
+const rootStoreInstance: RootStore | null = null;
 
 export function getRootStore(): RootStore {
   if (!rootStoreInstance) {
@@ -63,11 +63,3 @@ export function getRootStore(): RootStore {
   }
   return rootStoreInstance;
 }
-
-// Update create method to set singleton
-const originalCreate = RootStore.create;
-RootStore.create = async (db?: SQLiteDB): Promise<RootStore> => {
-  const store = await originalCreate.call(RootStore, db);
-  rootStoreInstance = store;
-  return store;
-};

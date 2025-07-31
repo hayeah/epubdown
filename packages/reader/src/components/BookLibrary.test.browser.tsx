@@ -1,4 +1,5 @@
 import { type SQLiteDB, destroy } from "@hayeah/sqlite-browser";
+import { nukeAllIndexedDBDatabases } from "@hayeah/sqlite-browser/test";
 import {
   cleanup,
   fireEvent,
@@ -20,7 +21,6 @@ import { loadEpub } from "../../test/helpers/epub";
 import { getDb } from "../lib/DatabaseProvider";
 import { BookLibraryStore } from "../stores/BookLibraryStore";
 import { type RootStore, StoreProvider } from "../stores/RootStore";
-import { nukeIndexedDBDatabases } from "@hayeah/sqlite-browser/test";
 import { BookLibrary } from "./BookLibrary";
 
 describe("BookLibrary (Browser)", () => {
@@ -33,7 +33,7 @@ describe("BookLibrary (Browser)", () => {
     vi.clearAllMocks();
 
     // Clear IndexedDB before each test
-    await nukeIndexedDBDatabases();
+    await nukeAllIndexedDBDatabases();
 
     // Create fresh database for each test
     db = await getDb(`test-${Date.now()}`);

@@ -1,1 +1,4 @@
-export { nukeIndexedDBDatabases } from "./nukeIndexedDBDatabases";
+export {
+  nukeIndexedDBDatabase,
+  nukeAllIndexedDBDatabases,
+} from "./nukeIndexedDBDatabases";
