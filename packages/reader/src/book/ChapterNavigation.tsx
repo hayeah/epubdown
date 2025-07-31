@@ -1,30 +1,20 @@
-import type { EPub } from "@epubdown/core";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useReaderStore } from "../stores/RootStore";
 
-export interface ChapterNavigationProps {
-  epub: EPub | null;
-  currentChapterIndex: number;
-  totalChapters: number;
-  currentChapterPath?: string;
-  bookTitle?: string;
-  onChapterChange?: (index: number) => void;
-}
-
-export const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
-  epub,
-  currentChapterIndex,
-  totalChapters,
-  currentChapterPath,
-  bookTitle,
-  onChapterChange,
-}) => {
+export const ChapterNavigation: React.FC = observer(() => {
   const readerStore = useReaderStore();
   const [currentChapterTitle, setCurrentChapterTitle] = useState<string>("");
   const [isSticky, setIsSticky] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+
+  const { currentChapterIndex, chapters, metadata, currentChapter } =
+    readerStore;
+  const currentChapterPath = currentChapter?.path;
+  const bookTitle = metadata.title;
+  const totalChapters = chapters.length;
 
   const hasPrevious = currentChapterIndex > 0;
   const hasNext = currentChapterIndex < totalChapters - 1;
@@ -130,4 +120,4 @@ export const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
       </div>
     </div>
   );
-};
+});

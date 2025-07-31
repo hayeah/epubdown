@@ -1,14 +1,23 @@
 import { Menu } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
-import { BookReader } from "./ChapterRenderer";
-import { Sidebar } from "./components/Sidebar";
-import { TableOfContents } from "./components/TableOfContents";
+import { ChapterContent } from "./book/ChapterContent";
+import { ChapterNavigation } from "./book/ChapterNavigation";
+import { SelectionPopover } from "./book/SelectionPopover";
+import { Sidebar } from "./book/Sidebar";
+import { TableOfContents } from "./book/TableOfContents";
+import { useReadingProgress } from "./stores/ReadingProgressStore";
 import { useReaderStore } from "./stores/RootStore";
+import {
+  copyToClipboard,
+  formatSelectionWithContext,
+  getSelectionContext,
+} from "./utils/selectionUtils";
 
 export const ReaderPage = observer(() => {
   const readerStore = useReaderStore();
+  const readingProgress = useReadingProgress();
   const [location, navigate] = useLocation();
   const [match, params] = useRoute("/book/:bookId/:chapterIndex?");
   const [isMobile, setIsMobile] = useState(false);
@@ -24,7 +33,7 @@ export const ReaderPage = observer(() => {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-  const { epub, currentChapterIndex, chapters } = readerStore;
+  const { epub, currentChapterIndex, chapters, metadata } = readerStore;
 
   const bookId = match ? params?.bookId : null;
   const initialChapter = match ? Number(params?.chapterIndex ?? 0) : 0;
@@ -41,6 +50,36 @@ export const ReaderPage = observer(() => {
       readerStore.handleUrlChange(location);
     }
   }, [match, params?.bookId, location, readerStore]);
+
+  const handleCopyWithContext = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return;
+
+    const context = getSelectionContext(selection);
+    const formatted = formatSelectionWithContext(
+      metadata.title || "Unknown Book",
+      context,
+    );
+    copyToClipboard(formatted);
+  }, [metadata.title]);
+
+  // Keyboard shortcut for copy with context
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+Shift+C (Mac) or Ctrl+Shift+C (Windows/Linux)
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "c"
+      ) {
+        e.preventDefault();
+        handleCopyWithContext();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleCopyWithContext]);
 
   // Not a reader route
   if (!match) {
@@ -59,10 +98,7 @@ export const ReaderPage = observer(() => {
             <div className="max-w-4xl w-full relative">
               {/* Sticky anchor for sidebar positioning */}
               <div className="sticky top-0 h-0 relative">
-                <Sidebar
-                  isOpen={readerStore.isSidebarOpen}
-                  onToggle={() => readerStore.toggleSidebar()}
-                >
+                <Sidebar>
                   <TableOfContents />
                 </Sidebar>
               </div>
@@ -82,13 +118,21 @@ export const ReaderPage = observer(() => {
                   </div>
                 )}
 
-                <BookReader
-                  epub={epub}
-                  currentChapterIndex={currentChapterIndex}
-                  onChapterChange={(index) =>
-                    readerStore.handleChapterChange(index)
-                  }
-                />
+                <div className="book-reader">
+                  {/* Selection popover for copy with context */}
+                  <SelectionPopover onCopyWithContext={handleCopyWithContext} />
+
+                  {/* Chapter Navigation Widget */}
+                  <ChapterNavigation />
+
+                  {/* Current chapter */}
+                  {currentChapter && (
+                    <ChapterContent
+                      xmlFile={currentChapter}
+                      className="current-chapter"
+                    />
+                  )}
+                </div>
               </div>
             </div>
           </div>
