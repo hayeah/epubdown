@@ -84,7 +84,7 @@ export class ReadingProgressStore {
     // Create observer
     this.observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
+        for (const entry of entries) {
           if (entry.isIntersecting) {
             const index = this.indexMap.get(entry.target);
             if (index !== undefined) {
@@ -96,7 +96,7 @@ export class ReadingProgressStore {
               }
             }
           }
-        });
+        }
       },
       {
         rootMargin: this.rootMargin,
@@ -105,9 +105,9 @@ export class ReadingProgressStore {
     );
 
     // Observe all blocks
-    this.blocks.forEach((block) => {
+    for (const block of this.blocks) {
       this.observer?.observe(block);
-    });
+    }
   }
 
   // Clean up observer
@@ -225,11 +225,11 @@ export class ReadingProgressStore {
 
   clearDebugVisuals(): void {
     // Clear all debug styles from blocks
-    this.blocks.forEach((block) => {
+    for (const block of this.blocks) {
       const el = block as HTMLElement;
       el.style.border = "";
       el.style.background = "";
-    });
+    }
   }
 }
 

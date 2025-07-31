@@ -82,7 +82,7 @@ describe("Batch insert benchmarks", () => {
     `);
 
     // Prepare batch parameters
-    const batchParams: unknown[][] = [];
+    const batchParams: Array<[string, number, number]> = [];
     for (let i = 0; i < ROW_COUNT; i++) {
       batchParams.push([`Item ${i}`, i * 10, Date.now() + i]);
     }

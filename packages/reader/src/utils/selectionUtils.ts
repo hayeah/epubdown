@@ -73,14 +73,17 @@ function getTextBefore(range: Range): string {
     if (startOffset > 0 && element.childNodes.length > 0) {
       // Get the node just before the selection starts
       const childNode = element.childNodes[startOffset - 1];
-      if (childNode.nodeType === Node.TEXT_NODE) {
+      if (childNode && childNode.nodeType === Node.TEXT_NODE) {
         startNode = childNode;
         startOffset = childNode.textContent?.length || 0;
       } else {
         // Find the last text node in this child element
-        const textNodes = getTextNodesInElement(childNode as Element);
-        if (textNodes.length > 0) {
-          startNode = textNodes[textNodes.length - 1];
+        const textNodes = childNode
+          ? getTextNodesInElement(childNode as Element)
+          : [];
+        const lastTextNode = textNodes[textNodes.length - 1];
+        if (textNodes.length > 0 && lastTextNode) {
+          startNode = lastTextNode;
           startOffset = startNode.textContent?.length || 0;
         }
       }
@@ -165,13 +168,15 @@ function getTextAfter(range: Range): string {
     if (endOffset < element.childNodes.length) {
       // Get the node where selection ends
       const childNode = element.childNodes[endOffset];
-      if (childNode.nodeType === Node.TEXT_NODE) {
+      if (childNode && childNode.nodeType === Node.TEXT_NODE) {
         endNode = childNode;
         endOffset = 0;
       } else {
         // Find the first text node in this child element
-        const textNodes = getTextNodesInElement(childNode as Element);
-        if (textNodes.length > 0) {
+        const textNodes = childNode
+          ? getTextNodesInElement(childNode as Element)
+          : [];
+        if (textNodes.length > 0 && textNodes[0]) {
           endNode = textNodes[0];
           endOffset = 0;
         }
@@ -287,7 +292,7 @@ export function formatSelectionWithContext(
 
   // Combine context and wrap at 80 characters
   const fullContext = `${beforeContext} <<${selectedText}>> ${afterContext}`;
-  output += wrapText(fullContext, 80) + "\n\n";
+  output += `${wrapText(fullContext, 80)}\n\n`;
 
   output += "## Selection\n\n";
   output += wrapText(selectedText, 80);
@@ -307,7 +312,7 @@ function wrapText(text: string, maxWidth: number): string {
     if (currentLine.length === 0) {
       currentLine = word;
     } else if (currentLine.length + 1 + word.length <= maxWidth) {
-      currentLine += " " + word;
+      currentLine += ` ${word}`;
     } else {
       lines.push(currentLine);
       currentLine = word;

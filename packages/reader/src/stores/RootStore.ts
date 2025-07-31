@@ -53,4 +53,3 @@ export function useBookLibraryStore(): BookLibraryStore {
   const rootStore = useRootStore();
   return rootStore.bookLibraryStore;
 }
-

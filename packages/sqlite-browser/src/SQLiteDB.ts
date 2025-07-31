@@ -1,4 +1,5 @@
 import * as SQLite from "wa-sqlite";
+import type { SQLiteCompatibleType } from "wa-sqlite";
 import { Driver } from "./Driver";
 import type { SQLLikeDB } from "./Migrator";
 
@@ -58,7 +59,7 @@ export class SQLiteDB implements SQLLikeDB {
    */
   private async executePrepared(
     sql: string,
-    params: unknown[],
+    params: SQLiteCompatibleType[],
     onRow?: (stmt: number) => void,
   ): Promise<void> {
     for await (const stmt of this.sqlite3.statements(this.db, sql)) {
@@ -90,7 +91,10 @@ export class SQLiteDB implements SQLLikeDB {
     }
   }
   /** raw exec without queuing (only call from runExclusive) */
-  private async execRaw(sql: string, params: unknown[] = []): Promise<void> {
+  private async execRaw(
+    sql: string,
+    params: SQLiteCompatibleType[] = [],
+  ): Promise<void> {
     if (params.length === 0) {
       // Use simple exec for statements without parameters
       await this.sqlite3.exec(this.db, sql);
@@ -100,7 +104,7 @@ export class SQLiteDB implements SQLLikeDB {
     }
   }
 
-  async exec(sql: string, params: unknown[] = []): Promise<void> {
+  async exec(sql: string, params: SQLiteCompatibleType[] = []): Promise<void> {
     return this.runExclusive(() => this.execRaw(sql, params));
   }
 
@@ -125,7 +129,10 @@ export class SQLiteDB implements SQLLikeDB {
    *   ]
    * );
    */
-  async execBatch(sql: string, batchParams: unknown[][]): Promise<void> {
+  async execBatch(
+    sql: string,
+    batchParams: SQLiteCompatibleType[][],
+  ): Promise<void> {
     // If already in a transaction (useQueue is false), execute directly
     if (!this.useQueue) {
       // Prepare statement once
@@ -158,7 +165,7 @@ export class SQLiteDB implements SQLLikeDB {
 
   async query<R = Record<string, unknown>>(
     sql: string,
-    params: unknown[] = [],
+    params: SQLiteCompatibleType[] = [],
   ): Promise<{ rows: R[] }> {
     return this.runExclusive(async () => {
       const rows: R[] = [];

@@ -74,7 +74,7 @@ export const ChapterRenderer: React.FC<ChapterRendererProps> = observer(
 
       // Check if we should restore scroll position based on hash
       const hash = window.location.hash;
-      if (hash && hash.startsWith("#p_")) {
+      if (hash?.startsWith("#p_")) {
         const position = readingProgress.parsePositionHash(hash);
         if (position !== null) {
           const targetBlock = readingProgress.getBlockByIndex(position);
