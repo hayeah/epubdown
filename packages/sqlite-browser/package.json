@@ -12,9 +12,17 @@
       "import": "./src/index.ts",
       "require": "./dist/index.js"
     },
-    "./dist/index.js": "./dist/index.js"
+    "./dist/index.js": "./dist/index.js",
+    "./test": {
+      "types": "./test/index.ts",
+      "import": "./test/index.ts"
+    },
+    "./test/nukeIndexedDBDatabases": {
+      "types": "./test/nukeIndexedDBDatabases.ts",
+      "import": "./test/nukeIndexedDBDatabases.ts"
+    }
   },
-  "files": ["dist", "src"],
+  "files": ["dist", "src", "test"],
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",

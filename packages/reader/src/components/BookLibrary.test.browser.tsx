@@ -20,7 +20,7 @@ import { loadEpub } from "../../test/helpers/epub";
 import { getDb } from "../lib/DatabaseProvider";
 import { BookLibraryStore } from "../stores/BookLibraryStore";
 import { type RootStore, StoreProvider } from "../stores/RootStore";
-import { nukeIndexedDBDatabases } from "../stores/testUtils";
+import { nukeIndexedDBDatabases } from "@hayeah/sqlite-browser/test";
 import { BookLibrary } from "./BookLibrary";
 
 describe("BookLibrary (Browser)", () => {
@@ -45,24 +45,11 @@ describe("BookLibrary (Browser)", () => {
     } as RootStore;
 
     mockOnOpenBook = vi.fn();
-  }, 10000);
+  });
 
   afterEach(async () => {
     // Clean up React components
     cleanup();
-
-    // Close the store to release database connections
-    if (bookLibraryStore) {
-      await bookLibraryStore.close();
-    }
-    // Destroy the database which closes and deletes it
-    if (db) {
-      await destroy(db);
-    }
-  });
-
-  afterAll(async () => {
-    // No shared database connections to clean up
   });
 
   const renderWithStore = (component: React.ReactElement) => {

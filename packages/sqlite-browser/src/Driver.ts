@@ -3,6 +3,9 @@ import SQLiteESMFactory from "wa-sqlite/dist/wa-sqlite-async.mjs";
 import { IDBBatchAtomicVFS } from "wa-sqlite/src/examples/IDBBatchAtomicVFS.js";
 import { SQLiteDB } from "./SQLiteDB";
 
+// Track all open drivers for cleanup
+const openDrivers = new Set<Driver>();
+
 export class Driver {
   constructor(
     public readonly sqlite3: ReturnType<typeof SQLite.Factory>,
@@ -24,6 +27,7 @@ export class Driver {
     if (this.vfs) {
       await this.vfs.close();
     }
+    openDrivers.delete(this);
   }
 
   static async open(databaseName = ":memory:"): Promise<Driver> {
@@ -42,7 +46,13 @@ export class Driver {
     }
 
     const handle = await sqlite3.open_v2(databaseName);
-    return new Driver(sqlite3, module, vfs, handle, databaseName);
+    const driver = new Driver(sqlite3, module, vfs, handle, databaseName);
+    openDrivers.add(driver);
+    return driver;
+  }
+
+  static __openedDrivers(): Set<Driver> {
+    return new Set(openDrivers);
   }
 }
 
