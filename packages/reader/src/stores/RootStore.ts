@@ -54,12 +54,3 @@ export function useBookLibraryStore(): BookLibraryStore {
   return rootStore.bookLibraryStore;
 }
 
-// Singleton instance for stores to access each other
-const rootStoreInstance: RootStore | null = null;
-
-export function getRootStore(): RootStore {
-  if (!rootStoreInstance) {
-    throw new Error("RootStore not initialized");
-  }
-  return rootStoreInstance;
-}
