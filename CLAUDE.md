@@ -12,6 +12,12 @@
 - In general don't use `try ... catch`, let error bubble up, so it's easier for the dev to debug.
   - Use `try ... catch` for cleanup.
 
+## Method Naming
+
+- do not use `get` prefix to define a getter method. Use a noun.
+  - BAD: getItems
+  - Good: items
+
 ## Null Checks in Tests
 
 - An assertion inside a branch may never execute if the branch condition is false, yet the test still reports success.
