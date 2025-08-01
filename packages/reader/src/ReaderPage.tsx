@@ -127,10 +127,7 @@ export const ReaderPage = observer(() => {
 
                   {/* Current chapter */}
                   {currentChapter && (
-                    <ChapterContent
-                      xmlFile={currentChapter}
-                      className="current-chapter"
-                    />
+                    <ChapterContent className="current-chapter" />
                   )}
                 </div>
               </div>

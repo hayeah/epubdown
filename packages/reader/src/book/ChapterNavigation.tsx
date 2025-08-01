@@ -6,31 +6,16 @@ import { useReaderStore } from "../stores/RootStore";
 
 export const ChapterNavigation: React.FC = observer(() => {
   const readerStore = useReaderStore();
-  const [currentChapterTitle, setCurrentChapterTitle] = useState<string>("");
   const [isSticky, setIsSticky] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
-  const { currentChapterIndex, chapters, metadata, currentChapter } =
-    readerStore;
-  const currentChapterPath = currentChapter?.path;
+  const { currentChapterIndex, chapters, metadata } = readerStore;
+  const currentChapterTitle = readerStore.currentChapterTitle;
   const bookTitle = metadata.title;
   const totalChapters = chapters.length;
 
   const hasPrevious = currentChapterIndex > 0;
   const hasNext = currentChapterIndex < totalChapters - 1;
-
-  // Get current chapter title from TOC
-  useEffect(() => {
-    const getChapterTitle = async () => {
-      if (!currentChapterPath) return;
-
-      const title =
-        await readerStore.getChapterTitleFromToc(currentChapterPath);
-      setCurrentChapterTitle(title || `Chapter ${currentChapterIndex + 1}`);
-    };
-
-    getChapterTitle();
-  }, [currentChapterPath, currentChapterIndex, readerStore]);
 
   // Detect when navigation becomes sticky
   useEffect(() => {
@@ -98,7 +83,9 @@ export const ChapterNavigation: React.FC = observer(() => {
         </button>
 
         <div className="text-center flex-1 px-4">
-          <div className="text-xs text-gray-500">{currentChapterTitle}</div>
+          <div className="text-xs text-gray-500">
+            {currentChapterTitle || `Chapter ${currentChapterIndex + 1}`}
+          </div>
           <div className="text-[10px] text-gray-400">
             {bookTitle || "Unknown Book"}
           </div>

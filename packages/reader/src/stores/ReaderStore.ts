@@ -12,7 +12,6 @@ import {
   runInAction,
 } from "mobx";
 import { markdownToReact } from "../markdownToReact";
-import { benchmark } from "../utils/benchmark";
 import { resolveTocHref } from "../utils/pathUtils";
 import type { BookLibraryStore } from "./BookLibraryStore";
 
@@ -41,6 +40,10 @@ export class ReaderStore {
   private bookLibraryStore: BookLibraryStore | null = null;
   private navigate: NavigateFunction | null = null;
 
+  // Cached state
+  currentChapterRender: MarkdownResult | null = null;
+  tocInfo: { navItems: FlatNavItem[]; tocBase: string } | null = null;
+
   constructor() {
     makeObservable(this, {
       epub: observable,
@@ -50,6 +53,8 @@ export class ReaderStore {
       currentBookId: observable,
       isSidebarOpen: observable,
       converter: observable,
+      currentChapterRender: observable.ref,
+      tocInfo: observable.ref,
       handleLoadBook: action,
       setChapter: action,
       nextChapter: action,
@@ -65,6 +70,9 @@ export class ReaderStore {
       currentChapter: computed,
       hasNextChapter: computed,
       hasPreviousChapter: computed,
+      currentChapterTitle: computed,
+      navItems: computed,
+      tocBase: computed,
     });
   }
 
@@ -74,6 +82,21 @@ export class ReaderStore {
 
   setNavigate(navigate: NavigateFunction): void {
     this.navigate = navigate;
+  }
+
+  private async convertCurrentChapter() {
+    const chapter = this.currentChapter;
+    if (!chapter || !this.converter) return;
+    const markdown = await this.converter.convertXMLFile(chapter);
+    const reactTree = await markdownToReact(markdown);
+    runInAction(() => {
+      this.currentChapterRender = { markdown, reactTree };
+    });
+  }
+
+  private async loadTocOnce() {
+    if (!this.epub || this.tocInfo) return;
+    this.tocInfo = await this.getTocInfo();
   }
 
   async handleLoadBook(file: File) {
@@ -94,13 +117,21 @@ export class ReaderStore {
       // Initialize converter
       this.converter = ContentToMarkdown.create();
     });
+
+    // Load TOC once per book
+    await this.loadTocOnce();
+
+    // Convert the current chapter
+    await this.convertCurrentChapter();
   }
 
-  setChapter(index: number) {
+  async setChapter(index: number) {
     if (index >= 0 && index < this.chapters.length) {
       this.currentChapterIndex = index;
       // Update page title when chapter changes
       this.updatePageTitle();
+      // Convert the new chapter
+      await this.convertCurrentChapter();
     }
   }
 
@@ -114,32 +145,6 @@ export class ReaderStore {
     if (this.currentChapterIndex > 0) {
       this.currentChapterIndex--;
     }
-  }
-
-  async getChapterReactTree(xmlFile: XMLFile): Promise<MarkdownResult> {
-    if (!this.converter) {
-      throw new Error("Converter not initialized");
-    }
-
-    const converter = this.converter;
-    const result = await benchmark(
-      `getChapterReactTree: ${xmlFile.path}`,
-      async () => {
-        const markdown = await benchmark(
-          `convertXMLFile: ${xmlFile.path}`,
-          converter.convertXMLFile(xmlFile),
-        );
-
-        const reactTree = await benchmark(
-          "markdownToReact",
-          markdownToReact(markdown),
-        );
-
-        return { markdown, reactTree };
-      },
-    );
-
-    return result;
   }
 
   async getImage(resolver: XMLFile, href: string): Promise<string> {
@@ -223,6 +228,8 @@ export class ReaderStore {
     this.converter = null;
     this.currentBookId = null;
     this.isSidebarOpen = false;
+    this.currentChapterRender = null;
+    this.tocInfo = null;
   }
 
   // UI state management
@@ -309,7 +316,10 @@ export class ReaderStore {
 
     // Set chapter only if different
     if (this.currentChapterIndex !== chapterIndex) {
-      this.setChapter(chapterIndex);
+      await this.setChapter(chapterIndex);
+    } else if (isNewBook) {
+      // If it's a new book but same chapter index, still need to convert
+      await this.convertCurrentChapter();
     }
 
     // Update page title after loading book/chapter
@@ -327,6 +337,32 @@ export class ReaderStore {
 
   get hasPreviousChapter() {
     return this.currentChapterIndex > 0;
+  }
+
+  get currentChapterTitle() {
+    if (!this.currentChapter || !this.tocInfo) return null;
+
+    const { navItems, tocBase } = this.tocInfo;
+    const chapterPath = this.currentChapter.path;
+
+    // Find matching nav item for the chapter
+    const matchingItem = navItems.find((item) => {
+      const resolvedPath = resolveTocHref(tocBase, item.href);
+      return (
+        chapterPath === resolvedPath ||
+        (resolvedPath && chapterPath.endsWith(resolvedPath))
+      );
+    });
+
+    return matchingItem?.label || null;
+  }
+
+  get navItems() {
+    return this.tocInfo?.navItems ?? [];
+  }
+
+  get tocBase() {
+    return this.tocInfo?.tocBase ?? "";
   }
 
   // TOC-related utilities

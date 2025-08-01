@@ -1,56 +1,24 @@
-import type { XMLFile } from "@epubdown/core";
 import { observer } from "mobx-react-lite";
-import React, { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useReadingProgress } from "../stores/ReadingProgressStore";
 import { useReaderStore } from "../stores/RootStore";
 
 // Chapter content component that renders the chapter
 export interface ChapterContentProps {
-  xmlFile: XMLFile;
   className?: string;
 }
 
 export const ChapterContent: React.FC<ChapterContentProps> = observer(
-  ({ xmlFile, className }) => {
+  ({ className }) => {
     const readerStore = useReaderStore();
     const readingProgress = useReadingProgress();
-    const [markdownResult, setMarkdownResult] = useState<{
-      markdown: string;
-      reactTree: React.ReactNode;
-    } | null>(null);
-    const [error, setError] = useState<string | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
 
-    React.useEffect(() => {
-      let cancelled = false;
-
-      const loadChapter = async () => {
-        try {
-          const result = await readerStore.getChapterReactTree(xmlFile);
-          if (!cancelled) {
-            setMarkdownResult(result);
-            setError(null);
-          }
-        } catch (err) {
-          if (!cancelled) {
-            setError(
-              err instanceof Error ? err.message : "Failed to load chapter",
-            );
-            setMarkdownResult(null);
-          }
-        }
-      };
-
-      loadChapter();
-
-      return () => {
-        cancelled = true;
-      };
-    }, [xmlFile, readerStore]);
+    const render = readerStore.currentChapterRender;
 
     // Set up IntersectionObserver for reading position tracking
     useEffect(() => {
-      if (!markdownResult || !contentRef.current) return;
+      if (!render || !contentRef.current) return;
 
       const contentElement = contentRef.current;
 
@@ -86,35 +54,19 @@ export const ChapterContent: React.FC<ChapterContentProps> = observer(
       return () => {
         readingProgress.stopTracking();
       };
-    }, [markdownResult, readingProgress]);
+    }, [render, readingProgress]);
 
-    if (!markdownResult && !error) {
+    if (!render) {
       return (
-        <div className={`chapter-loading ${className || ""}`}>
-          <div className="text-center p-8 text-gray-500">
-            Loading chapter...
-          </div>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className={`chapter-error ${className || ""}`}>
-          <div className="text-center p-8 text-red-600 bg-red-50 border border-red-200 rounded">
-            Error: {error}
-          </div>
-        </div>
+        <div className="text-center p-8 text-gray-500">Loading chapter...</div>
       );
     }
 
     return (
-      <article className={`epub-chapter ${className || ""}`}>
-        {markdownResult?.reactTree && (
-          <div className="chapter-content" ref={contentRef}>
-            {markdownResult.reactTree}
-          </div>
-        )}
+      <article className={`epub-chapter ${className ?? ""}`}>
+        <div className="chapter-content" ref={contentRef}>
+          {render.reactTree}
+        </div>
       </article>
     );
   },

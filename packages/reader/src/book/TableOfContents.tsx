@@ -1,29 +1,15 @@
-import type { FlatNavItem } from "@epubdown/core";
 import { ChevronLeft } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type React from "react";
-import { useEffect, useState } from "react";
 import { useReaderStore } from "../stores/RootStore";
 import { resolveTocHref } from "../utils/pathUtils";
 
 export const TableOfContents: React.FC = observer(() => {
   const readerStore = useReaderStore();
-  const [navItems, setNavItems] = useState<FlatNavItem[]>([]);
-  const [tocBase, setTocBase] = useState<string>("");
+  const navItems = readerStore.navItems;
+  const tocBase = readerStore.tocBase;
 
   const currentChapterPath = readerStore.currentChapter?.path;
-
-  useEffect(() => {
-    const loadToc = async () => {
-      const tocInfo = await readerStore.getTocInfo();
-      if (tocInfo) {
-        setNavItems(tocInfo.navItems);
-        setTocBase(tocInfo.tocBase);
-      }
-    };
-
-    loadToc();
-  }, [readerStore]);
 
   const handleLinkClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
