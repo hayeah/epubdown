@@ -1,5 +1,4 @@
 import { type SQLiteDB, destroy } from "@hayeah/sqlite-browser";
-import { nukeAllIndexedDBDatabases } from "@hayeah/sqlite-browser/test";
 import {
   cleanup,
   fireEvent,
@@ -31,9 +30,6 @@ describe("BookLibrary (Browser)", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-
-    // Clear IndexedDB before each test
-    await nukeAllIndexedDBDatabases();
 
     // Create fresh database for each test
     db = await getDb(`test-${Date.now()}`);

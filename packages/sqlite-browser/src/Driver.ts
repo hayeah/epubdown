@@ -1,3 +1,4 @@
+/// <reference path="./wa-sqlite.d.ts" />
 import * as SQLite from "wa-sqlite";
 import SQLiteESMFactory from "wa-sqlite/dist/wa-sqlite-async.mjs";
 import { IDBBatchAtomicVFS } from "wa-sqlite/src/examples/IDBBatchAtomicVFS.js";

@@ -30,7 +30,7 @@ describe("BookDatabase", () => {
         "SELECT name FROM sqlite_master WHERE type='table' AND name='books'",
       );
       expect(tableResult.rows.length).toBe(1);
-      expect(tableResult.rows[0].name).toBe("books");
+      expect(tableResult.rows[0]?.name).toBe("books");
 
       // Verify indexes were created
       const indexResult = await db.query(
@@ -49,6 +49,7 @@ describe("BookDatabase", () => {
       const book = {
         id: "test-book",
         title: "Test Book",
+        filename: "test-book.epub",
         author: "Test Author",
         publisher: "Test Publisher",
         publishedDate: "2024-01-01",
@@ -69,17 +70,18 @@ describe("BookDatabase", () => {
       expect(result.rows.length).toBe(1);
 
       const insertedBook = result.rows[0];
-      expect(insertedBook.id).toBe("test-book");
-      expect(insertedBook.title).toBe("Test Book");
-      expect(insertedBook.file_size).toBe(1024);
-      expect(insertedBook.created_at).toBeGreaterThan(0);
-      expect(insertedBook.metadata).toBeDefined();
+      expect(insertedBook?.id).toBe("test-book");
+      expect(insertedBook?.title).toBe("Test Book");
+      expect(insertedBook?.file_size).toBe(1024);
+      expect(insertedBook?.created_at).toBeGreaterThan(0);
+      expect(insertedBook?.metadata).toBeDefined();
     });
 
     it("should handle book without metadata blob", async () => {
       const book = {
         id: "minimal-book",
         title: "Minimal Book",
+        filename: "minimal-book.epub",
         fileSize: 512,
       };
 
@@ -90,9 +92,9 @@ describe("BookDatabase", () => {
       ]);
       const insertedBook = result.rows[0];
 
-      expect(insertedBook.title).toBe("Minimal Book");
-      expect(insertedBook.file_size).toBe(512);
-      expect(insertedBook.metadata).toBeNull();
+      expect(insertedBook?.title).toBe("Minimal Book");
+      expect(insertedBook?.file_size).toBe(512);
+      expect(insertedBook?.metadata).toBeNull();
     });
   });
 
@@ -102,6 +104,7 @@ describe("BookDatabase", () => {
       await bookDatabase.addBook({
         id: "test-book",
         title: "Test Book",
+        filename: "test-book.epub",
         fileSize: 1024,
       });
     });
@@ -127,6 +130,7 @@ describe("BookDatabase", () => {
       await bookDatabase.addBook({
         id: "book1",
         title: "Book 1",
+        filename: "book1.epub",
         fileSize: 1024,
       });
 
@@ -136,6 +140,7 @@ describe("BookDatabase", () => {
       await bookDatabase.addBook({
         id: "book2",
         title: "Book 2",
+        filename: "book2.epub",
         fileSize: 2048,
       });
     });
@@ -145,10 +150,10 @@ describe("BookDatabase", () => {
 
       expect(result).toHaveLength(2);
       // Book 2 should come first (added more recently)
-      expect(result[0].id).toBe("book2");
-      expect(result[0].title).toBe("Book 2");
-      expect(result[1].id).toBe("book1");
-      expect(result[1].title).toBe("Book 1");
+      expect(result[0]?.id).toBe("book2");
+      expect(result[0]?.title).toBe("Book 2");
+      expect(result[1]?.id).toBe("book1");
+      expect(result[1]?.title).toBe("Book 1");
     });
   });
 
@@ -157,6 +162,7 @@ describe("BookDatabase", () => {
       await bookDatabase.addBook({
         id: "test-book",
         title: "Test Book",
+        filename: "test-book.epub",
         fileSize: 1024,
       });
     });
@@ -178,6 +184,7 @@ describe("BookDatabase", () => {
       await bookDatabase.addBook({
         id: "test-book",
         title: "Test Book",
+        filename: "test-book.epub",
         fileSize: 1024,
       });
     });

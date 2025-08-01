@@ -1,3 +1,4 @@
+/// <reference path="./wa-sqlite.d.ts" />
 import * as SQLite from "wa-sqlite";
 import type { SQLiteCompatibleType } from "wa-sqlite";
 import { Driver } from "./Driver";

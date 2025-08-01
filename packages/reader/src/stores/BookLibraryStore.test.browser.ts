@@ -52,7 +52,7 @@ describe("BookLibraryStore", () => {
 
     expect(bookId).toBeTruthy();
     expect(store.books.length).toBe(1);
-    expect(store.books[0].title).toContain("Alice");
+    expect(store.books[0]?.title).toContain("Alice");
   });
 
   it("should add multiple books", async () => {
@@ -94,7 +94,7 @@ describe("BookLibraryStore", () => {
   it("should update last opened timestamp when loading book", async () => {
     const file = await loadEpub("/Alice's Adventures in Wonderland.epub");
     const bookId = await store.addBook(file);
-    const originalLastOpened = store.books[0].lastOpenedAt;
+    const originalLastOpened = store.books[0]?.lastOpenedAt;
 
     // Wait a bit to ensure timestamp difference
     await new Promise((resolve) => setTimeout(resolve, 10));
@@ -104,7 +104,7 @@ describe("BookLibraryStore", () => {
     // Reload books to get updated metadata
     await store.loadBooks();
 
-    const updatedLastOpened = store.books[0].lastOpenedAt;
+    const updatedLastOpened = store.books[0]?.lastOpenedAt;
     expect(updatedLastOpened).toBeGreaterThan(originalLastOpened || 0);
   });
 
