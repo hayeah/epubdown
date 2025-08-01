@@ -115,7 +115,10 @@ describe("BookLibrary (Browser)", () => {
 
     // Wait for the book to appear
     await waitFor(() => {
-      expect(screen.getByText(/A Modest Proposal/)).toBeInTheDocument();
+      // Look for the title in the heading, not the filename
+      const headings = screen.getAllByRole('heading', { level: 3 });
+      const hasBook = headings.some(h => h.textContent?.includes('A Modest Proposal'));
+      expect(hasBook).toBe(true);
     });
 
     // Mock window.confirm
@@ -127,7 +130,9 @@ describe("BookLibrary (Browser)", () => {
 
     // Wait for the book to be removed
     await waitFor(() => {
-      expect(screen.queryByText(/A Modest Proposal/)).not.toBeInTheDocument();
+      const headings = screen.queryAllByRole('heading', { level: 3 });
+      const hasBook = headings.some(h => h.textContent?.includes('A Modest Proposal'));
+      expect(hasBook).toBe(false);
       expect(
         screen.getByText("No books in your library yet"),
       ).toBeInTheDocument();
@@ -226,12 +231,15 @@ describe("BookLibrary (Browser)", () => {
       expect(
         screen.getByText("Alice's Adventures in Wonderland"),
       ).toBeInTheDocument();
-      expect(screen.getByText(/A Modest Proposal/)).toBeInTheDocument();
+      // Look for heading with the title
+      const headings = screen.getAllByRole('heading', { level: 3 });
+      const hasModestProposal = headings.some(h => h.textContent?.includes('A Modest Proposal'));
+      expect(hasModestProposal).toBe(true);
     });
 
     // Check filenames are displayed
-    expect(screen.getByText("alice.epub")).toBeInTheDocument();
-    expect(screen.getByText("proposal.epub")).toBeInTheDocument();
+    expect(screen.getByText("Alice's Adventures in Wonderland.epub")).toBeInTheDocument();
+    expect(screen.getByText("A Modest Proposal.epub")).toBeInTheDocument();
 
     // Check file sizes are formatted (both should be similar small size)
     const fileSizes = screen.getAllByText(/\d+\.\d+ [KM]B/);
@@ -304,7 +312,10 @@ describe("BookLibrary (Browser)", () => {
 
     // Wait for the book to appear
     await waitFor(() => {
-      expect(screen.getByText(/A Modest Proposal/)).toBeInTheDocument();
+      // Look for the title in the heading
+      const headings = screen.getAllByRole('heading', { level: 3 });
+      const hasBook = headings.some(h => h.textContent?.includes('A Modest Proposal'));
+      expect(hasBook).toBe(true);
     });
 
     // Check that date fields are displayed
