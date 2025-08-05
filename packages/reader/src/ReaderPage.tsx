@@ -97,7 +97,7 @@ export const ReaderPage = observer(() => {
           <div className="min-h-full flex justify-center relative">
             <div className="max-w-4xl w-full relative">
               {/* Sticky anchor for sidebar positioning */}
-              <div className="sticky top-0 h-0 relative">
+              <div className="sticky top-0 h-0 relative z-50">
                 <Sidebar>
                   <TableOfContents />
                 </Sidebar>
