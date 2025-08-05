@@ -9,6 +9,17 @@ import { nodePolyfills } from "vite-plugin-node-polyfills";
 export default defineConfig({
   // assetsInclude: ["**/*.wasm"],
   // optimizeDeps: { exclude: ["@electric-sql/pglite", "wa-sqlite"] },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        libraryPrototype: path.resolve(
+          __dirname,
+          "prototype/library/index.html",
+        ),
+      },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
