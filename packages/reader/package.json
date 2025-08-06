@@ -45,7 +45,6 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/bun": "latest",
-    "@types/jszip": "^3.4.1",
     "@types/lodash": "^4.17.20",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.3",
@@ -56,6 +55,7 @@
     "jsdom": "^25.0.1",
     "jszip": "^3",
     "rollup-plugin-visualizer": "^6.0.0",
+    "tswire": "https://github.com/hayeah/tswire",
     "vite": "^6",
     "vite-plugin-node-polyfills": "^0.23.0",
     "vitest": "^3.1.4"

@@ -1,25 +1,14 @@
 import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import { createContext, useContext } from "react";
 import { getDb } from "../lib/DatabaseProvider";
-import { BookLibraryStore } from "./BookLibraryStore";
-import { ReaderStore } from "./ReaderStore";
+import type { BookLibraryStore } from "./BookLibraryStore";
+import type { ReaderStore } from "./ReaderStore";
 
 export class RootStore {
   constructor(
     public readerStore: ReaderStore,
     public bookLibraryStore: BookLibraryStore,
   ) {}
-
-  static async create(db?: SQLiteDB): Promise<RootStore> {
-    const readerStore = new ReaderStore();
-    const sqliteDb = db ?? (await getDb());
-    const library = await BookLibraryStore.create(sqliteDb);
-
-    // Wire up dependencies
-    readerStore.setBookLibraryStore(library);
-
-    return new RootStore(readerStore, library);
-  }
 
   reset() {
     this.readerStore.reset();

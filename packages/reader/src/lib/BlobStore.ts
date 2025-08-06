@@ -12,7 +12,7 @@ export class BlobStore {
   private readonly storeName: string;
 
   constructor(
-    private readonly db: IDBDatabase,
+    public readonly db: IDBDatabase,
     config: BlobStoreConfig,
   ) {
     this.dbName = config.dbName;
