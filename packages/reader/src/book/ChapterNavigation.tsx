@@ -84,7 +84,7 @@ export const ChapterNavigation: React.FC = observer(() => {
 
         <div className="text-center flex-1 px-4">
           <div className="text-xs text-gray-500">
-            {currentChapterTitle || `Chapter ${currentChapterIndex + 1}`}
+            {currentChapterTitle ?? bookTitle}
           </div>
           <div className="text-[10px] text-gray-400">
             {bookTitle || "Unknown Book"}

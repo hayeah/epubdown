@@ -42,6 +42,7 @@ export class ReaderStore {
   // Cached state
   currentChapterRender: MarkdownResult | null = null;
   tocInfo: { navItems: FlatNavItem[]; tocBase: string } | null = null;
+  private labelByIndex: Map<number, string> = new Map();
 
   constructor(private bookLibraryStore: BookLibraryStore) {
     makeObservable(this, {
@@ -92,6 +93,20 @@ export class ReaderStore {
   private async loadTocOnce() {
     if (!this.epub || this.tocInfo) return;
     this.tocInfo = await this.getTocInfo();
+
+    // Build the spine-index → label cache
+    if (this.tocInfo) {
+      const { navItems, tocBase } = this.tocInfo;
+      this.labelByIndex.clear();
+
+      for (const navItem of navItems) {
+        const resolvedPath = resolveTocHref(tocBase, navItem.href);
+        const chapterIndex = this.findChapterIndexByHref(navItem.href);
+        if (chapterIndex !== -1) {
+          this.labelByIndex.set(chapterIndex, navItem.label);
+        }
+      }
+    }
   }
 
   async handleLoadBook(file: File) {
@@ -225,6 +240,7 @@ export class ReaderStore {
     this.isSidebarOpen = false;
     this.currentChapterRender = null;
     this.tocInfo = null;
+    this.labelByIndex.clear();
   }
 
   // UI state management
@@ -331,21 +347,7 @@ export class ReaderStore {
   }
 
   get currentChapterTitle() {
-    if (!this.currentChapter || !this.tocInfo) return null;
-
-    const { navItems, tocBase } = this.tocInfo;
-    const chapterPath = this.currentChapter.path;
-
-    // Find matching nav item for the chapter
-    const matchingItem = navItems.find((item) => {
-      const resolvedPath = resolveTocHref(tocBase, item.href);
-      return (
-        chapterPath === resolvedPath ||
-        (resolvedPath && chapterPath.endsWith(resolvedPath))
-      );
-    });
-
-    return matchingItem?.label || null;
+    return this.chapterLabel(this.currentChapterIndex);
   }
 
   get navItems() {
@@ -387,6 +389,28 @@ export class ReaderStore {
     return matchingItem?.label || null;
   }
 
+  private chapterLabel(idx: number): string | null {
+    if (!this.labelByIndex.size) return null;
+
+    // Check for exact match first
+    const exactMatch = this.labelByIndex.get(idx);
+    if (exactMatch !== undefined) {
+      return exactMatch;
+    }
+
+    // Walk backwards to find the nearest earlier chapter with a label
+    for (let i = idx - 1; i >= 0; i--) {
+      const label = this.labelByIndex.get(i);
+      if (label !== undefined) {
+        // Memoize this result for future lookups
+        this.labelByIndex.set(idx, label);
+        return label;
+      }
+    }
+
+    return null;
+  }
+
   findChapterIndexByHref(href: string): number {
     const hrefPath = href.split("#")[0] || "";
     const tocBasePath = this.epub?.opf.base || "";
@@ -406,20 +430,16 @@ export class ReaderStore {
   async updatePageTitle(): Promise<void> {
     if (!this.epub || !this.currentChapter) return;
 
-    // Get chapter title from TOC
-    const chapterTitle = await this.getChapterTitleFromToc(
-      this.currentChapter.path,
-    );
+    // Get chapter title using the new chapterLabel method
+    const chapterTitle = this.chapterLabel(this.currentChapterIndex);
     const bookTitle = this.metadata.title || "Unknown Book";
 
     // Update document title
     if (chapterTitle) {
       document.title = `${chapterTitle} | ${bookTitle}`;
     } else {
-      // Fallback to chapter filename if no TOC entry
-      const chapterName =
-        this.currentChapter.name || `Chapter ${this.currentChapterIndex + 1}`;
-      document.title = `${chapterName} | ${bookTitle}`;
+      // If no chapter label found, only show book title
+      document.title = bookTitle;
     }
   }
 }
