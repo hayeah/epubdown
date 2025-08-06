@@ -1,7 +1,7 @@
 import parse, { type DOMNode, Element, domToReact } from "html-react-parser";
 import { marked } from "marked";
 import type React from "react";
-import { Footnote, Image } from "./MarkdownComponents";
+import { Footnote, Image, InternalLink } from "./MarkdownComponents";
 
 export async function markdownToReact(
   markdown: string,
@@ -51,6 +51,16 @@ export async function markdownToReact(
             <Footnote href={href || ""} id={id} className={className}>
               {children}
             </Footnote>
+          );
+        }
+
+        if (tag === "a") {
+          const { href, class: className } = domNode.attribs;
+          const children = domToReact(domNode.children as DOMNode[]);
+          return (
+            <InternalLink href={href || ""} className={className}>
+              {children}
+            </InternalLink>
           );
         }
       }
