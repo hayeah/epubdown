@@ -12,11 +12,7 @@ export interface BookMetadata {
 }
 
 export class BookDatabase {
-  private db: SQLiteDB;
-
-  private constructor(db: SQLiteDB) {
-    this.db = db;
-  }
+  constructor(public readonly db: SQLiteDB) {}
 
   static async create(db: SQLiteDB): Promise<BookDatabase> {
     return new BookDatabase(db);

@@ -20,7 +20,7 @@ export class BookLibraryStore {
   isDragging = false;
   loadBooksDebounced: DebouncedFunc<() => void>;
 
-  private constructor(
+  constructor(
     private readonly blobStore: BlobStore,
     private readonly bookDb: BookDatabase,
     private readonly sqliteDb: SQLiteDB,

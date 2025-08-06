@@ -37,14 +37,13 @@ export class ReaderStore {
   converter: ContentToMarkdown | null = null;
 
   // Dependencies
-  private bookLibraryStore: BookLibraryStore | null = null;
   private navigate: NavigateFunction | null = null;
 
   // Cached state
   currentChapterRender: MarkdownResult | null = null;
   tocInfo: { navItems: FlatNavItem[]; tocBase: string } | null = null;
 
-  constructor() {
+  constructor(private bookLibraryStore: BookLibraryStore) {
     makeObservable(this, {
       epub: observable,
       chapters: observable,
@@ -74,10 +73,6 @@ export class ReaderStore {
       navItems: computed,
       tocBase: computed,
     });
-  }
-
-  setBookLibraryStore(bookLibraryStore: BookLibraryStore): void {
-    this.bookLibraryStore = bookLibraryStore;
   }
 
   setNavigate(navigate: NavigateFunction): void {
@@ -275,10 +270,6 @@ export class ReaderStore {
     bookId: string,
     chapterIndex: number,
   ): Promise<void> {
-    if (!this.bookLibraryStore) {
-      throw new Error("BookLibraryStore not set");
-    }
-
     // Check if we're already at the requested book and chapter
     if (
       this.currentBookId === bookId &&
