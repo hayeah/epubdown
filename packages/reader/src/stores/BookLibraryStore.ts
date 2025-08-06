@@ -229,6 +229,13 @@ export class BookLibraryStore {
     return `${cleaned}-${timestamp}`;
   }
 
+  focusSearchBar(): void {
+    const input = document.querySelector<HTMLInputElement>(".search-bar-input");
+    if (input) {
+      input.focus();
+    }
+  }
+
   async close(): Promise<void> {
     this.loadBooksDebounced.cancel();
     this.blobStore.close();

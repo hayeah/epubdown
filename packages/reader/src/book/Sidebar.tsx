@@ -14,19 +14,6 @@ export const Sidebar = observer(({ children }: SidebarProps) => {
   const readerStore = useReaderStore();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const { isSidebarOpen: isOpen } = readerStore;
-  // Keyboard shortcut handler
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+Shift+S (Mac) or Ctrl+Shift+S (Windows/Linux)
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "s") {
-        e.preventDefault();
-        readerStore.toggleSidebar();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [readerStore]);
 
   // Click outside handler
   useEffect(() => {

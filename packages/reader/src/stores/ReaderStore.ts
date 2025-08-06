@@ -13,6 +13,11 @@ import {
 } from "mobx";
 import { markdownToReact } from "../markdownToReact";
 import { resolveTocHref } from "../utils/pathUtils";
+import {
+  copyToClipboard,
+  formatSelectionWithContext,
+  getSelectionContext,
+} from "../utils/selectionUtils";
 import type { BookLibraryStore } from "./BookLibraryStore";
 
 export interface MarkdownResult {
@@ -250,6 +255,18 @@ export class ReaderStore {
 
   toggleSidebar() {
     this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  copySelectionWithContext() {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return;
+
+    const context = getSelectionContext(selection);
+    const formatted = formatSelectionWithContext(
+      this.metadata.title || "Unknown Book",
+      context,
+    );
+    copyToClipboard(formatted);
   }
 
   // Navigation methods

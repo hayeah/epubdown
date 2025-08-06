@@ -9,11 +9,6 @@ import { Sidebar } from "./book/Sidebar";
 import { TableOfContents } from "./book/TableOfContents";
 import { useReadingProgress } from "./stores/ReadingProgressStore";
 import { useReaderStore } from "./stores/RootStore";
-import {
-  copyToClipboard,
-  formatSelectionWithContext,
-  getSelectionContext,
-} from "./utils/selectionUtils";
 
 export const ReaderPage = observer(() => {
   const readerStore = useReaderStore();
@@ -52,34 +47,8 @@ export const ReaderPage = observer(() => {
   }, [match, params?.bookId, location, readerStore]);
 
   const handleCopyWithContext = useCallback(() => {
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed) return;
-
-    const context = getSelectionContext(selection);
-    const formatted = formatSelectionWithContext(
-      metadata.title || "Unknown Book",
-      context,
-    );
-    copyToClipboard(formatted);
-  }, [metadata.title]);
-
-  // Keyboard shortcut for copy with context
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+Shift+C (Mac) or Ctrl+Shift+C (Windows/Linux)
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        e.shiftKey &&
-        e.key.toLowerCase() === "c"
-      ) {
-        e.preventDefault();
-        handleCopyWithContext();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleCopyWithContext]);
+    readerStore.copySelectionWithContext();
+  }, [readerStore]);
 
   // Not a reader route
   if (!match) {
