@@ -64,6 +64,20 @@ export class BookDatabase {
     return results.rows.map(this.rowToBookMetadata);
   }
 
+  async searchBooks(query: string): Promise<BookMetadata[]> {
+    if (!query.trim()) {
+      return this.getAllBooks();
+    }
+
+    const searchPattern = `%${query.toLowerCase()}%`;
+    const results = await this.db.query(
+      "SELECT * FROM books WHERE LOWER(title) LIKE ? ORDER BY created_at DESC",
+      [searchPattern],
+    );
+
+    return results.rows.map(this.rowToBookMetadata);
+  }
+
   async updateLastOpened(id: string): Promise<void> {
     await this.db.exec("UPDATE books SET last_opened_at = ? WHERE id = ?", [
       Date.now(),

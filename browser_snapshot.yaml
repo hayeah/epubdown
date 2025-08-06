@@ -1,0 +1,37 @@
+### Console messages
+- [DEBUG] [vite] connecting... @ http://localhost:5174/@vite/client:788
+- [DEBUG] [vite] connected. @ http://localhost:5174/@vite/client:911
+- [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/rea...
+- [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://loca...
+
+### Page state
+- Page URL: http://localhost:5174/
+- Page Title: Vite + React + TS
+- Page Snapshot:
+```yaml
+- generic [ref=e3]:
+  - heading "My Library" [level=1] [ref=e4]
+  - generic [active] [ref=e6] [cursor=pointer]:
+    - button "Choose File" [ref=e7]
+    - img [ref=e8] [cursor=pointer]
+    - paragraph [ref=e9] [cursor=pointer]: Click to select or drag and drop EPUB files
+    - paragraph [ref=e10] [cursor=pointer]: You can upload multiple files at once
+  - generic [ref=e11]:
+    - generic [ref=e23]:
+      - button "Anatomy of Melancholy The Anatomy of Melancholy Robert Burton.epub" [ref=e24]:
+        - heading "Anatomy of Melancholy" [level=3] [ref=e25]
+        - paragraph [ref=e26]: The Anatomy of Melancholy Robert Burton.epub
+      - generic [ref=e27]:
+        - paragraph [ref=e28]: 10.4 MB
+        - paragraph [ref=e29]: "Added: 8/5/2025"
+      - button "Delete" [ref=e30]
+    - generic [ref=e32]:
+      - 'button "The Odyssey: The Fitzgerald Translation The Odyssey (Robert Fitzgerald tr) (Homer) (Z-Library).epub" [ref=e33]':
+        - 'heading "The Odyssey: The Fitzgerald Translation" [level=3] [ref=e34]'
+        - paragraph [ref=e35]: The Odyssey (Robert Fitzgerald tr) (Homer) (Z-Library).epub
+      - generic [ref=e36]:
+        - paragraph [ref=e37]: 0.6 MB
+        - paragraph [ref=e38]: "Added: 8/5/2025"
+        - paragraph [ref=e39]: "Last opened: 8/5/2025"
+      - button "Delete" [ref=e40]
+```
