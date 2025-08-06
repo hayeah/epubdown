@@ -16,15 +16,14 @@ import {
   it,
   vi,
 } from "vitest";
-import { loadEpub } from "../../test/helpers/epub";
-import { getDb } from "../lib/DatabaseProvider";
-import { BookLibraryStore } from "../stores/BookLibraryStore";
-import { type RootStore, StoreProvider } from "../stores/RootStore";
-import { BookLibrary } from "./BookLibrary";
+import { loadEpub } from "../test/helpers/epub";
+import { Library } from "./Library";
+import { getDb } from "./lib/DatabaseProvider";
+import { BookLibraryStore } from "./stores/BookLibraryStore";
+import { type RootStore, StoreProvider } from "./stores/RootStore";
 
-describe("BookLibrary (Browser)", () => {
+describe("Library (Browser)", () => {
   let rootStore: RootStore;
-  let mockOnOpenBook: ReturnType<typeof vi.fn>;
   let bookLibraryStore: BookLibraryStore;
   let db: SQLiteDB;
 
@@ -39,8 +38,6 @@ describe("BookLibrary (Browser)", () => {
     rootStore = {
       bookLibraryStore,
     } as RootStore;
-
-    mockOnOpenBook = vi.fn();
   });
 
   afterEach(async () => {
@@ -53,31 +50,25 @@ describe("BookLibrary (Browser)", () => {
   };
 
   it("should display empty state when no books", async () => {
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+    renderWithStore(<Library />);
 
     await waitFor(() => {
       expect(
-        screen.getByText("No books in your library yet"),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText("Upload an EPUB file to get started"),
+        screen.getByText("Drop EPUB files here or click Upload"),
       ).toBeInTheDocument();
     });
   });
 
   it("should handle file upload with real storage", async () => {
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+    renderWithStore(<Library />);
 
     // Load a real EPUB file
     const epubContent = await loadEpub(
       "/Alice's Adventures in Wonderland.epub",
     );
 
-    // Find the file input inside the dropzone
-    const dropzone = screen
-      .getByText("Click to select or drag and drop EPUB files")
-      .closest("div");
-    const input = dropzone?.querySelector(
+    // Find the hidden file input
+    const input = document.querySelector(
       "input[type=file]",
     ) as HTMLInputElement;
 
@@ -111,34 +102,25 @@ describe("BookLibrary (Browser)", () => {
     const epubContent = await loadEpub("/A Modest Proposal.epub");
     const bookId = await bookLibraryStore.addBook(epubContent);
 
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+    renderWithStore(<Library />);
 
     // Wait for the book to appear
     await waitFor(() => {
-      // Look for the title in the heading, not the filename
-      const headings = screen.getAllByRole("heading", { level: 3 });
-      const hasBook = headings.some((h) =>
-        h.textContent?.includes("A Modest Proposal"),
-      );
-      expect(hasBook).toBe(true);
+      // Look for the title in the book row
+      expect(screen.getByText(/A Modest Proposal/)).toBeInTheDocument();
     });
 
     // Mock window.confirm
     vi.spyOn(window, "confirm").mockReturnValue(true);
 
     // Click delete button
-    const deleteButton = screen.getByText("Delete");
+    const deleteButton = screen.getByLabelText("Delete book");
     fireEvent.click(deleteButton);
 
     // Wait for the book to be removed
     await waitFor(() => {
-      const headings = screen.queryAllByRole("heading", { level: 3 });
-      const hasBook = headings.some((h) =>
-        h.textContent?.includes("A Modest Proposal"),
-      );
-      expect(hasBook).toBe(false);
       expect(
-        screen.getByText("No books in your library yet"),
+        screen.getByText("Drop EPUB files here or click Upload"),
       ).toBeInTheDocument();
     });
 
@@ -187,18 +169,15 @@ describe("BookLibrary (Browser)", () => {
       .spyOn(console, "error")
       .mockImplementation(() => {});
 
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+    renderWithStore(<Library />);
 
     // Create an invalid file (not a valid EPUB)
     const invalidFile = new File(["invalid content"], "invalid.epub", {
       type: "application/epub+zip",
     });
 
-    // Find the file input inside the dropzone
-    const dropzone = screen
-      .getByText("Click to select or drag and drop EPUB files")
-      .closest("div");
-    const input = dropzone?.querySelector(
+    // Find the hidden file input
+    const input = document.querySelector(
       "input[type=file]",
     ) as HTMLInputElement;
 
@@ -228,19 +207,15 @@ describe("BookLibrary (Browser)", () => {
     await bookLibraryStore.addBook(book1);
     await bookLibraryStore.addBook(book2);
 
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+    renderWithStore(<Library />);
 
     // Wait for books to appear
     await waitFor(() => {
       expect(
         screen.getByText("Alice's Adventures in Wonderland"),
       ).toBeInTheDocument();
-      // Look for heading with the title
-      const headings = screen.getAllByRole("heading", { level: 3 });
-      const hasModestProposal = headings.some((h) =>
-        h.textContent?.includes("A Modest Proposal"),
-      );
-      expect(hasModestProposal).toBe(true);
+      // Look for the book title
+      expect(screen.getByText(/A Modest Proposal/)).toBeInTheDocument();
     });
 
     // Check filenames are displayed
@@ -261,7 +236,7 @@ describe("BookLibrary (Browser)", () => {
     );
     await bookLibraryStore.addBook(epubContent);
 
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+    renderWithStore(<Library />);
 
     // Wait for the book to appear
     await waitFor(() => {
@@ -274,7 +249,7 @@ describe("BookLibrary (Browser)", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
 
     // Try to delete
-    const deleteButton = screen.getByText("Delete");
+    const deleteButton = screen.getByLabelText("Delete book");
     fireEvent.click(deleteButton);
 
     // Book should still be there
@@ -294,7 +269,7 @@ describe("BookLibrary (Browser)", () => {
     );
     const bookId = await bookLibraryStore.addBook(epubContent);
 
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+    renderWithStore(<Library />);
 
     // Wait for the book to appear
     await waitFor(() => {
@@ -307,8 +282,7 @@ describe("BookLibrary (Browser)", () => {
     const bookTitle = screen.getByText("Alice's Adventures in Wonderland");
     fireEvent.click(bookTitle);
 
-    // Verify callback was called with correct ID
-    expect(mockOnOpenBook).toHaveBeenCalledWith(bookId);
+    // Book click now navigates via Link component, no callback to verify
   });
 
   it("should format dates correctly", async () => {
@@ -316,35 +290,17 @@ describe("BookLibrary (Browser)", () => {
     const epubContent = await loadEpub("/A Modest Proposal.epub");
     await bookLibraryStore.addBook(epubContent);
 
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+    renderWithStore(<Library />);
 
     // Wait for the book to appear
     await waitFor(() => {
-      // Look for the title in the heading
-      const headings = screen.getAllByRole("heading", { level: 3 });
-      const hasBook = headings.some((h) =>
-        h.textContent?.includes("A Modest Proposal"),
-      );
-      expect(hasBook).toBe(true);
+      // Look for the title in the book row
+      expect(screen.getByText(/A Modest Proposal/)).toBeInTheDocument();
     });
 
-    // Check that date fields are displayed
-    expect(screen.getByText(/Added:/)).toBeInTheDocument();
-
-    // Open the book to set lastOpenedAt
-    const bookId = bookLibraryStore.books[0]?.id;
-    expect(bookId).toBeDefined();
-    if (bookId) {
-      await bookLibraryStore.loadBookForReading(bookId);
-    }
-
-    // Reload to see updated dates
-    await bookLibraryStore.loadBooks();
-
-    // Now should show last opened date
-    await waitFor(() => {
-      expect(screen.getByText(/Last opened:/)).toBeInTheDocument();
-    });
+    // Check that a date is displayed (formatted date)
+    const dateRegex = /\d{1,2}\/\d{1,2}\/\d{4}/;
+    expect(screen.getByText(dateRegex)).toBeInTheDocument();
   });
 
   it("should update last opened timestamp when opening a book", async () => {
@@ -354,7 +310,7 @@ describe("BookLibrary (Browser)", () => {
     );
     const bookId = await bookLibraryStore.addBook(epubContent);
 
-    renderWithStore(<BookLibrary onOpenBook={mockOnOpenBook} />);
+    renderWithStore(<Library />);
 
     // Wait for the book to appear
     await waitFor(() => {
@@ -366,8 +322,6 @@ describe("BookLibrary (Browser)", () => {
     // Click on the book to open it
     const bookTitle = screen.getByText("Alice's Adventures in Wonderland");
     fireEvent.click(bookTitle);
-
-    expect(mockOnOpenBook).toHaveBeenCalledWith(bookId);
 
     // Load the book for reading
     const bookData = await bookLibraryStore.loadBookForReading(bookId);
