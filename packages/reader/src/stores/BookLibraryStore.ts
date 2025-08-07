@@ -3,6 +3,7 @@ import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import { debounce } from "lodash";
 import type { DebouncedFunc } from "lodash";
 import { makeAutoObservable, runInAction } from "mobx";
+import type { ErrorItem } from "../components/ErrorFlash";
 import { BlobStore } from "../lib/BlobStore";
 import { BookDatabase, type BookMetadata } from "../lib/BookDatabase";
 import { getDb } from "../lib/providers";
@@ -18,6 +19,7 @@ export class BookLibraryStore {
   selectedBookId: number | null = null;
   uploadProgress: number | null = null;
   isDragging = false;
+  uploadErrors: ErrorItem[] = [];
   loadBooksDebounced: DebouncedFunc<() => void>;
 
   constructor(
@@ -96,13 +98,33 @@ export class BookLibraryStore {
     this.uploadProgress = progress;
   }
 
+  addUploadError(errorMsg: string, errorDetail: string) {
+    const errorId = `error-${Date.now()}-${Math.random()}`;
+    this.uploadErrors.push({
+      id: errorId,
+      errorMsg,
+      errorDetail,
+    });
+  }
+
+  dismissUploadError(id: string) {
+    this.uploadErrors = this.uploadErrors.filter((e) => e.id !== id);
+  }
+
+  dismissAllUploadErrors() {
+    this.uploadErrors = [];
+  }
+
   async handleFiles(files: File[]) {
     const epubFiles = files.filter((file) =>
       file.name.toLowerCase().endsWith(".epub"),
     );
 
     if (epubFiles.length === 0) {
-      alert("Please select or drop EPUB files only");
+      this.addUploadError(
+        "Invalid files",
+        "Please select or drop EPUB files only",
+      );
       return;
     }
 
@@ -110,6 +132,7 @@ export class BookLibraryStore {
     const startTime = Date.now();
     let processedCount = 0;
     const totalFiles = epubFiles.length;
+    let hasErrors = false;
 
     // Show progress after 300ms delay
     const progressTimeout = setTimeout(() => {
@@ -130,7 +153,10 @@ export class BookLibraryStore {
         });
       } catch (error) {
         console.error("Failed to add book:", error);
-        alert(`Failed to add "${file.name}": ${(error as Error).message}`);
+        hasErrors = true;
+        runInAction(() => {
+          this.addUploadError(file.name, (error as Error).message);
+        });
       }
     }
 
@@ -155,8 +181,7 @@ export class BookLibraryStore {
     // Check for duplicate
     const existing = await this.bookDb.findByHash(contentHash);
     if (existing) {
-      alert(`"${existing.title}" is already in your library.`);
-      return existing.id;
+      throw new Error(`"${existing.title}" is already in your library`);
     }
 
     // Extract metadata from epub

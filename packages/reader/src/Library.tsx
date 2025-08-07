@@ -2,6 +2,7 @@ import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useRef } from "react";
 import { useDropzone } from "react-dropzone";
+import { ErrorFlash } from "./components/ErrorFlash";
 import { BookList, SearchBar } from "./library/index";
 import { useBookLibraryStore } from "./stores/RootStore";
 
@@ -127,6 +128,15 @@ export const Library = observer(() => {
           </div>
         )}
       </div>
+
+      {/* Error Flash */}
+      {store.uploadErrors.length > 0 && (
+        <ErrorFlash
+          errors={store.uploadErrors}
+          onDismiss={() => store.dismissAllUploadErrors()}
+          onDismissError={(id) => store.dismissUploadError(id)}
+        />
+      )}
     </div>
   );
 });

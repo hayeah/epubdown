@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+/* Animation for error flash */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
 /* Book Reader Content Styles - for HTML elements within .book-reader */
 .book-reader {
   max-width: 65ch;
