@@ -69,8 +69,8 @@ export class BookDatabase {
 
     const searchPattern = `%${query.toLowerCase()}%`;
     const results = await this.db.query(
-      "SELECT * FROM books WHERE LOWER(title) LIKE ? ORDER BY created_at DESC",
-      [searchPattern],
+      "SELECT * FROM books WHERE LOWER(title) LIKE ? OR LOWER(author) LIKE ? ORDER BY created_at DESC",
+      [searchPattern, searchPattern],
     );
 
     return results.rows.map(this.rowToBookMetadata);

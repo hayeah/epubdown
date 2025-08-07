@@ -55,9 +55,9 @@ export const BookRow: React.FC<BookRowProps> = ({
           <span className="font-medium text-gray-900 truncate">
             {highlightText(book.title)}
           </span>
-          {/* <span className="text-gray-500 text-xs truncate">
-            {highlightText(book.filename)}
-          </span> */}
+          <span className="text-gray-500 text-xs truncate">
+            {highlightText(book.author ?? "")}
+          </span>
         </div>
       </div>
 
