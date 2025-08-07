@@ -15,7 +15,7 @@ export class BookLibraryStore {
   books: BookMetadata[] = [];
   isLoading = false;
   searchQuery = "";
-  selectedBookId: string | null = null;
+  selectedBookId: number | null = null;
   uploadProgress: number | null = null;
   isDragging = false;
   loadBooksDebounced: DebouncedFunc<() => void>;
@@ -84,7 +84,7 @@ export class BookLibraryStore {
     this.searchQuery = query;
   }
 
-  setSelectedBookId(bookId: string | null) {
+  setSelectedBookId(bookId: number | null) {
     this.selectedBookId = bookId;
   }
 
@@ -144,28 +144,24 @@ export class BookLibraryStore {
     }
   }
 
-  async addBook(file: File): Promise<string> {
+  async addBook(file: File): Promise<number> {
     // Parse the EPUB to get metadata
     const arrayBuffer = await file.arrayBuffer();
     const epub = await EPub.fromZip(arrayBuffer);
 
-    // Generate a clean ID from filename
-    const bookId = this.generateBookId(file.name);
-    const blobStoreKey = `book-${bookId}`;
-
     // Extract metadata from epub
     const epubMetadata = epub.metadata.toJSON();
 
-    // Store the book file
-    await this.blobStore.put(blobStoreKey, file);
-
-    // Store metadata in SQLite
-    await this.bookDb.addBook({
-      id: bookId,
+    // Store metadata in SQLite and get auto-generated ID
+    const bookId = await this.bookDb.addBook({
       title: epubMetadata.title || file.name,
       filename: file.name,
       fileSize: file.size,
     });
+
+    // Store the book file using numeric ID
+    const blobStoreKey = `book-${bookId}`;
+    await this.blobStore.put(blobStoreKey, file);
 
     // Reload books list with debounce
     this.loadBooksDebounced();
@@ -173,7 +169,7 @@ export class BookLibraryStore {
     return bookId;
   }
 
-  async deleteBook(bookId: string) {
+  async deleteBook(bookId: number) {
     const book = await this.bookDb.getBook(bookId);
     if (!book) return;
 
@@ -193,7 +189,7 @@ export class BookLibraryStore {
   }
 
   async loadBookForReading(
-    bookId: string,
+    bookId: number,
   ): Promise<{ blob: Blob; metadata: BookMetadata } | null> {
     const metadata = await this.bookDb.getBook(bookId);
     if (!metadata) return null;
@@ -213,20 +209,6 @@ export class BookLibraryStore {
       blob,
       metadata,
     };
-  }
-
-  private generateBookId(filename: string): string {
-    // Remove file extension and clean up filename
-    const nameWithoutExt = filename.replace(/\.epub$/i, "");
-    // Replace non-alphanumeric characters with hyphens
-    const cleaned = nameWithoutExt
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
-
-    // Add timestamp to ensure uniqueness
-    const timestamp = Date.now().toString(36);
-    return `${cleaned}-${timestamp}`;
   }
 
   focusSearchBar(): void {

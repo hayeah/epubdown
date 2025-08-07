@@ -2,7 +2,7 @@ import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import { base64ToUint8Array, uint8ArrayToBase64 } from "./base64";
 
 export interface BookMetadata {
-  id: string;
+  id: number;
   title: string;
   filename: string;
   fileSize: number;
@@ -18,11 +18,12 @@ export class BookDatabase {
     return new BookDatabase(db);
   }
 
-  async addBook(book: Omit<BookMetadata, "createdAt">): Promise<void> {
+  async addBook(book: Omit<BookMetadata, "id" | "createdAt">): Promise<number> {
     const sql = `
       INSERT INTO books (
-        id, title, filename, file_size, created_at, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?)
+        title, filename, file_size, created_at, metadata
+      ) VALUES (?, ?, ?, ?, ?)
+      RETURNING id
     `;
 
     // Convert Uint8Array to base64 string for SQLite storage
@@ -31,17 +32,21 @@ export class BookDatabase {
       metadataBase64 = uint8ArrayToBase64(book.metadata);
     }
 
-    await this.db.exec(sql, [
-      book.id,
+    const result = await this.db.query<{ id: number }>(sql, [
       book.title,
       book.filename,
       book.fileSize,
       Date.now(),
       metadataBase64,
     ]);
+
+    if (!result.rows[0]) {
+      throw new Error("Failed to get auto-generated book ID");
+    }
+    return result.rows[0].id;
   }
 
-  async getBook(id: string): Promise<BookMetadata | null> {
+  async getBook(id: number): Promise<BookMetadata | null> {
     const result = await this.db.query("SELECT * FROM books WHERE id = ?", [
       id,
     ]);
@@ -74,14 +79,14 @@ export class BookDatabase {
     return results.rows.map(this.rowToBookMetadata);
   }
 
-  async updateLastOpened(id: string): Promise<void> {
+  async updateLastOpened(id: number): Promise<void> {
     await this.db.exec("UPDATE books SET last_opened_at = ? WHERE id = ?", [
       Date.now(),
       id,
     ]);
   }
 
-  async deleteBook(id: string): Promise<void> {
+  async deleteBook(id: number): Promise<void> {
     await this.db.exec("DELETE FROM books WHERE id = ?", [id]);
   }
 

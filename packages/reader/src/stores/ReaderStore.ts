@@ -33,7 +33,7 @@ export class ReaderStore {
   chapters: XMLFile[] = [];
   metadata: Record<string, any> = {};
   currentChapterIndex = 0;
-  currentBookId: string | null = null;
+  currentBookId: number | null = null;
 
   // UI state
   isSidebarOpen = false;
@@ -275,7 +275,7 @@ export class ReaderStore {
     const match = location.match(/\/book\/([^\/]+)(?:\/(\d+))?/);
     if (!match || !match[1]) return;
 
-    const bookId = match[1];
+    const bookId = Number(match[1]);
     const chapterIndex = match[2] ? Number(match[2]) : 0;
 
     // Load book and chapter
@@ -300,7 +300,7 @@ export class ReaderStore {
   }
 
   async loadBookAndChapter(
-    bookId: string,
+    bookId: number,
     chapterIndex: number,
   ): Promise<void> {
     // Check if we're already at the requested book and chapter

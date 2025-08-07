@@ -8,8 +8,9 @@ export async function runMigrations(db: SQLiteDB): Promise<void> {
 
   const migration001 = `
     CREATE TABLE IF NOT EXISTS books (
-      id TEXT PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
+      filename TEXT,
       file_size INTEGER NOT NULL,
       created_at INTEGER NOT NULL,
       last_opened_at INTEGER,
@@ -21,14 +22,7 @@ export async function runMigrations(db: SQLiteDB): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_books_title ON books(title);
   `;
 
-  const migration002 = `
-    ALTER TABLE books ADD COLUMN filename TEXT;
-  `;
-
-  await migrator.up([
-    { name: "001_create_books_table", up: migration001 },
-    { name: "002_add_filename_column", up: migration002 },
-  ]);
+  await migrator.up([{ name: "001_create_books_table", up: migration001 }]);
 }
 
 /**

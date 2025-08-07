@@ -121,7 +121,7 @@ describe("BookLibraryStore", () => {
   });
 
   it("should return null when loading non-existent book", async () => {
-    const result = await store.loadBookForReading("non-existent-id");
+    const result = await store.loadBookForReading(999999);
     expect(result).toBeNull();
   });
 });

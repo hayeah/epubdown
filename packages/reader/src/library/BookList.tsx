@@ -5,7 +5,7 @@ import { BookRow } from "./BookRow";
 
 export const BookList = observer(() => {
   const store = useBookLibraryStore();
-  const handleDelete = (bookId: string, event: React.MouseEvent) => {
+  const handleDelete = (bookId: number, event: React.MouseEvent) => {
     event.stopPropagation();
     if (confirm("Are you sure you want to delete this book?")) {
       store.deleteBook(bookId);
