@@ -52,6 +52,12 @@ export const BookRow: React.FC<BookRowProps> = ({
       {/* Title and Author */}
       <div className="flex-1 min-w-0 pr-4">
         <div className="flex items-baseline gap-2">
+          {!book.lastOpenedAt && (
+            <span
+              className="inline-block w-2 h-2 rounded-full bg-blue-300 shrink-0"
+              aria-label="Unread"
+            />
+          )}
           <span className="font-medium text-gray-900 truncate">
             {highlightText(book.title)}
           </span>

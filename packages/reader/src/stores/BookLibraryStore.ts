@@ -218,6 +218,14 @@ export class BookLibraryStore {
     // Update last opened timestamp
     await this.bookDb.updateLastOpened(bookId);
 
+    // Update in-memory book metadata
+    runInAction(() => {
+      const book = this.books.find((b) => b.id === bookId);
+      if (book) {
+        book.lastOpenedAt = Date.now();
+      }
+    });
+
     return {
       blob,
       metadata,
