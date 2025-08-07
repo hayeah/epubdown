@@ -9,6 +9,7 @@ export interface BookMetadata {
   createdAt: number;
   lastOpenedAt?: number;
   metadata?: Uint8Array;
+  contentHash: Uint8Array;
 }
 
 export class BookDatabase {
@@ -21,8 +22,8 @@ export class BookDatabase {
   async addBook(book: Omit<BookMetadata, "id" | "createdAt">): Promise<number> {
     const sql = `
       INSERT INTO books (
-        title, filename, file_size, created_at, metadata
-      ) VALUES (?, ?, ?, ?, ?)
+        title, filename, file_size, created_at, metadata, content_hash
+      ) VALUES (?, ?, ?, ?, ?, ?)
       RETURNING id
     `;
 
@@ -38,6 +39,7 @@ export class BookDatabase {
       book.fileSize,
       Date.now(),
       metadataBase64,
+      book.contentHash,
     ]);
 
     if (!result.rows[0]) {
@@ -90,6 +92,18 @@ export class BookDatabase {
     await this.db.exec("DELETE FROM books WHERE id = ?", [id]);
   }
 
+  async findByHash(hash: Uint8Array): Promise<BookMetadata | null> {
+    const result = await this.db.query(
+      "SELECT * FROM books WHERE content_hash = ?",
+      [hash],
+    );
+
+    if (result.rows.length === 0) return null;
+
+    const row = result.rows[0];
+    return this.rowToBookMetadata(row);
+  }
+
   private rowToBookMetadata(row: any): BookMetadata {
     // Convert base64 string back to Uint8Array if metadata exists
     let metadataBytes = undefined;
@@ -105,6 +119,7 @@ export class BookDatabase {
       createdAt: row.created_at,
       lastOpenedAt: row.last_opened_at,
       metadata: metadataBytes,
+      contentHash: row.content_hash,
     };
   }
 }

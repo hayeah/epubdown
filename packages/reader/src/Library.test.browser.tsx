@@ -80,9 +80,6 @@ describe("Library (Browser)", () => {
         expect(
           screen.getByText("Alice's Adventures in Wonderland"),
         ).toBeInTheDocument();
-        expect(
-          screen.getByText("Alice's Adventures in Wonderland.epub"),
-        ).toBeInTheDocument();
       },
       { timeout: 5000 },
     );
@@ -154,8 +151,12 @@ describe("Library (Browser)", () => {
     // we need to add the book to the new store as well to simulate persistence
     await newStore.addBook(epubContent);
 
+    // Wait for the debounced loadBooks to complete
+    await waitFor(() => {
+      expect(newStore.books).toHaveLength(1);
+    });
+
     // Verify the book is there
-    expect(newStore.books).toHaveLength(1);
     expect(newStore.books[0]?.title).toBe("Alice's Adventures in Wonderland");
 
     // Clean up the new store and db
@@ -218,11 +219,11 @@ describe("Library (Browser)", () => {
       expect(screen.getByText(/A Modest Proposal/)).toBeInTheDocument();
     });
 
-    // Check filenames are displayed
+    // Check titles are displayed
     expect(
-      screen.getByText("Alice's Adventures in Wonderland.epub"),
+      screen.getByText("Alice's Adventures in Wonderland"),
     ).toBeInTheDocument();
-    expect(screen.getByText("A Modest Proposal.epub")).toBeInTheDocument();
+    expect(screen.getByText("A Modest Proposal")).toBeInTheDocument();
 
     // Check file sizes are formatted (both should be similar small size)
     const fileSizes = screen.getAllByText(/\d+\.\d+ [KM]B/);

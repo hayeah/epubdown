@@ -14,12 +14,14 @@ export async function runMigrations(db: SQLiteDB): Promise<void> {
       file_size INTEGER NOT NULL,
       created_at INTEGER NOT NULL,
       last_opened_at INTEGER,
-      metadata BLOB
+      metadata BLOB,
+      content_hash BLOB UNIQUE
     );
 
     CREATE INDEX IF NOT EXISTS idx_books_created_at ON books(created_at);
     CREATE INDEX IF NOT EXISTS idx_books_last_opened_at ON books(last_opened_at);
     CREATE INDEX IF NOT EXISTS idx_books_title ON books(title);
+    CREATE INDEX IF NOT EXISTS idx_books_content_hash ON books(content_hash);
   `;
 
   await migrator.up([{ name: "001_create_books_table", up: migration001 }]);
