@@ -4,6 +4,7 @@ import { Metadata } from "./Metadata";
 import { TableOfContents } from "./TableOfContents";
 import type { XMLFile } from "./XMLFile";
 import { type DataResolver, ZipDataResolver } from "./resolvers";
+import { normalizePath } from "./utils/normalizePath";
 
 /*
  * EPUB 3.3 Required Metadata:
@@ -13,9 +14,10 @@ import { type DataResolver, ZipDataResolver } from "./resolvers";
  * - dc:language - Language of the publication
  */
 
-interface ManifestItem {
+export interface ManifestItem {
   id: string;
   href: string;
+  path: string;
   mediaType: string;
   properties?: string;
 }
@@ -104,12 +106,17 @@ export class EPub {
     if (!manifest) return [];
 
     const items = manifest.querySelectorAll("item");
-    return Array.from(items).map((item) => ({
-      id: item.getAttribute("id") || "",
-      href: item.getAttribute("href") || "",
-      mediaType: item.getAttribute("media-type") || "",
-      properties: item.getAttribute("properties") || undefined,
-    }));
+    return Array.from(items).map((item) => {
+      const href = item.getAttribute("href") || "";
+      const path = normalizePath(this.opf.base, href);
+      return {
+        id: item.getAttribute("id") || "",
+        href,
+        path,
+        mediaType: item.getAttribute("media-type") || "",
+        properties: item.getAttribute("properties") || undefined,
+      };
+    });
   }
 
   spine(linearOnly = true): SpineItem[] {
@@ -142,15 +149,19 @@ export class EPub {
       }
       result.push({
         ...spineItem,
-        manifestItem,
+        manifestItem: {
+          ...manifestItem,
+          path: manifestItem.path,
+        },
       });
     }
 
     return result;
   }
 
-  async getChapter(href: string): Promise<XMLFile | undefined> {
-    return this.opf.readXMLFile(href);
+  async getChapter(ref: string): Promise<XMLFile | undefined> {
+    // readXMLFile now handles both relative and absolute paths
+    return this.opf.readXMLFile(ref);
   }
 
   /**
@@ -175,14 +186,14 @@ export class EPub {
 
   /**
    * Convert a chapter to markdown with proper anchor ID preservation
-   * @param href The href string to load the chapter
+   * @param ref The href/path string to load the chapter
    * @returns Promise<string> The markdown content
    */
-  async chapterMarkdown(href: string): Promise<string> {
+  async chapterMarkdown(ref: string): Promise<string> {
     // Get the chapter XMLFile
-    const chapter = await this.getChapter(href);
+    const chapter = await this.getChapter(ref);
     if (!chapter) {
-      throw new Error(`Chapter not found: ${href}`);
+      throw new Error(`Chapter not found: ${ref}`);
     }
 
     // Get TOC anchor links (memoized)
@@ -192,8 +203,11 @@ export class EPub {
     const chapterPath = chapter.path;
     const keepIds = tocLinks.get(chapterPath) || new Set<string>();
 
-    // Create converter with keepIds
-    const converter = ContentToMarkdown.create({ keepIds });
+    // Create converter with keepIds and basePath for link normalization
+    const converter = ContentToMarkdown.create({
+      keepIds,
+      basePath: chapter.base,
+    });
 
     // Convert to markdown
     return await converter.convertXMLFile(chapter);

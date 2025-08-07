@@ -1,5 +1,6 @@
 // Main EPub classes
 export { EPub } from "./Epub";
+export type { ManifestItem } from "./Epub";
 export { XMLFile } from "./XMLFile";
 export { Metadata } from "./Metadata";
 export type {
@@ -16,3 +17,6 @@ export type { ConversionOptions } from "./ContentToMarkdown";
 
 // XML parsing utilities
 export { parseDocument } from "./xmlParser";
+
+// Path utilities
+export { normalizePath } from "./utils/normalizePath";

@@ -15,7 +15,9 @@ export class XMLFile extends DataResolver {
   }
 
   get path() {
-    return join(this.base, this.name);
+    const relativePath = join(this.base, this.name);
+    // Ensure the path always starts with /
+    return relativePath.startsWith("/") ? relativePath : `/${relativePath}`;
   }
 
   static async load(

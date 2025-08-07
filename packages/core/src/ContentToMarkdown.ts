@@ -1,12 +1,15 @@
 import TurndownService from "turndown";
 import type { XMLFile } from "./XMLFile";
+import { normalizePath } from "./utils/normalizePath";
 
 export interface ConversionOptions {
   keepIds?: Set<string>;
+  basePath?: string;
 }
 
 interface TurndownFactoryOptions {
   keepIds?: Set<string>;
+  basePath?: string;
 }
 
 function createTurndownService(
@@ -25,6 +28,10 @@ function createTurndownService(
 
   if (options?.keepIds && options.keepIds.size > 0) {
     addIdPreservationRules(td, options.keepIds);
+  }
+
+  if (options?.basePath) {
+    addLinkNormalizationRules(td, options.basePath);
   }
 
   return td;
@@ -118,6 +125,28 @@ function addIdPreservationRules(
 
       // Insert a span with the ID before the content
       return `<span id="${id}"></span>${content}`;
+    },
+  });
+}
+
+function addLinkNormalizationRules(
+  td: TurndownService,
+  basePath: string,
+): void {
+  // Add rule to normalize internal links to absolute paths
+  td.addRule("normalize-a-href", {
+    filter: "a",
+    replacement: (content, node) => {
+      const element = node as HTMLAnchorElement;
+      const href = element.getAttribute("href");
+
+      if (!href) {
+        return content;
+      }
+
+      // Use normalizePath which handles all special cases
+      const absolutePath = normalizePath(basePath, href);
+      return `[${content}](${absolutePath})`;
     },
   });
 }

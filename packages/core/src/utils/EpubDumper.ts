@@ -181,25 +181,23 @@ export class EpubDumper {
       index += 1;
 
       await this.time(`chapter ${index}`, async () => {
-        // Get markdown content
+        // Get markdown content using chapter.path
         const content = await this.epub.chapterMarkdown(chapter.path);
 
         // Extract title from the content (typically the first H1)
         const titleMatch = content.match(/^#\s+(.+)$/m);
         const title = titleMatch ? titleMatch[1] : "Chapter";
 
-        // Write markdown beside the original file using absolute path
-        const mdPath = `${chapter.path}.dump.md`;
+        // Write markdown beside the original file
+        // Strip leading / from archive-absolute path for filesystem operations
+        const fsRelativePath = chapter.path.slice(1)
+        const mdPath = `${fsRelativePath}.dump.md`;
         await this.writeFile(mdPath, content);
 
-        // Add to chapter list with relative path
-        const relativePath = chapter.path.startsWith(this.outputDir)
-          ? chapter.path.slice(this.outputDir.length + 1)
-          : chapter.path;
         chapterList.push({
           index,
           title: title || "Chapter",
-          path: relativePath,
+          path: chapter.path,
         });
       });
     }

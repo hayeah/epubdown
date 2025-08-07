@@ -1,11 +1,13 @@
 import { join } from "node:path";
 import type { EPub } from "./Epub";
 import { XMLFile } from "./XMLFile";
+import { normalizePath } from "./utils/normalizePath";
 import { parseXml } from "./xmlParser";
 
 export interface NavItem {
   id?: string;
   href: string;
+  path: string;
   label: string;
   subitems?: NavItem[];
 }
@@ -13,6 +15,7 @@ export interface NavItem {
 export interface FlatNavItem {
   id?: string;
   href: string;
+  path: string;
   label: string;
   level: number;
   parentHref?: string;
@@ -109,7 +112,13 @@ export class TableOfContents {
             .replace(/&/g, "&amp;")
             .replace(/"/g, "&quot;");
 
-          return `<li><a href="${escapedHref}">${escapedLabel}</a>${children}</li>`;
+          // Normalize the href to absolute path for navigation
+          const absolutePath = normalizePath(ncxFile.base, href);
+          const escapedPath = absolutePath
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;");
+
+          return `<li><a href="${escapedPath}">${escapedLabel}</a>${children}</li>`;
         })
         .join("\n");
 
@@ -163,9 +172,11 @@ export class TableOfContents {
         const id =
           fragmentIndex !== -1 ? href.substring(fragmentIndex + 1) : undefined;
 
-        // Create the nav item
+        // Create the nav item with absolute path
+        const path = normalizePath(tocFile.base, href);
         const navItem: NavItem = {
           href,
+          path,
           label,
         };
 
@@ -210,6 +221,7 @@ export class TableOfContents {
         // Create flat item without subitems
         const flatItem: FlatNavItem = {
           href: item.href,
+          path: item.path,
           label: item.label,
           level,
           parentHref,
@@ -266,14 +278,18 @@ export class TableOfContents {
       const [filePath, anchor] = href.split("#");
       if (!filePath || !anchor) continue;
 
-      // Resolve the file path relative to the TOC file
-      const resolvedPath = join(tocFile.base, filePath);
+      // Resolve the file path to absolute path
+      const resolvedPath = normalizePath(tocFile.base, filePath);
+      // Ensure it starts with /
+      const absolutePath = resolvedPath.startsWith("/")
+        ? resolvedPath
+        : `/${resolvedPath}`;
 
       // Add anchor to the set for this file
-      if (!anchorMap.has(resolvedPath)) {
-        anchorMap.set(resolvedPath, new Set());
+      if (!anchorMap.has(absolutePath)) {
+        anchorMap.set(absolutePath, new Set());
       }
-      anchorMap.get(resolvedPath)?.add(anchor);
+      anchorMap.get(absolutePath)?.add(anchor);
     }
 
     return anchorMap;

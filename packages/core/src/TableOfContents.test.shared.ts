@@ -164,7 +164,14 @@ export function createTableOfContentsTests(deps: TestDependencies) {
           expect(item).not.toHaveProperty("subitems");
 
           // Verify the shape matches FlatNavItem interface
-          const allowedKeys = ["href", "label", "level", "parentHref", "id"];
+          const allowedKeys = [
+            "href",
+            "label",
+            "level",
+            "parentHref",
+            "id",
+            "path",
+          ];
           const actualKeys = Object.keys(item);
           for (const key of actualKeys) {
             expect(allowedKeys).toContain(key);

@@ -29,7 +29,10 @@ export class EPubShortener {
       });
 
       const shortened = await anonymizer.anonymize(chapter.content);
-      await fs.writeFile(join(chapter.base, chapter.name), shortened);
+      // Write to filesystem path, not archive path
+      // chapter.base is archive-relative (like "OEBPS"), need to join with dir
+      const filePath = join(dir, chapter.base, chapter.name);
+      await fs.writeFile(filePath, shortened);
 
       // Collect image paths with their base directory
       if (this.options.stripImages) {
@@ -43,7 +46,8 @@ export class EPubShortener {
     if (this.options.stripImages) {
       for (const [imagePath, basePath] of imagePathsToDelete) {
         // Construct the full path using the base directory where the image was referenced
-        const fullPath = join(basePath, imagePath);
+        // basePath is archive-relative, need to join with dir for filesystem path
+        const fullPath = join(dir, basePath, imagePath);
         try {
           await fs.unlink(fullPath);
         } catch (err) {
