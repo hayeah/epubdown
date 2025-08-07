@@ -172,8 +172,9 @@ export class TableOfContents {
         const id =
           fragmentIndex !== -1 ? href.substring(fragmentIndex + 1) : undefined;
 
-        // Create the nav item with absolute path
-        const path = normalizePath(tocFile.base, href);
+        // Decode the href when calculating the path to handle URL-encoded characters
+        const decodedHref = decodeURIComponent(href);
+        const path = normalizePath(tocFile.base, decodedHref);
         const navItem: NavItem = {
           href,
           path,
@@ -274,8 +275,11 @@ export class TableOfContents {
       const href = link.getAttribute("href");
       if (!href) continue;
 
+      // Decode the href to handle URL-encoded characters
+      const decodedHref = decodeURIComponent(href);
+
       // Split href into file path and anchor
-      const [filePath, anchor] = href.split("#");
+      const [filePath, anchor] = decodedHref.split("#");
       if (!filePath || !anchor) continue;
 
       // Resolve the file path to absolute path

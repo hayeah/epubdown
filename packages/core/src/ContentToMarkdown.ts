@@ -146,7 +146,9 @@ function addLinkNormalizationRules(
 
       // Use normalizePath which handles all special cases
       const absolutePath = normalizePath(basePath, href);
-      return `[${content}](${absolutePath})`;
+      // Encode the path for use in markdown links
+      const encodedPath = encodeURI(absolutePath);
+      return `[${content}](${encodedPath})`;
     },
   });
 }

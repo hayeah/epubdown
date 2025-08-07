@@ -108,7 +108,8 @@ export class EPub {
     const items = manifest.querySelectorAll("item");
     return Array.from(items).map((item) => {
       const href = item.getAttribute("href") || "";
-      const path = normalizePath(this.opf.base, href);
+      const decodedHref = decodeURIComponent(href);
+      const path = normalizePath(this.opf.base, decodedHref);
       return {
         id: item.getAttribute("id") || "",
         href,

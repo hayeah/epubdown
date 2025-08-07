@@ -190,7 +190,7 @@ export class EpubDumper {
 
         // Write markdown beside the original file
         // Strip leading / from archive-absolute path for filesystem operations
-        const fsRelativePath = chapter.path.slice(1)
+        const fsRelativePath = chapter.path.slice(1);
         const mdPath = `${fsRelativePath}.dump.md`;
         await this.writeFile(mdPath, content);
 
