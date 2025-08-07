@@ -12,7 +12,6 @@ import {
   runInAction,
 } from "mobx";
 import { markdownToReact } from "../markdownToReact";
-import { resolveTocHref } from "../utils/pathUtils";
 import {
   copyToClipboard,
   formatSelectionWithContext,
@@ -46,7 +45,7 @@ export class ReaderStore {
 
   // Cached state
   currentChapterRender: MarkdownResult | null = null;
-  tocInfo: { navItems: FlatNavItem[]; tocBase: string } | null = null;
+  tocInfo: { navItems: FlatNavItem[] } | null = null;
   private labelByIndex: Map<number, string> = new Map();
 
   constructor(private bookLibraryStore: BookLibraryStore) {
@@ -77,7 +76,6 @@ export class ReaderStore {
       hasPreviousChapter: computed,
       currentChapterTitle: computed,
       navItems: computed,
-      tocBase: computed,
     });
   }
 
@@ -101,12 +99,11 @@ export class ReaderStore {
 
     // Build the spine-index → label cache
     if (this.tocInfo) {
-      const { navItems, tocBase } = this.tocInfo;
+      const { navItems } = this.tocInfo;
       this.labelByIndex.clear();
 
       for (const navItem of navItems) {
-        const resolvedPath = resolveTocHref(tocBase, navItem.href);
-        const chapterIndex = this.findChapterIndexByHref(navItem.href);
+        const chapterIndex = this.findChapterIndexByPath(navItem.path);
         if (chapterIndex !== -1) {
           this.labelByIndex.set(chapterIndex, navItem.label);
         }
@@ -276,8 +273,9 @@ export class ReaderStore {
 
   // Navigation methods
   async handleUrlChange(location: string): Promise<void> {
-    // Parse the location to extract bookId and chapterIndex
-    const match = location.match(/\/book\/([^\/]+)(?:\/(\d+))?/);
+    // Parse the location to extract bookId, chapterIndex, and fragment
+    const [pathname, fragment] = location.split("#");
+    const match = pathname?.match(/\/book\/([^\/]+)(?:\/(\d+))?/);
     if (!match || !match[1]) return;
 
     const bookId = Number(match[1]);
@@ -285,6 +283,19 @@ export class ReaderStore {
 
     // Load book and chapter
     await this.loadBookAndChapter(bookId, chapterIndex);
+
+    // Close sidebar on mobile after navigation
+    this.setSidebarOpen(false);
+
+    // Handle fragment scrolling after chapter loads
+    if (fragment) {
+      setTimeout(() => {
+        const element = document.getElementById(fragment);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    }
   }
 
   handleChapterChange(index: number) {
@@ -293,14 +304,13 @@ export class ReaderStore {
     }
   }
 
-  handleTocChapterSelect(href: string) {
+  handleTocChapterSelect(path: string) {
     if (!this.currentBookId || !this.navigate) return;
 
-    // Find chapter index from href
-    const chapterIndex = this.findChapterIndexByHref(href);
+    // Find chapter index from path
+    const chapterIndex = this.findChapterIndexByPath(path);
     if (chapterIndex !== -1) {
       this.navigate(`/book/${this.currentBookId}/${chapterIndex}`);
-      this.setSidebarOpen(false); // Close sidebar on mobile after selection
     }
   }
 
@@ -379,19 +389,13 @@ export class ReaderStore {
     return this.tocInfo?.navItems ?? [];
   }
 
-  get tocBase() {
-    return this.tocInfo?.tocBase ?? "";
-  }
-
   // TOC-related utilities
   async getTocInfo() {
     if (!this.epub) return null;
 
     const navItems = await this.epub.toc.flatNavItems();
-    const tocFile = await this.epub.toc.html();
-    const tocBase = tocFile?.base || "";
 
-    return { navItems, tocBase };
+    return { navItems };
   }
 
   async getChapterTitleFromToc(chapterPath: string): Promise<string | null> {
@@ -400,15 +404,11 @@ export class ReaderStore {
     const tocInfo = await this.getTocInfo();
     if (!tocInfo) return null;
 
-    const { navItems, tocBase } = tocInfo;
+    const { navItems } = tocInfo;
 
     // Find matching nav item for the chapter
     const matchingItem = navItems.find((item) => {
-      const resolvedPath = resolveTocHref(tocBase, item.href);
-      return (
-        chapterPath === resolvedPath ||
-        (resolvedPath && chapterPath.endsWith(resolvedPath))
-      );
+      return chapterPath === item.path;
     });
 
     return matchingItem?.label || null;
@@ -436,20 +436,45 @@ export class ReaderStore {
     return null;
   }
 
-  findChapterIndexByHref(href: string): number {
-    const hrefPath = href.split("#")[0] || "";
-    const tocBasePath = this.epub?.opf.base || "";
+  findChapterIndexByPath(path: string): number {
+    return this.chapters.findIndex((chapter) => chapter.path === path);
+  }
 
-    return this.chapters.findIndex((chapter) => {
-      const resolvedHref = hrefPath?.startsWith("/")
-        ? hrefPath
-        : `${tocBasePath}/${hrefPath}`.replace(/\/+/g, "/");
+  /**
+   * Converts an EPUB-rooted absolute path to a reader application URL.
+   *
+   * EPUB files use absolute paths from the root (e.g., "/OEBPS/chapter1.xhtml#section2")
+   * to reference other chapters. This method converts those paths to the reader's
+   * URL format which uses book ID and chapter index (e.g., "/book/123/4#section2").
+   *
+   * @param href - The EPUB-rooted absolute path, possibly URL-encoded and with fragment
+   * @returns The reader URL if the chapter is found, null otherwise
+   *
+   * @example
+   * // Input: "/OEBPS/chapter1.xhtml#section2"
+   * // Output: "/book/123/4#section2" (where 123 is book ID, 4 is chapter index)
+   *
+   * @example
+   * // Input: "/OEBPS/ch%201.xhtml" (URL-encoded space)
+   * // Output: "/book/123/2" (decodes to "/OEBPS/ch 1.xhtml" before lookup)
+   */
+  rootedHrefToBookHref(href: string): string | null {
+    if (!this.currentBookId) return null;
 
-      return (
-        chapter.path === resolvedHref ||
-        (hrefPath ? chapter.path.endsWith(hrefPath) : false)
-      );
-    });
+    // Decode the URL first
+    const decodedHref = decodeURIComponent(href);
+
+    // Split into path and fragment
+    const [pathPart, fragment] = decodedHref.split("#");
+
+    // Find chapter index for the path
+    const chapterIndex = this.findChapterIndexByPath(pathPart || "");
+
+    if (chapterIndex === -1) return null;
+
+    // Build the reader URL
+    const fragmentPart = fragment ? `#${fragment}` : "";
+    return `/book/${this.currentBookId}/${chapterIndex}${fragmentPart}`;
   }
 
   private async firstTocChapterIndex(): Promise<number> {
@@ -460,9 +485,9 @@ export class ReaderStore {
     }
 
     for (const navItem of this.tocInfo.navItems) {
-      if (!navItem.href) continue;
+      if (!navItem.path) continue;
 
-      const chapterIndex = this.findChapterIndexByHref(navItem.href);
+      const chapterIndex = this.findChapterIndexByPath(navItem.path);
       if (chapterIndex !== -1) {
         return chapterIndex;
       }

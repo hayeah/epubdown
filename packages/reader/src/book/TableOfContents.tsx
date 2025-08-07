@@ -2,18 +2,16 @@ import { ChevronLeft } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useReaderStore } from "../stores/RootStore";
-import { resolveTocHref } from "../utils/pathUtils";
 
 export const TableOfContents: React.FC = observer(() => {
   const readerStore = useReaderStore();
   const navItems = readerStore.navItems;
-  const tocBase = readerStore.tocBase;
 
   const currentChapterPath = readerStore.currentChapter?.path;
 
   const handleLinkClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
-    href: string,
+    path: string,
   ) => {
     // Allow CMD+click (Mac) or Ctrl+click (Windows/Linux) to open in new tab
     if (e.metaKey || e.ctrlKey) {
@@ -23,15 +21,12 @@ export const TableOfContents: React.FC = observer(() => {
 
     // Otherwise prevent default and use the callback
     e.preventDefault();
-    readerStore.handleTocChapterSelect(href);
+    readerStore.handleTocChapterSelect(path);
   };
 
   if (navItems.length === 0) {
     return (
-      <div className="p-4 text-gray-500">
-        No table of contents available
-        {tocBase && <div className="text-xs mt-2">TOC base: {tocBase}</div>}
-      </div>
+      <div className="p-4 text-gray-500">No table of contents available</div>
     );
   }
 
@@ -50,15 +45,13 @@ export const TableOfContents: React.FC = observer(() => {
       <div className="flex-1 overflow-y-auto p-4 bg-white">
         <ul>
           {navItems.map((item) => {
-            const href = item.href;
-            const resolvedPath = resolveTocHref(tocBase, href);
-            const isActive = currentChapterPath === resolvedPath;
+            const isActive = currentChapterPath === item.path;
 
             // Calculate indentation based on level
             const indent = item.level * 1.5; // 1.5rem per level
 
-            // Find chapter index for this href
-            const chapterIndex = readerStore.findChapterIndexByHref(href);
+            // Find chapter index for this path
+            const chapterIndex = readerStore.findChapterIndexByPath(item.path);
 
             // Generate the full URL for this chapter
             const fullHref =
@@ -70,7 +63,7 @@ export const TableOfContents: React.FC = observer(() => {
               <li key={item.href} style={{ paddingLeft: `${indent}rem` }}>
                 <a
                   href={fullHref}
-                  onClick={(e) => handleLinkClick(e, href)}
+                  onClick={(e) => handleLinkClick(e, item.path)}
                   className={`block py-1 px-2 rounded hover:bg-gray-100 transition-colors ${
                     isActive
                       ? "bg-blue-50 text-blue-600 font-medium"
