@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "../src/App";
-import { getDb } from "../src/lib/DatabaseProvider";
+import { getDb } from "../src/lib/providers";
 import { RootStore, StoreProvider } from "../src/stores/RootStore";
 
 describe("Debug App Rendering", () => {

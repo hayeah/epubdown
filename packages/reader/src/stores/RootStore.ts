@@ -1,6 +1,6 @@
 import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import { createContext, useContext } from "react";
-import { getDb } from "../lib/DatabaseProvider";
+import { getDb } from "../lib/providers";
 import type { BookLibraryStore } from "./BookLibraryStore";
 import type { ReaderStore } from "./ReaderStore";
 

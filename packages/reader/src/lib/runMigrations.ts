@@ -1,20 +1,23 @@
-import { Migrator, SQLiteDB } from "@hayeah/sqlite-browser";
+import { Migrator, type SQLiteDB } from "@hayeah/sqlite-browser";
 
 /**
  * Run database migrations
+ * Note: Migration names must be unique, but numbering is not required.
+ * Avoid numbering to make code merges easier.
  */
 export async function runMigrations(db: SQLiteDB): Promise<void> {
   const migrator = new Migrator(db);
 
-  const migration001 = `
+  const createBooksTable = `
     CREATE TABLE IF NOT EXISTS books (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
+      author TEXT,
       filename TEXT,
       file_size INTEGER NOT NULL,
       created_at INTEGER NOT NULL,
       last_opened_at INTEGER,
-      metadata BLOB,
+      metadata TEXT,
       content_hash BLOB UNIQUE
     );
 
@@ -24,15 +27,5 @@ export async function runMigrations(db: SQLiteDB): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_books_content_hash ON books(content_hash);
   `;
 
-  await migrator.up([{ name: "001_create_books_table", up: migration001 }]);
-}
-
-/**
- * Create a new database instance with migrations applied.
- * Each call creates a fresh database connection.
- */
-export async function getDb(dbName = "epubdown"): Promise<SQLiteDB> {
-  const db = await SQLiteDB.open(dbName);
-  await runMigrations(db);
-  return db;
+  await migrator.up([{ name: "create_books_table", up: createBooksTable }]);
 }

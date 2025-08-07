@@ -125,6 +125,18 @@ export class Metadata {
   }
 
   /**
+   * Creates a Metadata instance from a JSON object.
+   * The JSON should be in the format returned by toJSON().
+   */
+  static fromJSON(json: Record<string, string>): Metadata {
+    const metadata = new Metadata();
+    for (const [name, value] of Object.entries(json)) {
+      metadata.addDC(name, value);
+    }
+    return metadata;
+  }
+
+  /**
    * Returns the full structure with all values, attributes, and refinements.
    */
   toJSONFull(): Record<string, unknown> {

@@ -5,8 +5,8 @@ import type { DebouncedFunc } from "lodash";
 import { makeAutoObservable, runInAction } from "mobx";
 import { BlobStore } from "../lib/BlobStore";
 import { BookDatabase, type BookMetadata } from "../lib/BookDatabase";
-import { getDb } from "../lib/DatabaseProvider";
 import { sha256 } from "../lib/cryptoUtils";
+import { getDb } from "../lib/providers";
 
 export interface StoredBook extends BookMetadata {
   blob?: Blob;
@@ -165,8 +165,10 @@ export class BookLibraryStore {
     // Store metadata in SQLite and get auto-generated ID
     const bookId = await this.bookDb.addBook({
       title: epubMetadata.title || file.name,
+      author: epubMetadata.creator || epubMetadata.author,
       filename: file.name,
       fileSize: file.size,
+      metadata: JSON.stringify(epubMetadata),
       contentHash,
     });
 

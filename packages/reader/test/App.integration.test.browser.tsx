@@ -13,7 +13,7 @@ import {
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/App";
-import { getDb } from "../src/lib/DatabaseProvider";
+import { getDb } from "../src/lib/providers";
 import { RootStore, StoreProvider } from "../src/stores/RootStore";
 import { loadEpub } from "./helpers/epub";
 

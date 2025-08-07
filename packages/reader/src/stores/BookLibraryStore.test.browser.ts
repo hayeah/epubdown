@@ -9,7 +9,7 @@ import {
   vi,
 } from "vitest";
 import { loadEpub } from "../../test/helpers/epub";
-import { getDb } from "../lib/DatabaseProvider";
+import { getDb } from "../lib/providers";
 import { BookLibraryStore } from "./BookLibraryStore";
 import { nukeIndexedDBDatabases } from "./testUtils";
 

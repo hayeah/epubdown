@@ -1,11 +1,11 @@
-import type { SQLiteDB } from "@hayeah/sqlite-browser";
+import { SQLiteDB } from "@hayeah/sqlite-browser";
 import { tswire } from "tswire";
 import { BookLibraryStore } from "../stores/BookLibraryStore";
 import { ReaderStore } from "../stores/ReaderStore";
 import { RootStore } from "../stores/RootStore";
 import { BlobStore } from "./BlobStore";
 import { BookDatabase } from "./BookDatabase";
-import { getDb } from "./DatabaseProvider";
+import { runMigrations } from "./runMigrations";
 
 export interface StorageConfig {
   dbName: string;
@@ -17,6 +17,16 @@ export function provideStorageConfig(): StorageConfig {
     dbName: "epub",
     blobStoreName: "epub-blob",
   };
+}
+
+/**
+ * Create a new database instance with migrations applied.
+ * Each call creates a fresh database connection.
+ */
+export async function getDb(dbName = "epubdown"): Promise<SQLiteDB> {
+  const db = await SQLiteDB.open(dbName);
+  await runMigrations(db);
+  return db;
 }
 
 export async function provideSQLiteDB(cfg: StorageConfig): Promise<SQLiteDB> {

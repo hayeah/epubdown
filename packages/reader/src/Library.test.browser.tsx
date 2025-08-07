@@ -18,7 +18,7 @@ import {
 } from "vitest";
 import { loadEpub } from "../test/helpers/epub";
 import { Library } from "./Library";
-import { getDb } from "./lib/DatabaseProvider";
+import { getDb } from "./lib/providers";
 import { BookLibraryStore } from "./stores/BookLibraryStore";
 import { type RootStore, StoreProvider } from "./stores/RootStore";
 

@@ -1,14 +1,14 @@
 import type { SQLiteDB } from "@hayeah/sqlite-browser";
-import { base64ToUint8Array, uint8ArrayToBase64 } from "./base64";
 
 export interface BookMetadata {
   id: number;
   title: string;
+  author?: string;
   filename: string;
   fileSize: number;
   createdAt: number;
   lastOpenedAt?: number;
-  metadata?: Uint8Array;
+  metadata?: string; // JSON string of book metadata
   contentHash: Uint8Array;
 }
 
@@ -22,23 +22,18 @@ export class BookDatabase {
   async addBook(book: Omit<BookMetadata, "id" | "createdAt">): Promise<number> {
     const sql = `
       INSERT INTO books (
-        title, filename, file_size, created_at, metadata, content_hash
-      ) VALUES (?, ?, ?, ?, ?, ?)
+        title, author, filename, file_size, created_at, metadata, content_hash
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
       RETURNING id
     `;
 
-    // Convert Uint8Array to base64 string for SQLite storage
-    let metadataBase64 = null;
-    if (book.metadata) {
-      metadataBase64 = uint8ArrayToBase64(book.metadata);
-    }
-
     const result = await this.db.query<{ id: number }>(sql, [
       book.title,
+      book.author || null,
       book.filename,
       book.fileSize,
       Date.now(),
-      metadataBase64,
+      book.metadata || null, // Already a JSON string
       book.contentHash,
     ]);
 
@@ -105,20 +100,15 @@ export class BookDatabase {
   }
 
   private rowToBookMetadata(row: any): BookMetadata {
-    // Convert base64 string back to Uint8Array if metadata exists
-    let metadataBytes = undefined;
-    if (row.metadata) {
-      metadataBytes = base64ToUint8Array(row.metadata);
-    }
-
     return {
       id: row.id,
       title: row.title,
+      author: row.author,
       filename: row.filename,
       fileSize: row.file_size,
       createdAt: row.created_at,
       lastOpenedAt: row.last_opened_at,
-      metadata: metadataBytes,
+      metadata: row.metadata, // JSON string
       contentHash: row.content_hash,
     };
   }

@@ -5,7 +5,7 @@ import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { nukeIndexedDBDatabases } from "../stores/testUtils";
 import { BookDatabase } from "./BookDatabase";
-import { getDb } from "./DatabaseProvider";
+import { getDb } from "./providers";
 
 describe("BookDatabase", () => {
   let bookDatabase: BookDatabase;
@@ -43,7 +43,10 @@ describe("BookDatabase", () => {
 
   describe("addBook", () => {
     it("should add a book with metadata", async () => {
-      const testMetadata = new Uint8Array([1, 2, 3, 4, 5]);
+      const testMetadata = JSON.stringify({
+        title: "Test Book",
+        language: "en",
+      });
 
       const bookId = await bookDatabase.addBook({
         title: "Test Book",
@@ -276,11 +279,16 @@ describe("BookDatabase", () => {
   });
 
   describe("metadata handling", () => {
-    it("should properly encode and decode Uint8Array metadata", async () => {
-      const testMetadata = new Uint8Array([255, 128, 0, 42, 17]);
+    it("should properly store and retrieve JSON metadata", async () => {
+      const testMetadata = JSON.stringify({
+        title: "Test Book",
+        creator: "Test Author",
+        language: "en",
+      });
 
       const bookId = await bookDatabase.addBook({
         title: "Book with Metadata",
+        author: "Test Author",
         filename: "metadata-test.epub",
         fileSize: 1024,
         metadata: testMetadata,
@@ -290,8 +298,8 @@ describe("BookDatabase", () => {
       const retrieved = await bookDatabase.getBook(bookId);
 
       expect(retrieved?.metadata).toBeDefined();
-      expect(retrieved?.metadata).toBeInstanceOf(Uint8Array);
       expect(retrieved?.metadata).toEqual(testMetadata);
+      expect(retrieved?.author).toEqual("Test Author");
     });
   });
 
