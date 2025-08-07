@@ -213,4 +213,16 @@ export class EPub {
     // Convert to markdown
     return await converter.convertXMLFile(chapter);
   }
+
+  /**
+   * Calculate the SHA256 hash of the OPF file content
+   * @returns Promise<Uint8Array> The SHA256 hash as a Uint8Array
+   */
+  async opfhash(): Promise<Uint8Array> {
+    // Directly encode string to Uint8Array and pass to crypto.subtle.digest
+    const encoder = new TextEncoder();
+    const opfBytes = encoder.encode(this.opf.content);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", opfBytes);
+    return new Uint8Array(hashBuffer);
+  }
 }

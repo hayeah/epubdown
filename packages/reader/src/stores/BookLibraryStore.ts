@@ -5,7 +5,6 @@ import type { DebouncedFunc } from "lodash";
 import { makeAutoObservable, runInAction } from "mobx";
 import { BlobStore } from "../lib/BlobStore";
 import { BookDatabase, type BookMetadata } from "../lib/BookDatabase";
-import { sha256 } from "../lib/cryptoUtils";
 import { getDb } from "../lib/providers";
 
 export interface StoredBook extends BookMetadata {
@@ -148,7 +147,10 @@ export class BookLibraryStore {
   async addBook(file: File): Promise<number> {
     // Parse the EPUB to get metadata
     const arrayBuffer = await file.arrayBuffer();
-    const contentHash = await sha256(arrayBuffer);
+    const epub = await EPub.fromZip(arrayBuffer);
+
+    // Use OPF hash instead of full file hash for deduplication
+    const contentHash = await epub.opfhash();
 
     // Check for duplicate
     const existing = await this.bookDb.findByHash(contentHash);
@@ -156,8 +158,6 @@ export class BookLibraryStore {
       alert(`"${existing.title}" is already in your library.`);
       return existing.id;
     }
-
-    const epub = await EPub.fromZip(arrayBuffer);
 
     // Extract metadata from epub
     const epubMetadata = epub.metadata.toJSON();
