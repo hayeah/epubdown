@@ -1,4 +1,5 @@
 import { Route, Router, Switch } from "wouter";
+import { UploadErrorsPrototype } from "../prototype/UploadErrors";
 import { Library } from "./Library";
 import { ReaderPage } from "./ReaderPage";
 import { NotFound } from "./components/NotFound";
@@ -9,6 +10,10 @@ export function AppRouter() {
       <Switch>
         <Route path="/" component={Library} />
         <Route path="/book/:bookId/:chapterIndex?" component={ReaderPage} />
+        <Route
+          path="/prototype/upload-errors"
+          component={UploadErrorsPrototype}
+        />
         <Route>
           <NotFound />
         </Route>
