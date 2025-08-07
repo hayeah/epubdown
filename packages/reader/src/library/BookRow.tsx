@@ -2,6 +2,7 @@ import { Trash2 } from "lucide-react";
 import type React from "react";
 import { Link } from "wouter";
 import type { BookMetadata } from "../lib/BookDatabase";
+import { formatRelative } from "../utils/dateUtils";
 
 interface BookRowProps {
   book: BookMetadata;
@@ -33,15 +34,9 @@ export const BookRow: React.FC<BookRowProps> = ({
     });
   };
 
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return "";
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(1)} MB`;
-  };
-
-  const formatDate = (timestamp?: number) => {
-    if (!timestamp) return "";
-    return new Date(timestamp).toLocaleDateString();
+  const formatOpened = (last?: number, created?: number) => {
+    if (last) return formatRelative(last);
+    return "never";
   };
 
   return (
@@ -58,23 +53,18 @@ export const BookRow: React.FC<BookRowProps> = ({
               aria-label="Unread"
             />
           )}
-          <span className="font-medium text-gray-900 truncate">
+          <span className="font-medium text-gray-900 truncate flex-shrink">
             {highlightText(book.title)}
           </span>
-          <span className="text-gray-500 text-xs truncate">
+          <span className="text-gray-500 text-xs flex-shrink-0">
             {highlightText(book.author ?? "")}
           </span>
         </div>
       </div>
 
-      {/* Metadata */}
-      <div className="flex items-center gap-3 text-xs text-gray-500">
-        <span>{formatFileSize(book.fileSize)}</span>
-        <span>
-          {book.lastOpenedAt
-            ? formatDate(book.lastOpenedAt)
-            : formatDate(book.createdAt)}
-        </span>
+      {/* Last opened */}
+      <div className="text-xs text-gray-500">
+        <span>{formatOpened(book.lastOpenedAt, book.createdAt)}</span>
       </div>
 
       {/* Delete action - only visible on hover */}
