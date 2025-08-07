@@ -46,7 +46,7 @@ export const BookRow: React.FC<BookRowProps> = ({
 
   return (
     <Link
-      href={`/book/${book.id}/0`}
+      href={`/book/${book.id}`}
       className="flex items-center px-6 h-10 text-sm hover:bg-gray-50 border-b border-gray-100 cursor-pointer transition-colors duration-100 no-underline text-inherit group"
     >
       {/* Title and Author */}

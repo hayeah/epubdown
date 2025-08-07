@@ -128,13 +128,18 @@ export class ReaderStore {
       this.epub = epub;
       this.chapters = chapterArray;
       this.metadata = epub.metadata.toJSON();
-      this.currentChapterIndex = 0;
       // Initialize converter
       this.converter = ContentToMarkdown.create();
     });
 
     // Load TOC once per book
     await this.loadTocOnce();
+
+    // Set initial chapter to first TOC chapter
+    const firstTocIndex = await this.firstTocChapterIndex();
+    runInAction(() => {
+      this.currentChapterIndex = firstTocIndex;
+    });
 
     // Convert the current chapter
     await this.convertCurrentChapter();
@@ -276,7 +281,7 @@ export class ReaderStore {
     if (!match || !match[1]) return;
 
     const bookId = Number(match[1]);
-    const chapterIndex = match[2] ? Number(match[2]) : 0;
+    const chapterIndex = match[2] ? Number(match[2]) : undefined;
 
     // Load book and chapter
     await this.loadBookAndChapter(bookId, chapterIndex);
@@ -301,16 +306,8 @@ export class ReaderStore {
 
   async loadBookAndChapter(
     bookId: number,
-    chapterIndex: number,
+    chapterIndex?: number,
   ): Promise<void> {
-    // Check if we're already at the requested book and chapter
-    if (
-      this.currentBookId === bookId &&
-      this.currentChapterIndex === chapterIndex
-    ) {
-      return; // No need to update
-    }
-
     // Check if we're loading a different book
     const isNewBook = this.currentBookId !== bookId;
 
@@ -338,9 +335,20 @@ export class ReaderStore {
       });
     }
 
+    // Determine target chapter index
+    const targetChapterIndex =
+      chapterIndex !== undefined
+        ? chapterIndex
+        : await this.firstTocChapterIndex();
+
+    // Check if we're already at the requested book and chapter
+    if (!isNewBook && this.currentChapterIndex === targetChapterIndex) {
+      return; // No need to update
+    }
+
     // Set chapter only if different
-    if (this.currentChapterIndex !== chapterIndex) {
-      await this.setChapter(chapterIndex);
+    if (this.currentChapterIndex !== targetChapterIndex) {
+      await this.setChapter(targetChapterIndex);
     } else if (isNewBook) {
       // If it's a new book but same chapter index, still need to convert
       await this.convertCurrentChapter();
@@ -442,6 +450,25 @@ export class ReaderStore {
         (hrefPath ? chapter.path.endsWith(hrefPath) : false)
       );
     });
+  }
+
+  private async firstTocChapterIndex(): Promise<number> {
+    await this.loadTocOnce();
+
+    if (!this.tocInfo?.navItems?.length) {
+      return 0;
+    }
+
+    for (const navItem of this.tocInfo.navItems) {
+      if (!navItem.href) continue;
+
+      const chapterIndex = this.findChapterIndexByHref(navItem.href);
+      if (chapterIndex !== -1) {
+        return chapterIndex;
+      }
+    }
+
+    return 0;
   }
 
   async updatePageTitle(): Promise<void> {
