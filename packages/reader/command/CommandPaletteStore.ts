@@ -1,0 +1,222 @@
+import { action, computed, makeObservable, observable } from "mobx";
+import { calculatePosition, positionForSelection } from "./positioning";
+import { rankCommands } from "./search";
+import type {
+  Command,
+  CommandMode,
+  OpenMenuOpts,
+  OpenSelectionOpts,
+} from "./types";
+
+export class CommandPaletteStore {
+  // config
+  readonly showSearch = true;
+  readonly autoFocusInput = true;
+
+  // ui state
+  isOpen = false;
+  mode: CommandMode = "palette";
+  query = "";
+  selectedIndex = 0;
+  hoveredIndex: number | null = null;
+
+  // positioning state
+  anchorElement: HTMLElement | null = null;
+  position: { x: number; y: number } | null = null;
+  selectionRect: DOMRect | null = null;
+  selectionRects: DOMRect[] = [];
+  menuXY = { x: 0, y: 0 };
+  widthPx = 560; // derived per mode in setter
+
+  // commands
+  private currentCommands: Command[] = [];
+  lastAction = "";
+
+  // selection support
+  savedRange: Range | null = null;
+
+  constructor() {
+    makeObservable(this, {
+      // observable state
+      isOpen: observable,
+      mode: observable,
+      query: observable,
+      selectedIndex: observable,
+      hoveredIndex: observable,
+      menuXY: observable,
+      widthPx: observable,
+      lastAction: observable,
+
+      // computed
+      filtered: computed,
+
+      // actions
+      setQuery: action,
+      moveSelection: action,
+      selectFirst: action,
+      selectLast: action,
+      executeSelected: action,
+      touchUsage: action,
+      setHoveredIndex: action,
+      setLastAction: action,
+      openPalette: action,
+      openMenu: action,
+      openSlide: action,
+      openSelection: action,
+      close: action,
+      computeMenuXY: action,
+      bindMenuElGetter: action,
+      restoreSelection: action,
+    });
+  }
+
+  get filtered(): Command[] {
+    return rankCommands(this.currentCommands, this.query);
+  }
+
+  setQuery(q: string) {
+    this.query = q;
+    this.selectedIndex = 0;
+  }
+
+  moveSelection(delta: number) {
+    const max = Math.max(0, this.filtered.length - 1);
+    this.selectedIndex = Math.min(max, Math.max(0, this.selectedIndex + delta));
+  }
+
+  selectFirst() {
+    this.selectedIndex = 0;
+  }
+
+  selectLast() {
+    this.selectedIndex = Math.max(0, this.filtered.length - 1);
+  }
+
+  executeSelected(onClose: () => void) {
+    const cmd = this.filtered[this.selectedIndex];
+    if (!cmd) return;
+    cmd.action();
+    this.setLastAction(cmd.label);
+    this.touchUsage(cmd.id);
+    onClose();
+  }
+
+  touchUsage(id: string) {
+    const found = this.currentCommands.find((c) => c.id === id);
+    if (found) found.lastUsed = Date.now();
+  }
+
+  setHoveredIndex(index: number | null) {
+    this.hoveredIndex = index;
+  }
+
+  setLastAction(action: string) {
+    this.lastAction = action;
+  }
+
+  // open and close
+  openPalette(commands: Command[]) {
+    this.mode = "palette";
+    this.widthPx = 560;
+    this.anchorElement = null;
+    this.position = null;
+    this.selectionRect = null;
+    this.currentCommands = commands;
+    this._open();
+  }
+
+  openMenu(commands: Command[], opts: OpenMenuOpts = {}) {
+    this.mode = "menu";
+    this.widthPx = 320;
+    this.anchorElement = opts.anchorElement ?? null;
+    this.position = opts.position ?? null;
+    this.selectionRect = null;
+    this.currentCommands = commands;
+    this._open();
+  }
+
+  openSlide(commands: Command[]) {
+    this.mode = "slide";
+    this.widthPx = 480;
+    this.anchorElement = null;
+    this.position = null;
+    this.selectionRect = null;
+    this.currentCommands = commands;
+    this._open();
+  }
+
+  openSelection(commands: Command[], opts: OpenSelectionOpts) {
+    this.mode = "selection";
+    this.widthPx = 320;
+    this.savedRange = opts.range.cloneRange();
+    const rect = opts.range.getBoundingClientRect();
+    this.selectionRect = rect;
+    this.selectionRects = Array.from(opts.range.getClientRects()).filter(
+      (r) => r.width > 0 && r.height > 0,
+    );
+    this.currentCommands = commands;
+    this._open();
+  }
+
+  close() {
+    this.isOpen = false;
+    this.query = "";
+    this.hoveredIndex = null;
+    this.selectionRect = null;
+    this.selectionRects = [];
+    window.getSelection()?.removeAllRanges();
+  }
+
+  private _open() {
+    this.isOpen = true;
+    this.query = "";
+    this.selectedIndex = 0;
+    this.hoveredIndex = null;
+    // computeMenuXY will be called after the menu is rendered via useLayoutEffect
+  }
+
+  // positioning
+  computeMenuXY() {
+    const menuEl = this._menuEl?.();
+    if (!menuEl) return;
+
+    if (this.selectionRect) {
+      this.menuXY = positionForSelection(
+        this.selectionRect,
+        menuEl,
+        10,
+        "auto",
+      );
+      return;
+    }
+
+    if (this.mode === "slide") {
+      // Center horizontally and position 10px from top for slide mode
+      const menuRect = menuEl.getBoundingClientRect();
+      this.menuXY = {
+        x: (window.innerWidth - menuRect.width) / 2,
+        y: 10,
+      };
+      return;
+    }
+
+    this.menuXY = calculatePosition(
+      this.anchorElement,
+      menuEl,
+      this.position ?? undefined,
+    );
+  }
+
+  // injected by component for measurements
+  private _menuEl: (() => HTMLElement | null) | null = null;
+  bindMenuElGetter(getter: () => HTMLElement | null) {
+    this._menuEl = getter;
+  }
+
+  // selection helpers
+  restoreSelection() {
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    if (this.savedRange) sel?.addRange(this.savedRange);
+  }
+}

@@ -1,4 +1,5 @@
 import { Route, Router, Switch } from "wouter";
+import CommandPalettePage from "../pages/CommandPalettePage";
 import { UploadErrorsPrototype } from "../prototype/UploadErrors";
 import { Library } from "./Library";
 import { ReaderPage } from "./ReaderPage";
@@ -13,6 +14,10 @@ export function AppRouter() {
         <Route
           path="/prototype/upload-errors"
           component={UploadErrorsPrototype}
+        />
+        <Route
+          path="/prototype/command-palette"
+          component={CommandPalettePage}
         />
         <Route>
           <NotFound />
