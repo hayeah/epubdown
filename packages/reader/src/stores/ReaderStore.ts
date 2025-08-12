@@ -11,6 +11,10 @@ import {
   observable,
   runInAction,
 } from "mobx";
+import type { CommandPaletteStore } from "../../command/CommandPaletteStore";
+import type { Command } from "../../command/types";
+import type { AppEventSystem } from "../app/context";
+import type { EventPayload } from "../events/types";
 import { markdownToReact } from "../markdownToReact";
 import {
   copyToClipboard,
@@ -36,6 +40,7 @@ export class ReaderStore {
 
   // UI state
   isSidebarOpen = false;
+  private popoverRef: HTMLElement | null = null;
 
   // Converter
   converter: ContentToMarkdown | null = null;
@@ -48,7 +53,11 @@ export class ReaderStore {
   tocInfo: { navItems: FlatNavItem[] } | null = null;
   private labelByIndex: Map<number, string> = new Map();
 
-  constructor(private bookLibraryStore: BookLibraryStore) {
+  constructor(
+    private bookLibraryStore: BookLibraryStore,
+    private events: AppEventSystem,
+    private palette: CommandPaletteStore,
+  ) {
     makeObservable(this, {
       epub: observable,
       chapters: observable,
@@ -81,6 +90,83 @@ export class ReaderStore {
 
   setNavigate(navigate: NavigateFunction): void {
     this.navigate = navigate;
+  }
+
+  setupBindings(
+    scope: "view" | "overlay:selectionPopover" | "overlay:sidebar",
+    readerContainer?: HTMLElement,
+    sidebarElement?: () => HTMLElement | null,
+  ) {
+    if (scope === "view") {
+      return this.events.register([
+        "view:reader", // Push the layer
+        {
+          id: "reader.copyWithContext",
+          event: { kind: "key", combo: "meta+shift+c" },
+          layer: "view:reader",
+          when: () => !!this.currentChapterRender,
+          run: () => this.copySelectionWithContext(),
+        },
+        {
+          id: "reader.toggleSidebar",
+          event: { kind: "key", combo: "meta+shift+s" },
+          layer: "view:reader",
+          when: () => !!this.epub,
+          run: () => this.toggleSidebar(),
+        },
+        {
+          id: "reader.selection.openPalette",
+          event: { kind: "textSelect", container: readerContainer },
+          layer: "view:reader",
+          when: () => !!this.currentChapterRender && !!readerContainer,
+          run: (payload) => {
+            if (payload.kind !== "textSelect") return;
+            const selected = payload.text.trim();
+            if (!selected) return;
+            const cmds = this.buildSelectionCommands(selected);
+            this.palette.openSelection(cmds, { range: payload.range });
+          },
+        },
+      ]);
+    }
+
+    if (scope === "overlay:sidebar" && sidebarElement) {
+      return this.events.register([
+        "overlay:sidebar",
+        {
+          id: "sidebar.close.bgClick",
+          event: { kind: "bgClick", shield: sidebarElement },
+          layer: "overlay:sidebar",
+          when: () => this.isSidebarOpen,
+          run: () => this.setSidebarOpen(false),
+        },
+      ]);
+    }
+
+    if (scope === "overlay:selectionPopover") {
+      return this.events.register([
+        "overlay:selectionPopover",
+        {
+          id: "selPopover.close.bgClick",
+          event: { kind: "bgClick", shield: () => this.popoverRef },
+          layer: "overlay:selectionPopover",
+          run: () => {
+            this.closePopover();
+          },
+        },
+      ]);
+    }
+
+    return () => {};
+  }
+
+  private closePopover() {
+    // Called from bg click event - currently handled by SelectionPopover component
+    // This could be expanded to manage popover state if needed
+  }
+
+  setPopoverRef(ref: HTMLElement | null) {
+    this.popoverRef = ref;
   }
 
   private async convertCurrentChapter() {
@@ -269,6 +355,112 @@ export class ReaderStore {
       context,
     );
     copyToClipboard(formatted);
+  }
+
+  private buildSelectionCommands(selected: string): Command[] {
+    return [
+      {
+        id: "tldr",
+        label: "TLDR",
+        scope: "context",
+        action: () => {
+          this.palette.restoreSelection();
+          const prompt = this.buildPrompt("tldr", selected);
+          this.copyToClipboard(prompt);
+        },
+      },
+      {
+        id: "simplify",
+        label: "Simplify",
+        scope: "context",
+        action: () => {
+          this.palette.restoreSelection();
+          const prompt = this.buildPrompt("simplify", selected);
+          this.copyToClipboard(prompt);
+        },
+      },
+      {
+        id: "copy",
+        label: "Copy",
+        shortcut: "⌘C",
+        scope: "context",
+        action: () => {
+          this.palette.restoreSelection();
+          const prompt = this.buildPrompt("copy", selected);
+          this.copyToClipboard(prompt);
+        },
+      },
+    ];
+  }
+
+  private buildPrompt(
+    action: "tldr" | "simplify" | "copy",
+    selected: string,
+  ): string {
+    // Get context for actions that need it
+    const context = this.getSelectionContext();
+    const bookTitle = this.metadata?.title || "Unknown Book";
+    const chapterTitle = this.currentChapterTitle || "Chapter";
+
+    // Build different prompt formats based on action
+    switch (action) {
+      case "tldr":
+        return [
+          "Extract the key points from this text:",
+          "",
+          "---",
+          selected,
+          "---",
+          "",
+          "Provide a concise TLDR summary.",
+        ].join("\n");
+
+      case "simplify":
+        return [
+          "Simplify the following text while preserving its meaning:",
+          "",
+          `Book: ${bookTitle}`,
+          `Chapter: ${chapterTitle}`,
+          "",
+          "Context:",
+          "---",
+          context,
+          "---",
+          "",
+          "Selected text to simplify:",
+          "---",
+          selected,
+          "---",
+          "",
+          "Rewrite this text in simpler language.",
+        ].join("\n");
+
+      case "copy":
+        return [
+          `From: ${bookTitle}`,
+          `Chapter: ${chapterTitle}`,
+          "",
+          selected,
+        ].join("\n");
+
+      default:
+        return selected;
+    }
+  }
+
+  private getSelectionContext(): string {
+    // Get surrounding context (e.g., paragraph or section containing the selection)
+    // Could extract N characters before/after or the containing paragraph
+    const range = this.palette.savedRange;
+    if (!range) return "";
+
+    // TODO: implement proper context extraction from DOM
+    // For now, return empty string
+    return "";
+  }
+
+  private copyToClipboard(text: string): void {
+    copyToClipboard(text);
   }
 
   // Navigation methods

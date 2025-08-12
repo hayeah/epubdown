@@ -1,7 +1,7 @@
 import { observer } from "mobx-react-lite";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useCommandPaletteStore } from "./CommandPaletteContext";
+import { useCommandPaletteStore } from "../src/stores/RootStore";
 import { CommandRow } from "./CommandRow";
 
 export const CommandPalette = observer(() => {
@@ -13,6 +13,12 @@ export const CommandPalette = observer(() => {
   useEffect(() => {
     store.bindMenuElGetter(() => menuRef.current);
   }, [store]);
+
+  useEffect(() => {
+    if (!store.isOpen) return;
+    const dispose = store.setupBindings(() => menuRef.current);
+    return dispose;
+  }, [store, store.isOpen]);
 
   useLayoutEffect(() => {
     if (!store.isOpen) return;
@@ -50,6 +56,27 @@ export const CommandPalette = observer(() => {
 
   return createPortal(
     <>
+      {/* Selection overlay - render below menu */}
+      {store.mode === "selection" &&
+        store.selectionRects.length > 0 &&
+        store.selectionRects.map((r: DOMRect) => (
+          <div
+            key={`${r.left}-${r.top}-${r.width}-${r.height}`}
+            style={{
+              position: "fixed",
+              left: r.left,
+              top: r.top,
+              width: r.width,
+              height: r.height,
+              pointerEvents: "none",
+              background: "rgba(59,130,246,0.15)",
+              boxShadow: "0 0 0 1px rgba(59,130,246,0.6) inset",
+              borderRadius: 2,
+              zIndex: 9990, // below menu (9999), above most content
+            }}
+          />
+        ))}
+
       {isPalette && (
         <div
           className="fixed inset-0 bg-black/20 z-[9998]"

@@ -15,20 +15,16 @@ export const Sidebar = observer(({ children }: SidebarProps) => {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const { isSidebarOpen: isOpen } = readerStore;
 
-  // Click outside handler
+  // Setup event bindings for sidebar
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        isOpen &&
-        sidebarRef.current &&
-        !sidebarRef.current.contains(e.target as Node)
-      ) {
-        readerStore.toggleSidebar();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    if (isOpen) {
+      const dispose = readerStore.setupBindings(
+        "overlay:sidebar",
+        undefined,
+        () => sidebarRef.current,
+      );
+      return dispose;
+    }
   }, [isOpen, readerStore]);
 
   const handleLibraryClick = () => {

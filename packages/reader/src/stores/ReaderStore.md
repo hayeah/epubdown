@@ -31,3 +31,43 @@ This ensures:
 - Compare `this.currentBookId !== bookId` to detect book changes
 - Only reset and reload when it's actually a different book
 - Update `currentBookId` after successfully loading a new book
+
+## Text Selection Integration with Command Palette
+
+### Overview
+The ReaderStore now integrates with the CommandPaletteStore to provide a unified text selection experience in the reader. The old SelectionPopover component has been replaced with the Command Palette in selection mode.
+
+### Key Components
+
+1. **textSelect Event Binding**: The reader registers a `textSelect` event that listens for text selections within the reader container (`readerContainer`). When text is selected, it:
+   - Extracts the selected text
+   - Builds a list of context-specific commands
+   - Opens the command palette in "selection" mode with the commands and range
+
+2. **Selection Commands**: The `buildSelectionCommands` method creates context-aware actions for selected text:
+   - **TLDR**: Generates a prompt for extracting key points from the selected text
+   - **Simplify**: Creates a prompt with book/chapter context for simplifying text
+   - **Copy**: Copies the selection with book/chapter metadata
+
+3. **Command Actions**: Each command:
+   - Calls `palette.restoreSelection()` to ensure the selection is still active
+   - Builds an appropriate prompt using `buildPrompt`
+   - Copies the result to the clipboard for use with AI tools or note-taking
+
+### Selection Restoration
+The `restoreSelection()` method is crucial - it ensures that when a command is executed, the original text selection is restored. This is necessary because:
+- The palette may have caused the selection to be lost when it gained focus
+- Actions need to operate on the original selected text
+- The selection context needs to be preserved for accurate processing
+
+### Visual Feedback
+The CommandPalette component now renders selection overlay rectangles when in selection mode. These rectangles:
+- Highlight the selected text with a blue overlay
+- Are rendered at a lower z-index than the menu
+- Automatically disappear when the palette closes
+
+### Future Enhancements
+The `getSelectionContext()` method is currently a stub but could be enhanced to:
+- Extract surrounding paragraphs or sections
+- Provide better context for the "simplify" action
+- Include relevant headers or chapter sections

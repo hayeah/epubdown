@@ -1,4 +1,4 @@
-import { type SQLiteDB, destroy } from "@hayeah/sqlite-browser";
+import { destroy } from "@hayeah/sqlite-browser";
 import {
   cleanup,
   fireEvent,
@@ -18,31 +18,29 @@ import {
 } from "vitest";
 import { loadEpub } from "../test/helpers/epub";
 import { Library } from "./Library";
-import { getDb } from "./lib/providers";
-import { BookLibraryStore } from "./stores/BookLibraryStore";
+import { initRootStore } from "./lib/providers_gen";
 import { type RootStore, StoreProvider } from "./stores/RootStore";
 
 describe("Library (Browser)", () => {
   let rootStore: RootStore;
-  let bookLibraryStore: BookLibraryStore;
-  let db: SQLiteDB;
 
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Create fresh database for each test
-    db = await getDb(`test-${Date.now()}`);
-    // Create real BookLibraryStore with real storage
-    bookLibraryStore = await BookLibraryStore.create(db);
-
-    rootStore = {
-      bookLibraryStore,
-    } as RootStore;
+    // Create test root store
+    rootStore = await initRootStore({
+      dbName: `test-${Date.now()}`,
+      blobStoreName: `test-blob-${Date.now()}`,
+    });
   });
 
   afterEach(async () => {
     // Clean up React components
     cleanup();
+    // Clean up test resources
+    if (rootStore) {
+      await rootStore.close();
+    }
   });
 
   const renderWithStore = (component: React.ReactElement) => {
@@ -88,7 +86,7 @@ describe("Library (Browser)", () => {
     expect(input.value).toBe("");
 
     // Verify the book was persisted in storage
-    const books = bookLibraryStore.books;
+    const books = rootStore.bookLibraryStore.books;
     expect(books).toHaveLength(1);
     expect(books[0]?.title).toBe("Alice's Adventures in Wonderland");
     expect(books[0]?.filename).toBe("Alice's Adventures in Wonderland.epub");
@@ -97,7 +95,7 @@ describe("Library (Browser)", () => {
   it("should handle book deletion with real storage", async () => {
     // First add a book
     const epubContent = await loadEpub("/A Modest Proposal.epub");
-    const bookId = await bookLibraryStore.addBook(epubContent);
+    const bookId = await rootStore.bookLibraryStore.addBook(epubContent);
 
     renderWithStore(<Library />);
 
@@ -122,7 +120,7 @@ describe("Library (Browser)", () => {
     });
 
     // Verify the book was removed from storage
-    const books = bookLibraryStore.books;
+    const books = rootStore.bookLibraryStore.books;
     expect(books).toHaveLength(0);
   });
 
@@ -131,37 +129,39 @@ describe("Library (Browser)", () => {
     const epubContent = await loadEpub(
       "/Alice's Adventures in Wonderland.epub",
     );
-    await bookLibraryStore.addBook(epubContent);
+    await rootStore.bookLibraryStore.addBook(epubContent);
 
     // Verify the book was added
-    expect(bookLibraryStore.books).toHaveLength(1);
+    expect(rootStore.bookLibraryStore.books).toHaveLength(1);
 
-    // Close the current store but keep the database
-    await bookLibraryStore.close();
+    // Close the current store
+    await rootStore.close();
 
     // Clear the reference so afterEach doesn't try to close it again
-    bookLibraryStore = null as any;
+    rootStore = null as any;
 
-    // Create a new store instance with the same database name for persistence
-    const persistentDbName = `test-persistent-${Date.now()}`;
-    const newDb = await getDb(persistentDbName);
-    const newStore = await BookLibraryStore.create(newDb);
+    // Create a new store instance for persistence testing
+    const newRootStore = await initRootStore({
+      dbName: `test-${Date.now()}`,
+      blobStoreName: `test-blob-${Date.now()}`,
+    });
 
     // Since we're testing persistence, but each test creates fresh DBs,
     // we need to add the book to the new store as well to simulate persistence
-    await newStore.addBook(epubContent);
+    await newRootStore.bookLibraryStore.addBook(epubContent);
 
     // Wait for the debounced loadBooks to complete
     await waitFor(() => {
-      expect(newStore.books).toHaveLength(1);
+      expect(newRootStore.bookLibraryStore.books).toHaveLength(1);
     });
 
     // Verify the book is there
-    expect(newStore.books[0]?.title).toBe("Alice's Adventures in Wonderland");
+    expect(newRootStore.bookLibraryStore.books[0]?.title).toBe(
+      "Alice's Adventures in Wonderland",
+    );
 
-    // Clean up the new store and db
-    await newStore.close();
-    await destroy(newDb);
+    // Clean up the new store
+    await newRootStore.close();
   });
 
   it("should handle file upload error with invalid file", async () => {
@@ -193,7 +193,7 @@ describe("Library (Browser)", () => {
     });
 
     // Verify no book was added
-    expect(bookLibraryStore.books).toHaveLength(0);
+    expect(rootStore.bookLibraryStore.books).toHaveLength(0);
 
     // Clean up spies
     alertSpy.mockRestore();
@@ -205,8 +205,8 @@ describe("Library (Browser)", () => {
     const book1 = await loadEpub("/Alice's Adventures in Wonderland.epub");
     const book2 = await loadEpub("/A Modest Proposal.epub");
 
-    await bookLibraryStore.addBook(book1);
-    await bookLibraryStore.addBook(book2);
+    await rootStore.bookLibraryStore.addBook(book1);
+    await rootStore.bookLibraryStore.addBook(book2);
 
     renderWithStore(<Library />);
 
@@ -235,7 +235,7 @@ describe("Library (Browser)", () => {
     const epubContent = await loadEpub(
       "/Alice's Adventures in Wonderland.epub",
     );
-    await bookLibraryStore.addBook(epubContent);
+    await rootStore.bookLibraryStore.addBook(epubContent);
 
     renderWithStore(<Library />);
 
@@ -259,7 +259,7 @@ describe("Library (Browser)", () => {
     ).toBeInTheDocument();
 
     // Verify the book is still in storage
-    const books = bookLibraryStore.books;
+    const books = rootStore.bookLibraryStore.books;
     expect(books).toHaveLength(1);
   });
 
@@ -268,7 +268,7 @@ describe("Library (Browser)", () => {
     const epubContent = await loadEpub(
       "/Alice's Adventures in Wonderland.epub",
     );
-    const bookId = await bookLibraryStore.addBook(epubContent);
+    const bookId = await rootStore.bookLibraryStore.addBook(epubContent);
 
     renderWithStore(<Library />);
 
@@ -289,7 +289,7 @@ describe("Library (Browser)", () => {
   it("should format dates correctly", async () => {
     // Add a book
     const epubContent = await loadEpub("/A Modest Proposal.epub");
-    await bookLibraryStore.addBook(epubContent);
+    await rootStore.bookLibraryStore.addBook(epubContent);
 
     renderWithStore(<Library />);
 
@@ -309,7 +309,7 @@ describe("Library (Browser)", () => {
     const epubContent = await loadEpub(
       "/Alice's Adventures in Wonderland.epub",
     );
-    const bookId = await bookLibraryStore.addBook(epubContent);
+    const bookId = await rootStore.bookLibraryStore.addBook(epubContent);
 
     renderWithStore(<Library />);
 
@@ -325,14 +325,15 @@ describe("Library (Browser)", () => {
     fireEvent.click(bookTitle);
 
     // Load the book for reading
-    const bookData = await bookLibraryStore.loadBookForReading(bookId);
+    const bookData =
+      await rootStore.bookLibraryStore.loadBookForReading(bookId);
     expect(bookData).not.toBeNull();
 
     // Reload books to get updated timestamps
-    await bookLibraryStore.loadBooks();
+    await rootStore.bookLibraryStore.loadBooks();
 
     // Verify last opened was updated
-    const books = bookLibraryStore.books;
+    const books = rootStore.bookLibraryStore.books;
     expect(books[0]?.lastOpenedAt).toBeDefined();
     expect(books[0]?.lastOpenedAt).toBeGreaterThan(0);
   });

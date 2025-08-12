@@ -1,10 +1,10 @@
 import { Menu } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
+import { CommandPalette } from "../command/CommandPalette";
 import { ChapterContent } from "./book/ChapterContent";
 import { ChapterNavigation } from "./book/ChapterNavigation";
-import { SelectionPopover } from "./book/SelectionPopover";
 import { Sidebar } from "./book/Sidebar";
 import { TableOfContents } from "./book/TableOfContents";
 import { useReadingProgress } from "./stores/ReadingProgressStore";
@@ -17,6 +17,7 @@ export const ReaderPage = observer(() => {
   const [match, params] = useRoute("/book/:bookId/:chapterIndex?");
   const [isMobile, setIsMobile] = useState(false);
   const lastProcessedUrl = useRef<string>("");
+  const readerContainerRef = useRef<HTMLDivElement>(null);
 
   // Check if mobile on mount and window resize
   useEffect(() => {
@@ -38,6 +39,18 @@ export const ReaderPage = observer(() => {
     readerStore.setNavigate(navigate);
   }, [readerStore, navigate]);
 
+  // Setup event bindings for reader view
+  useEffect(() => {
+    // Only set up bindings if we have both the container ref and epub loaded
+    if (!readerContainerRef.current || !epub) return;
+
+    const dispose = readerStore.setupBindings(
+      "view",
+      readerContainerRef.current,
+    );
+    return dispose;
+  }, [readerStore, epub]); // Re-setup bindings when epub loads
+
   // Handle URL changes
   useEffect(() => {
     if (match && params?.bookId && location !== lastProcessedUrl.current) {
@@ -45,10 +58,6 @@ export const ReaderPage = observer(() => {
       readerStore.handleUrlChange(location);
     }
   }, [match, params?.bookId, location, readerStore]);
-
-  const handleCopyWithContext = useCallback(() => {
-    readerStore.copySelectionWithContext();
-  }, [readerStore]);
 
   // Not a reader route
   if (!match) {
@@ -87,10 +96,7 @@ export const ReaderPage = observer(() => {
                   </div>
                 )}
 
-                <div className="book-reader">
-                  {/* Selection popover for copy with context */}
-                  <SelectionPopover onCopyWithContext={handleCopyWithContext} />
-
+                <div className="book-reader" ref={readerContainerRef}>
                   {/* Chapter Navigation Widget */}
                   <ChapterNavigation />
 
@@ -103,6 +109,9 @@ export const ReaderPage = observer(() => {
             </div>
           </div>
         </div>
+
+        {/* Command Palette */}
+        <CommandPalette />
       </div>
     );
   }

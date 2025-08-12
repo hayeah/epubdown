@@ -1,12 +1,14 @@
 import { observer } from "mobx-react-lite";
 import type React from "react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { ErrorFlash } from "./components/ErrorFlash";
 import { BookList, SearchBar } from "./library/index";
+import { useRootStore } from "./stores/RootStore";
 import { useBookLibraryStore } from "./stores/RootStore";
 
 export const Library = observer(() => {
+  const rootStore = useRootStore();
   const store = useBookLibraryStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,6 +32,12 @@ export const Library = observer(() => {
       store.handleFiles(Array.from(files));
     }
   };
+
+  // Setup event bindings for library view
+  useEffect(() => {
+    const dispose = store.setupBindings();
+    return dispose;
+  }, [store]);
 
   // Empty state
   if (store.books.length === 0 && !store.searchQuery && !store.isLoading) {
