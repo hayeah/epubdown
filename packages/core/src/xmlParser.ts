@@ -39,11 +39,18 @@ if (import.meta.SSR ?? typeof window === "undefined") {
         });
         return dom.window.document;
       }
-      if (mimeType === "text/xml" || mimeType === "application/xml") {
+      if (
+        mimeType === "text/xml" ||
+        mimeType === "application/xml" ||
+        mimeType === "application/xhtml+xml"
+      ) {
         try {
           const cleanedString = cleanContent(string);
           const dom = new JSDOM(cleanedString, {
-            contentType: mimeType,
+            contentType:
+              mimeType === "application/xhtml+xml"
+                ? "application/xml"
+                : mimeType,
           });
           return dom.window.document;
         } catch (error) {

@@ -28,7 +28,7 @@
     "@types/yargs": "^17.0.33",
     "jsdom": "^25.0.1",
     "jszip": "^3",
-    "turndown": "^7",
+    "turndown": "github:hayeah/turndown#xml",
     "yargs": "^17"
   },
   "devDependencies": {
