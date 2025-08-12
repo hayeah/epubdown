@@ -22,49 +22,31 @@ export class ReaderTemplateContext {
   }
 
   get selectionText(): string {
-    // First check saved range from palette
-    if (this.palette.savedRange) {
-      return this.palette.savedRange.toString().trim();
-    }
-
-    // Fall back to current selection
-    const selection = window.getSelection();
-    if (selection && !selection.isCollapsed) {
-      return selection.toString().trim();
+    // Use saved selection from palette if available
+    if (
+      this.palette.savedSelection &&
+      !this.palette.savedSelection.isCollapsed
+    ) {
+      return this.palette.savedSelection.toString().trim();
     }
 
     return "";
   }
 
   get selectionContext(): string {
-    // First check saved range from palette
-    let selection: Selection | null = null;
+    // Use saved selection from palette if available
+    if (this.palette.savedSelection) {
+      const context = getSelectionContext(this.palette.savedSelection);
+      const { beforeContext, selectedText, afterContext } = context;
 
-    if (this.palette.savedRange) {
-      // Create a temporary selection from saved range
-      selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(this.palette.savedRange);
+      if (!selectedText) {
+        return "";
       }
-    } else {
-      // Use current selection
-      selection = window.getSelection();
+
+      return `${beforeContext} <<${selectedText}>> ${afterContext}`.trim();
     }
 
-    if (!selection || selection.isCollapsed) {
-      return "";
-    }
-
-    const context = getSelectionContext(selection);
-    const { beforeContext, selectedText, afterContext } = context;
-
-    // Format as a single string with the selection marked
-    if (!selectedText) {
-      return "";
-    }
-
-    return `${beforeContext} <<${selectedText}>> ${afterContext}`.trim();
+    return "";
   }
 
   // Method that returns a promise for the timestamp

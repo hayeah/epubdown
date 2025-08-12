@@ -51,12 +51,16 @@ export class ReaderStore {
   tocInfo: { navItems: FlatNavItem[] } | null = null;
   private labelByIndex: Map<number, string> = new Map();
 
+  private templateContext: ReaderTemplateContext;
+
   constructor(
     private bookLibraryStore: BookLibraryStore,
     private events: AppEventSystem,
     private palette: CommandPaletteStore,
     private templates: ReaderTemplates,
   ) {
+    this.templateContext = new ReaderTemplateContext(this, palette);
+
     makeObservable(this, {
       epub: observable,
       chapters: observable,
@@ -357,13 +361,11 @@ export class ReaderStore {
     }
 
     // Create context and render template
-    const ctx = new ReaderTemplateContext(this, this.palette);
-    const output = await copyTemplate.render(ctx);
+    const output = await copyTemplate.render(this.templateContext);
     copyToClipboard(output);
   }
 
   private buildSelectionCommands(selected: string): Command[] {
-    const ctx = new ReaderTemplateContext(this, this.palette);
     const commands: Command[] = [];
 
     // Generate commands from templates
@@ -374,7 +376,7 @@ export class ReaderStore {
         scope: "context",
         action: async () => {
           this.palette.restoreSelection();
-          const output = await def.render(ctx);
+          const output = await def.render(this.templateContext);
           copyToClipboard(output);
         },
       });

@@ -10,7 +10,7 @@ export interface Command {
   icon?: React.ReactNode;
   category?: string;
   keywords?: string[];
-  action: () => void;
+  action: () => void | Promise<void>;
   lastUsed?: number;
   popularity?: number; // 0..1
   scope?: CommandScope;
