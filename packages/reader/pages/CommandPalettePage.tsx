@@ -15,15 +15,12 @@ import {
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CommandPalette } from "../command/CommandPalette";
-import {
-  CommandPaletteProvider,
-  useCommandPaletteStore,
-} from "../command/CommandPaletteContext";
-import { SelectionOverlay } from "../command/SelectionOverlay";
+import { CommandPaletteStore } from "../command/CommandPaletteStore";
 import type { Command } from "../command/types";
+import type { AppCtx, AppLayers } from "../src/app/context";
+import { EventSystem } from "../src/events/EventSystem";
 
-const DemoInner = observer(() => {
-  const store = useCommandPaletteStore();
+const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
   const textRef = useRef<HTMLDivElement>(null);
   const contextButtonRef = useRef<HTMLButtonElement>(null);
   const selectionTimer = useRef<NodeJS.Timeout | null>(null);
@@ -416,15 +413,16 @@ const DemoInner = observer(() => {
       </div>
 
       <CommandPalette />
-      <SelectionOverlay />
     </div>
   );
 });
 
 export default function CommandPalettePage() {
-  return (
-    <CommandPaletteProvider>
-      <DemoInner />
-    </CommandPaletteProvider>
-  );
+  // Create standalone instances for the prototype page
+  const [store] = useState(() => {
+    const eventSystem = new EventSystem();
+    return new CommandPaletteStore(eventSystem);
+  });
+
+  return <DemoInner store={store} />;
 }

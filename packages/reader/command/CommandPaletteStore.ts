@@ -1,4 +1,5 @@
 import { action, computed, makeObservable, observable } from "mobx";
+import type { AppEventSystem } from "../src/app/context";
 import { calculatePosition, positionForSelection } from "./positioning";
 import { rankCommands } from "./search";
 import type {
@@ -35,7 +36,7 @@ export class CommandPaletteStore {
   // selection support
   savedRange: Range | null = null;
 
-  constructor() {
+  constructor(private events: AppEventSystem) {
     makeObservable(this, {
       // observable state
       isOpen: observable,
@@ -72,6 +73,31 @@ export class CommandPaletteStore {
 
   get filtered(): Command[] {
     return rankCommands(this.currentCommands, this.query);
+  }
+
+  setupBindings(menuEl: () => HTMLElement | null) {
+    return this.events.register([
+      "overlay:palette",
+      {
+        id: "palette.close.esc",
+        event: { kind: "key", combo: "Escape" },
+        layer: "overlay:palette",
+        run: () => this.close(),
+      },
+      {
+        id: "palette.close.bgClick",
+        event: { kind: "bgClick", shield: menuEl },
+        layer: "overlay:palette",
+        run: () => this.close(),
+      },
+      {
+        id: "palette.close.bgScroll.selection",
+        event: { kind: "bgScroll" },
+        layer: "overlay:palette",
+        when: () => this.mode === "selection",
+        run: () => this.close(),
+      },
+    ]);
   }
 
   setQuery(q: string) {

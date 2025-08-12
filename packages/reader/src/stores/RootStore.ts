@@ -1,5 +1,7 @@
 import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import { createContext, useContext } from "react";
+import type { CommandPaletteStore } from "../../command/CommandPaletteStore";
+import type { AppEventSystem } from "../app/context";
 import { getDb } from "../lib/providers";
 import type { BookLibraryStore } from "./BookLibraryStore";
 import type { ReaderStore } from "./ReaderStore";
@@ -8,6 +10,8 @@ export class RootStore {
   constructor(
     public readerStore: ReaderStore,
     public bookLibraryStore: BookLibraryStore,
+    public eventSystem: AppEventSystem,
+    public commandPaletteStore: CommandPaletteStore,
   ) {}
 
   reset() {
@@ -41,4 +45,9 @@ export function useReaderStore(): ReaderStore {
 export function useBookLibraryStore(): BookLibraryStore {
   const rootStore = useRootStore();
   return rootStore.bookLibraryStore;
+}
+
+export function useCommandPaletteStore(): CommandPaletteStore {
+  const rootStore = useRootStore();
+  return rootStore.commandPaletteStore;
 }

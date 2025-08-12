@@ -1,5 +1,8 @@
 import { SQLiteDB } from "@hayeah/sqlite-browser";
 import { tswire } from "tswire";
+import { CommandPaletteStore } from "../../command/CommandPaletteStore";
+import type { AppCtx, AppEventSystem, AppLayers } from "../app/context";
+import { EventSystem } from "../events/EventSystem";
 import { BookLibraryStore } from "../stores/BookLibraryStore";
 import { ReaderStore } from "../stores/ReaderStore";
 import { RootStore } from "../stores/RootStore";
@@ -58,10 +61,16 @@ export async function provideBookLibraryStore(
   blobStore: BlobStore,
   bookDb: BookDatabase,
   sqliteDb: SQLiteDB,
+  eventSystem: AppEventSystem,
 ): Promise<BookLibraryStore> {
-  const store = new BookLibraryStore(blobStore, bookDb, sqliteDb);
+  const store = new BookLibraryStore(blobStore, bookDb, sqliteDb, eventSystem);
   await store.loadBooks();
   return store;
+}
+
+export function provideEventSystem(): AppEventSystem {
+  const system = new EventSystem();
+  return system;
 }
 
 export function initRootStore(cfg: StorageConfig): RootStore {
@@ -70,8 +79,10 @@ export function initRootStore(cfg: StorageConfig): RootStore {
     provideSQLiteDB,
     provideBlobStore,
     BookDatabase,
+    provideEventSystem,
     ReaderStore,
     provideBookLibraryStore,
+    CommandPaletteStore,
     RootStore,
   ]);
   return null as any;

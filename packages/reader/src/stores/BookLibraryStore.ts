@@ -3,6 +3,7 @@ import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import { debounce } from "lodash";
 import type { DebouncedFunc } from "lodash";
 import { makeAutoObservable, runInAction } from "mobx";
+import type { AppEventSystem } from "../app/context";
 import type { ErrorItem } from "../components/ErrorFlash";
 import { BlobStore } from "../lib/BlobStore";
 import { BookDatabase, type BookMetadata } from "../lib/BookDatabase";
@@ -26,6 +27,7 @@ export class BookLibraryStore {
     private readonly blobStore: BlobStore,
     private readonly bookDb: BookDatabase,
     private readonly sqliteDb: SQLiteDB,
+    private readonly events: AppEventSystem,
   ) {
     makeAutoObservable(this);
 
@@ -35,16 +37,39 @@ export class BookLibraryStore {
     }, 100);
   }
 
-  static async create(db: SQLiteDB): Promise<BookLibraryStore> {
+  static async create(
+    db: SQLiteDB,
+    eventSystem: AppEventSystem,
+  ): Promise<BookLibraryStore> {
     const bookDb = await BookDatabase.create(db);
     const blobStore = await BlobStore.create({
       dbName: "epubdown-books",
       storeName: "books",
     });
 
-    const store = new BookLibraryStore(blobStore, bookDb, db);
+    const store = new BookLibraryStore(blobStore, bookDb, db, eventSystem);
     await store.loadBooks();
     return store;
+  }
+
+  setupBindings() {
+    return this.events.register([
+      "view:library", // Push the layer
+      {
+        id: "library.focusSearch",
+        event: { kind: "key", combo: "/" },
+        layer: "view:library",
+        when: () => {
+          // Only when not already focused on input
+          const activeElement = document.activeElement;
+          return (
+            activeElement?.tagName !== "INPUT" &&
+            activeElement?.tagName !== "TEXTAREA"
+          );
+        },
+        run: () => this.focusSearchBar(),
+      },
+    ]);
   }
 
   async loadBooks() {
