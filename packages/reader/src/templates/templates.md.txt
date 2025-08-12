@@ -1,0 +1,34 @@
+# TLDR
+Extract the key points from this text.
+
+---
+{{ selectionText }}
+---
+
+Provide a concise TLDR summary.
+
+# Simplify
+Simplify the following, preserving meaning.
+
+Book: {{ bookTitle }}
+Chapter: {{ chapterTitle }}
+
+Context:
+---
+{{ selectionContext }}
+---
+
+Rewrite the selected text in simpler language.
+
+# Copy
+From: {{ bookTitle }}
+Chapter: {{ chapterTitle }}
+
+{{ selectionText }}
+
+# Copy with Timestamp
+From: {{ bookTitle }}
+Chapter: {{ chapterTitle }}
+Captured: {{ getTimestamp }}
+
+{{ selectionText }}

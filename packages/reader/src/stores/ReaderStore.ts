@@ -16,11 +16,9 @@ import type { Command } from "../../command/types";
 import type { AppEventSystem } from "../app/context";
 import type { EventPayload } from "../events/types";
 import { markdownToReact } from "../markdownToReact";
-import {
-  copyToClipboard,
-  formatSelectionWithContext,
-  getSelectionContext,
-} from "../utils/selectionUtils";
+import { ReaderTemplateContext } from "../templates/ReaderTemplateContext";
+import type { ReaderTemplates } from "../templates/Template";
+import { copyToClipboard, getSelectionContext } from "../utils/selectionUtils";
 import type { BookLibraryStore } from "./BookLibraryStore";
 
 export interface MarkdownResult {
@@ -57,6 +55,7 @@ export class ReaderStore {
     private bookLibraryStore: BookLibraryStore,
     private events: AppEventSystem,
     private palette: CommandPaletteStore,
+    private templates: ReaderTemplates,
   ) {
     makeObservable(this, {
       epub: observable,
@@ -345,122 +344,43 @@ export class ReaderStore {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
-  copySelectionWithContext() {
+  async copySelectionWithContext() {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) return;
 
-    const context = getSelectionContext(selection);
-    const formatted = formatSelectionWithContext(
-      this.metadata.title || "Unknown Book",
-      context,
-    );
-    copyToClipboard(formatted);
+    // Find the "copy" template
+    const copyTemplate = this.templates.find((t) => t.id === "copy");
+    if (!copyTemplate) {
+      // Fallback to just copying the text
+      copyToClipboard(selection.toString());
+      return;
+    }
+
+    // Create context and render template
+    const ctx = new ReaderTemplateContext(this, this.palette);
+    const output = await copyTemplate.render(ctx);
+    copyToClipboard(output);
   }
 
   private buildSelectionCommands(selected: string): Command[] {
-    return [
-      {
-        id: "tldr",
-        label: "TLDR",
+    const ctx = new ReaderTemplateContext(this, this.palette);
+    const commands: Command[] = [];
+
+    // Generate commands from templates
+    for (const def of this.templates) {
+      commands.push({
+        id: def.id,
+        label: def.title,
         scope: "context",
-        action: () => {
+        action: async () => {
           this.palette.restoreSelection();
-          const prompt = this.buildPrompt("tldr", selected);
-          this.copyToClipboard(prompt);
+          const output = await def.render(ctx);
+          copyToClipboard(output);
         },
-      },
-      {
-        id: "simplify",
-        label: "Simplify",
-        scope: "context",
-        action: () => {
-          this.palette.restoreSelection();
-          const prompt = this.buildPrompt("simplify", selected);
-          this.copyToClipboard(prompt);
-        },
-      },
-      {
-        id: "copy",
-        label: "Copy",
-        shortcut: "⌘C",
-        scope: "context",
-        action: () => {
-          this.palette.restoreSelection();
-          const prompt = this.buildPrompt("copy", selected);
-          this.copyToClipboard(prompt);
-        },
-      },
-    ];
-  }
-
-  private buildPrompt(
-    action: "tldr" | "simplify" | "copy",
-    selected: string,
-  ): string {
-    // Get context for actions that need it
-    const context = this.getSelectionContext();
-    const bookTitle = this.metadata?.title || "Unknown Book";
-    const chapterTitle = this.currentChapterTitle || "Chapter";
-
-    // Build different prompt formats based on action
-    switch (action) {
-      case "tldr":
-        return [
-          "Extract the key points from this text:",
-          "",
-          "---",
-          selected,
-          "---",
-          "",
-          "Provide a concise TLDR summary.",
-        ].join("\n");
-
-      case "simplify":
-        return [
-          "Simplify the following text while preserving its meaning:",
-          "",
-          `Book: ${bookTitle}`,
-          `Chapter: ${chapterTitle}`,
-          "",
-          "Context:",
-          "---",
-          context,
-          "---",
-          "",
-          "Selected text to simplify:",
-          "---",
-          selected,
-          "---",
-          "",
-          "Rewrite this text in simpler language.",
-        ].join("\n");
-
-      case "copy":
-        return [
-          `From: ${bookTitle}`,
-          `Chapter: ${chapterTitle}`,
-          "",
-          selected,
-        ].join("\n");
-
-      default:
-        return selected;
+      });
     }
-  }
 
-  private getSelectionContext(): string {
-    // Get surrounding context (e.g., paragraph or section containing the selection)
-    // Could extract N characters before/after or the containing paragraph
-    const range = this.palette.savedRange;
-    if (!range) return "";
-
-    // TODO: implement proper context extraction from DOM
-    // For now, return empty string
-    return "";
-  }
-
-  private copyToClipboard(text: string): void {
-    copyToClipboard(text);
+    return commands;
   }
 
   // Navigation methods

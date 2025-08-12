@@ -6,6 +6,7 @@ import {
   provideBlobStore,
   provideBookLibraryStore,
   provideEventSystem,
+  provideReaderTemplates,
   provideSQLiteDB,
 } from "./providers";
 import type { StorageConfig } from "./providers";
@@ -16,6 +17,7 @@ export async function initRootStore(cfg: StorageConfig) {
   const bookDatabase = new BookDatabase(sQLiteDB);
   const eventSystem = provideEventSystem();
   const commandPaletteStore = new CommandPaletteStore(eventSystem);
+  const templates = provideReaderTemplates();
   const bookLibraryStore = await provideBookLibraryStore(
     blobStore,
     bookDatabase,
@@ -26,6 +28,7 @@ export async function initRootStore(cfg: StorageConfig) {
     bookLibraryStore,
     eventSystem,
     commandPaletteStore,
+    templates,
   );
   const rootStore = new RootStore(
     readerStore,
