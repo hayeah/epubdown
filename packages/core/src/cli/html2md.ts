@@ -4,6 +4,9 @@ import { readFileSync } from "node:fs";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { ContentToMarkdown } from "../ContentToMarkdown";
+import { XMLFile } from "../XMLFile";
+import { FileDataResolver } from "../resolvers/FileDataResolver";
+import { parseXml } from "../xmlParser";
 
 const argv = yargs(hideBin(process.argv))
   .usage("Usage: $0 [options]")
@@ -33,9 +36,18 @@ async function main() {
       htmlContent = readFileSync(0, "utf-8");
     }
 
-    // Convert HTML/XML to markdown using ContentToMarkdown
+    // Parse HTML/XML content and convert to markdown
+    const dom = parseXml(htmlContent) as XMLDocument;
+    const resolver = new FileDataResolver("/");
+    const xmlFile = new XMLFile(
+      "/",
+      argv.input || "stdin",
+      htmlContent,
+      dom,
+      resolver,
+    );
     const converter = ContentToMarkdown.create();
-    const markdown = await converter.convert(htmlContent);
+    const markdown = await converter.convertXMLFile(xmlFile);
 
     // Output the result
     if (argv.output) {

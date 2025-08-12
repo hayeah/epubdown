@@ -37,8 +37,8 @@ importers:
         specifier: ^3
         version: 3.10.1
       turndown:
-        specifier: ^7
-        version: 7.2.0
+        specifier: github:hayeah/turndown#xml
+        version: https://codeload.github.com/hayeah/turndown/tar.gz/1f3c414c6004fb64fe6eadb9fd4b47785766b849
       yargs:
         specifier: ^17
         version: 17.7.2
@@ -139,7 +139,7 @@ importers:
         version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@types/bun':
         specifier: latest
-        version: 1.2.19(@types/react@19.1.5)
+        version: 1.2.20(@types/react@19.1.5)
       '@types/lodash':
         specifier: ^4.17.20
         version: 4.17.20
@@ -976,8 +976,8 @@ packages:
   '@types/babel__traverse@7.20.7':
     resolution: {integrity: sha512-dkO5fhS7+/oos4ciWxyEyjWe48zmG6wbCheo/G2ZnHx4fs3EU6YC6UM8rk56gAjNJ9P3MTH2jo5jb92/K6wbng==}
 
-  '@types/bun@1.2.19':
-    resolution: {integrity: sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg==}
+  '@types/bun@1.2.20':
+    resolution: {integrity: sha512-dX3RGzQ8+KgmMw7CsW4xT5ITBSCrSbfHc36SNT31EOUg/LA9JWq0VDdEXDRSe1InVWpd2yLUM1FUF/kEOyTzYA==}
 
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
@@ -1209,8 +1209,8 @@ packages:
   builtin-status-codes@3.0.0:
     resolution: {integrity: sha512-HpGFw18DgFWlncDfjTa2rcQ4W88O1mC8e8yZ2AvQY5KDaktSTwo+KRf6nHK6FRI5FyRyb/5T6+TSxfP7QyGsmQ==}
 
-  bun-types@1.2.19:
-    resolution: {integrity: sha512-uAOTaZSPuYsWIXRpj7o56Let0g/wjihKCkeRqUBhlLVM/Bt+Fj9xTo+LhC1OV1XDaGkz4hNC80et5xgy+9KTHQ==}
+  bun-types@1.2.20:
+    resolution: {integrity: sha512-pxTnQYOrKvdOwyiyd/7sMt9yFOenN004Y6O4lCcCUoKVej48FS5cvTw9geRaEcB9TsDZaJKAxPTVvi8tFsVuXA==}
     peerDependencies:
       '@types/react': ^19
 
@@ -2568,6 +2568,7 @@ packages:
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
     engines: {node: '>= 8'}
+    deprecated: The work that was done in this beta branch won't be included in future versions
 
   space-separated-tokens@2.0.2:
     resolution: {integrity: sha512-PEGlAwrG8yXGXRjW32fGbg66JAlOAwbObuqVoJpv/mRgoWDQfgH1wDPvtzWyUSNAXBGSk8h755YDbbcEy3SH2Q==}
@@ -2743,8 +2744,9 @@ packages:
   tty-browserify@0.0.1:
     resolution: {integrity: sha512-C3TaO7K81YvjCgQH9Q1S3R3P3BtN3RIM8n+OvX4il1K1zgE8ZhI0op7kClgkxtutIE8hQrcrHBXvIheqKUUCxw==}
 
-  turndown@7.2.0:
-    resolution: {integrity: sha512-eCZGBN4nNNqM9Owkv9HAtWRYfLA4h909E/WGAWWBpmB275ehNhZyk87/Tpvjbp0jjNl9XwCsbe6bm6CqFsgD+A==}
+  turndown@https://codeload.github.com/hayeah/turndown/tar.gz/1f3c414c6004fb64fe6eadb9fd4b47785766b849:
+    resolution: {tarball: https://codeload.github.com/hayeah/turndown/tar.gz/1f3c414c6004fb64fe6eadb9fd4b47785766b849}
+    version: 7.2.0
 
   typescript@5.8.3:
     resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
@@ -3617,9 +3619,9 @@ snapshots:
     dependencies:
       '@babel/types': 7.27.1
 
-  '@types/bun@1.2.19(@types/react@19.1.5)':
+  '@types/bun@1.2.20(@types/react@19.1.5)':
     dependencies:
-      bun-types: 1.2.19(@types/react@19.1.5)
+      bun-types: 1.2.20(@types/react@19.1.5)
     transitivePeerDependencies:
       - '@types/react'
 
@@ -3723,7 +3725,7 @@ snapshots:
       magic-string: 0.30.17
       sirv: 3.0.1
       tinyrainbow: 2.0.0
-      vitest: 3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(@vitest/browser@3.1.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)
+      vitest: 3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(@vitest/browser@3.1.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.30.1)
       ws: 8.18.2
     optionalDependencies:
       playwright: 1.54.1
@@ -3923,7 +3925,7 @@ snapshots:
 
   builtin-status-codes@3.0.0: {}
 
-  bun-types@1.2.19(@types/react@19.1.5):
+  bun-types@1.2.20(@types/react@19.1.5):
     dependencies:
       '@types/node': 22.15.21
       '@types/react': 19.1.5
@@ -5807,7 +5809,7 @@ snapshots:
 
   tty-browserify@0.0.1: {}
 
-  turndown@7.2.0:
+  turndown@https://codeload.github.com/hayeah/turndown/tar.gz/1f3c414c6004fb64fe6eadb9fd4b47785766b849:
     dependencies:
       '@mixmark-io/domino': 2.2.0
 

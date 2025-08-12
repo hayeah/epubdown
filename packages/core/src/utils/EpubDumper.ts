@@ -137,7 +137,7 @@ export class EpubDumper {
 
       // Convert nav to markdown
       await this.time("nav.md", async () => {
-        const navMarkdown = await this.converter.convert(navFile.content);
+        const navMarkdown = await this.converter.convertXMLFile(navFile);
         await this.writeFile("nav.dump.md", navMarkdown);
       });
     }
@@ -157,7 +157,7 @@ export class EpubDumper {
 
         // Convert the HTML version to markdown
         await this.time("ncx.md", async () => {
-          const ncxMarkdown = await this.converter.convert(ncxHtml.content);
+          const ncxMarkdown = await this.converter.convertXMLFile(ncxHtml);
           await this.writeFile("ncx.dump.md", ncxMarkdown);
         });
       }
