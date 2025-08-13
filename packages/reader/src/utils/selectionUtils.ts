@@ -330,17 +330,19 @@ function wrapText(text: string, maxWidth: number): string {
  * Copy text to clipboard
  */
 export async function copyToClipboard(text: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch (err) {
-    // Fallback for older browsers
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.position = "fixed";
-    textArea.style.left = "-999999px";
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand("copy");
-    document.body.removeChild(textArea);
-  }
+  await navigator.clipboard.writeText(text);
+
+  // try {
+  //   await navigator.clipboard.writeText(text);
+  // } catch (err) {
+  //   // Fallback for older browsers
+  //   const textArea = document.createElement("textarea");
+  //   textArea.value = text;
+  //   textArea.style.position = "fixed";
+  //   textArea.style.left = "-999999px";
+  //   document.body.appendChild(textArea);
+  //   textArea.select();
+  //   document.execCommand("copy");
+  //   document.body.removeChild(textArea);
+  // }
 }

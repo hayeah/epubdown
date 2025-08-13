@@ -35,6 +35,7 @@ export class CommandPaletteStore {
 
   // selection support
   savedRange: Range | null = null;
+  savedSelection: Selection | null = null;
 
   constructor(private events: AppEventSystem) {
     makeObservable(this, {
@@ -118,10 +119,10 @@ export class CommandPaletteStore {
     this.selectedIndex = Math.max(0, this.filtered.length - 1);
   }
 
-  executeSelected(onClose: () => void) {
-    const cmd = this.filtered[this.selectedIndex];
+  async executeSelected(onClose: () => void, idx?: number) {
+    const cmd = this.filtered[idx || this.selectedIndex];
     if (!cmd) return;
-    cmd.action();
+    await cmd.action();
     this.setLastAction(cmd.label);
     this.touchUsage(cmd.id);
     onClose();
@@ -175,6 +176,13 @@ export class CommandPaletteStore {
     this.mode = "selection";
     this.widthPx = 320;
     this.savedRange = opts.range.cloneRange();
+
+    // Save selection object immediately
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) {
+      this.savedSelection = selection;
+    }
+
     const rect = opts.range.getBoundingClientRect();
     this.selectionRect = rect;
     this.selectionRects = Array.from(opts.range.getClientRects()).filter(
@@ -190,6 +198,7 @@ export class CommandPaletteStore {
     this.hoveredIndex = null;
     this.selectionRect = null;
     this.selectionRects = [];
+    this.savedSelection = null;
     window.getSelection()?.removeAllRanges();
   }
 

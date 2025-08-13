@@ -1,0 +1,86 @@
+# TLDR
+Extract the key points from this text.
+
+---
+{{ selectionText }}
+---
+
+Provide a concise TLDR summary.
+
+# Plain Words
+
+Title: {{ bookTitle }}
+Chapter: {{ chapterTitle }}
+
+## Context
+
+{{ selectionContext }}
+
+## Selection
+
+{{ selectionText }}
+
+## Task
+
+- You are given a "non-colloquial" passage. 
+- It could be poetry, dense academic/literary passage, or idiosyncratic/stylistic/windy phrasings.
+
+Please
+
+- Start with an overview of what the passage is talking about.
+- Give a list of terms / ideas / allusions / references needed to understand the passage.
+- Rewrite it carefully, sentence-by-sentence/line-by-line, following the structure of the original closely.
+    - If a term might need explaining, put it in parenthesis.
+- Break a large paragraph into subheadings.
+
+# Copy with Context
+
+Title: {{ bookTitle }}
+Chapter: {{ chapterTitle }}
+
+## Context
+
+{{ selectionContext }}
+
+## Selection
+
+{{ selectionText }}
+
+# Explain
+
+Title: {{ bookTitle }}
+Chapter: {{ chapterTitle }}
+
+## Context
+
+{{ selectionContext }}
+
+## Selection
+
+{{ selectionText }}
+
+## Task
+
+Explain the selection
+
+- if a person...
+    - personality
+    - roles and positions
+    - friends and enemies
+    - accomplishments and failures
+    - perception at the time vs today
+- if a scientific/technical term (medicine / anatomical / botanical / etc.)
+    - overview
+    - etymology
+    - list of terms / ideas to understand the exposition to follow
+        - use simple english words as much as possible
+        - if you must use a technical term in the explanation, that term should be explained prior, OR in parenthesis
+    - detailed exposition
+        -  acronyms if used, should be expanded & explained in parenthesis
+- if selection is a sentence or larger
+    - overview of what the passage is talking about, given the context
+    - unpack the sentence in detail
+    - explain ambiguous / confusing / non-obvious references
+    - explain words, terms, places, people in the selection
+
+- use images to enrich your content if possible

@@ -6,6 +6,10 @@ import { EventSystem } from "../events/EventSystem";
 import { BookLibraryStore } from "../stores/BookLibraryStore";
 import { ReaderStore } from "../stores/ReaderStore";
 import { RootStore } from "../stores/RootStore";
+import { ReaderTemplateContext } from "../templates/ReaderTemplateContext";
+import { type ReaderTemplates, parseTemplates } from "../templates/Template";
+// @ts-ignore - raw import
+import templatesRaw from "../templates/templates.md.txt?raw";
 import { BlobStore } from "./BlobStore";
 import { BookDatabase } from "./BookDatabase";
 import { runMigrations } from "./runMigrations";
@@ -73,6 +77,17 @@ export function provideEventSystem(): AppEventSystem {
   return system;
 }
 
+export function provideReaderTemplates(): ReaderTemplates {
+  return parseTemplates(templatesRaw);
+}
+
+export function provideReaderTemplateContext(
+  reader: ReaderStore,
+  palette: CommandPaletteStore,
+): ReaderTemplateContext {
+  return new ReaderTemplateContext(reader, palette);
+}
+
 export function initRootStore(cfg: StorageConfig): RootStore {
   tswire([
     provideStorageConfig,
@@ -80,6 +95,7 @@ export function initRootStore(cfg: StorageConfig): RootStore {
     provideBlobStore,
     BookDatabase,
     provideEventSystem,
+    provideReaderTemplates,
     ReaderStore,
     provideBookLibraryStore,
     CommandPaletteStore,

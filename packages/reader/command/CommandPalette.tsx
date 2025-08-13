@@ -152,9 +152,7 @@ export const CommandPalette = observer(() => {
                 isSelected={store.selectedIndex === idx}
                 isHovered={store.hoveredIndex === idx}
                 onClick={() => {
-                  cmd.action();
-                  store.touchUsage(cmd.id);
-                  store.close();
+                  store.executeSelected(() => store.close(), idx);
                 }}
                 onMouseEnter={() => {
                   store.setHoveredIndex(idx);
