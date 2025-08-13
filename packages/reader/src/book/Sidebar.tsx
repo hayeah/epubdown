@@ -33,40 +33,20 @@ export const Sidebar = observer(({ children }: SidebarProps) => {
 
   return (
     <>
-      {/* Collapsed sidebar - icon buttons positioned to the left of content */}
+      {/* Collapsed sidebar - only expand button visible */}
       <div
-        className={`absolute left-0 top-0 pt-8 w-16 ${
+        className={`absolute left-0 top-0 pt-8 ${
           isOpen ? "opacity-0 pointer-events-none" : "opacity-100"
-        } hidden lg:flex flex-col items-center`}
+        } hidden lg:flex`}
       >
         {/* Toggle button */}
         <button
           type="button"
           onClick={() => readerStore.toggleSidebar()}
-          className="p-3 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all"
+          className="ml-3 p-3 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all"
           aria-label="Open sidebar"
         >
           <Menu className="w-6 h-6" />
-        </button>
-
-        {/* Library button */}
-        <button
-          type="button"
-          onClick={handleLibraryClick}
-          className="p-3 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all"
-          aria-label="Go to library"
-        >
-          <Book className="w-6 h-6" />
-        </button>
-
-        {/* Find book button (placeholder) */}
-        <button
-          type="button"
-          onClick={() => {}}
-          className="p-3 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all"
-          aria-label="Find book"
-        >
-          <Search className="w-6 h-6" />
         </button>
       </div>
 

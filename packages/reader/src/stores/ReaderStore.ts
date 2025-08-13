@@ -139,6 +139,13 @@ export class ReaderStore {
           when: () => this.isSidebarOpen,
           run: () => this.setSidebarOpen(false),
         },
+        {
+          id: "sidebar.close.escape",
+          event: { kind: "key", combo: "Escape" },
+          layer: "overlay:sidebar",
+          when: () => this.isSidebarOpen,
+          run: () => this.setSidebarOpen(false),
+        },
       ]);
     }
 
