@@ -345,7 +345,6 @@ export class ReaderStore {
         label: def.title,
         scope: "context",
         action: async () => {
-          this.palette.restoreSelection();
           const output = await def.render(this.templateContext);
           copyToClipboard(output);
         },

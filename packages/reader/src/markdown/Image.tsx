@@ -63,7 +63,7 @@ export const Image: React.FC<ImageProps> = observer(
       async (signal) => {
         return await getImageFromArchive(readerStore.epub, src);
       },
-      [src, readerStore.epub]
+      [src, readerStore.epub],
     );
 
     const handleImageError = useCallback(() => {

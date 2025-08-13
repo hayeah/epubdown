@@ -19,6 +19,7 @@ import { CommandPaletteStore } from "../command/CommandPaletteStore";
 import type { Command } from "../command/types";
 import type { AppCtx, AppLayers } from "../src/app/context";
 import { EventSystem } from "../src/events/EventSystem";
+import { StoreProvider } from "../src/stores/RootStore";
 
 const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
   const textRef = useRef<HTMLDivElement>(null);
@@ -146,7 +147,6 @@ const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
         icon: <Copy className="w-4 h-4" />,
         scope: "context",
         action: () => {
-          store.restoreSelection();
           navigator.clipboard.writeText(selected);
           store.setLastAction(`Copied: "${selected.substring(0, 30)}..."`);
           store.close();
@@ -158,7 +158,6 @@ const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
         icon: <Highlighter className="w-4 h-4" />,
         scope: "context",
         action: () => {
-          store.restoreSelection();
           store.setLastAction(`Highlighted: "${selected.substring(0, 30)}..."`);
           store.close();
         },
@@ -169,7 +168,6 @@ const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
         icon: <MessageSquare className="w-4 h-4" />,
         scope: "context",
         action: () => {
-          store.restoreSelection();
           store.setLastAction(`Add note to: "${selected.substring(0, 30)}..."`);
           store.close();
         },
@@ -180,7 +178,6 @@ const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
         icon: <Share2 className="w-4 h-4" />,
         scope: "context",
         action: () => {
-          store.restoreSelection();
           store.setLastAction(`Share: "${selected.substring(0, 30)}..."`);
           store.close();
         },
@@ -191,7 +188,6 @@ const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
         icon: <Search className="w-4 h-4" />,
         scope: "context",
         action: () => {
-          store.restoreSelection();
           store.setLastAction(`Search for: "${selected.substring(0, 30)}..."`);
           store.close();
         },
@@ -424,5 +420,17 @@ export default function CommandPalettePage() {
     return new CommandPaletteStore(eventSystem);
   });
 
-  return <DemoInner store={store} />;
+  // Create a minimal RootStore with just the CommandPaletteStore
+  const [rootStore] = useState(
+    () =>
+      ({
+        commandPaletteStore: store,
+      }) as any,
+  );
+
+  return (
+    <StoreProvider value={rootStore}>
+      <DemoInner store={store} />
+    </StoreProvider>
+  );
 }
