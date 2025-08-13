@@ -165,6 +165,8 @@ export class ContentToMarkdown {
     // Pass the body element from the XMLFile DOM to TurndownService
     const body = xmlFile.dom.querySelector("body");
     const elementToConvert = body || xmlFile.dom.documentElement;
-    return this.turndownService.turndown(elementToConvert as any);
+
+    const result = this.turndownService.turndown(elementToConvert as any);
+    return result;
   }
 }
