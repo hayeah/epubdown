@@ -40,9 +40,6 @@ export class ReaderStore {
   isSidebarOpen = false;
   private popoverRef: HTMLElement | null = null;
 
-  // Converter
-  converter: ContentToMarkdown | null = null;
-
   // Dependencies
   private navigate: NavigateFunction | null = null;
 
@@ -68,7 +65,6 @@ export class ReaderStore {
       currentChapterIndex: observable,
       currentBookId: observable,
       isSidebarOpen: observable,
-      converter: observable,
       currentChapterRender: observable.ref,
       tocInfo: observable.ref,
       handleLoadBook: action,
@@ -174,8 +170,10 @@ export class ReaderStore {
 
   private async convertCurrentChapter() {
     const chapter = this.currentChapter;
-    if (!chapter || !this.converter) return;
-    const markdown = await this.converter.convertXMLFile(chapter);
+    if (!chapter) return;
+    // Create a converter with the current chapter's base path for proper path normalization
+    const converter = ContentToMarkdown.create({ basePath: chapter.base });
+    const markdown = await converter.convertXMLFile(chapter);
     const reactTree = await markdownToReact(markdown);
     runInAction(() => {
       this.currentChapterRender = { markdown, reactTree };
@@ -214,8 +212,6 @@ export class ReaderStore {
       this.epub = epub;
       this.chapters = chapterArray;
       this.metadata = epub.metadata.toJSON();
-      // Initialize converter
-      this.converter = ContentToMarkdown.create();
     });
 
     // Load TOC once per book
@@ -301,7 +297,6 @@ export class ReaderStore {
     this.currentChapterIndex = 0;
     this.chapters = [];
     this.metadata = {};
-    this.converter = null;
     this.currentBookId = null;
     this.isSidebarOpen = false;
     this.currentChapterRender = null;

@@ -20,9 +20,10 @@ async function getImageFromArchive(
   if (isExternalUrl(src)) return src;
   if (!epub) throw new Error("Archive not loaded");
 
+  // The path should already be normalized by ContentToMarkdown
   const decoded = decodeURIComponent(src);
   const bytes = await epub.resolver.readRaw(decoded);
-  if (!bytes) throw new Error("Image not found");
+  if (!bytes) throw new Error(`Image not found: ${decoded}`);
 
   const ext = decoded.split(".").pop()?.toLowerCase();
   const mime =

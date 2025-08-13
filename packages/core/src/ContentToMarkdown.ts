@@ -32,6 +32,7 @@ function createTurndownService(
 
   if (options?.basePath) {
     addLinkNormalizationRules(td, options.basePath);
+    addImageNormalizationRules(td, options.basePath);
   }
 
   return td;
@@ -149,6 +150,37 @@ function addLinkNormalizationRules(
       // Encode the path for use in markdown links
       const encodedPath = encodeURI(absolutePath);
       return `[${content}](${encodedPath})`;
+    },
+  });
+}
+
+function addImageNormalizationRules(
+  td: TurndownService,
+  basePath: string,
+): void {
+  // Override the image conversion rule to also normalize paths
+  td.addRule("normalize-img-src", {
+    filter: "img",
+    replacement: (content, node) => {
+      const element = node as HTMLImageElement;
+      const src = element.getAttribute("src");
+      const alt = element.getAttribute("alt");
+
+      if (!src) return "";
+
+      // Normalize the image path if it's not an external URL
+      let normalizedSrc = src;
+      if (!/^(https?:|data:|blob:)/i.test(src)) {
+        normalizedSrc = normalizePath(basePath, src);
+      }
+
+      // Build x-image element with normalized src
+      const attributes = [`src="${normalizedSrc}"`];
+      if (alt !== null) {
+        attributes.push(`alt="${alt}"`);
+      }
+
+      return `<img ${attributes.join(" ")}/>`;
     },
   });
 }

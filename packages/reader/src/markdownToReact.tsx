@@ -48,33 +48,6 @@ export async function markdownToReact(
           );
         }
 
-        // Handle x-image tags for backward compatibility
-        if (tag === "x-image") {
-          const {
-            src,
-            alt,
-            title,
-            width,
-            height,
-            class: className,
-          } = domNode.attribs;
-
-          // IMPORTANT: x-image tags must use explicit closing tags <x-image></x-image>
-          // html-react-parser doesn't recognize custom tags as void elements
-          // and will incorrectly parse self-closing tags, treating subsequent
-          // content as children
-          return (
-            <Image
-              src={src || ""}
-              alt={alt}
-              title={title}
-              width={width ? Number.parseInt(width) : undefined}
-              height={height ? Number.parseInt(height) : undefined}
-              className={className}
-            />
-          );
-        }
-
         if (tag === "x-footnote") {
           const { href, id, class: className } = domNode.attribs;
           const children = domToReact(domNode.children as DOMNode[]);
