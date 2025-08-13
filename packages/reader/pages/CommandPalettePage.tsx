@@ -19,6 +19,7 @@ import { CommandPaletteStore } from "../command/CommandPaletteStore";
 import type { Command } from "../command/types";
 import type { AppCtx, AppLayers } from "../src/app/context";
 import { EventSystem } from "../src/events/EventSystem";
+import { StoreProvider } from "../src/stores/RootStore";
 
 const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
   const textRef = useRef<HTMLDivElement>(null);
@@ -419,5 +420,17 @@ export default function CommandPalettePage() {
     return new CommandPaletteStore(eventSystem);
   });
 
-  return <DemoInner store={store} />;
+  // Create a minimal RootStore with just the CommandPaletteStore
+  const [rootStore] = useState(
+    () =>
+      ({
+        commandPaletteStore: store,
+      }) as any,
+  );
+
+  return (
+    <StoreProvider value={rootStore}>
+      <DemoInner store={store} />
+    </StoreProvider>
+  );
 }
