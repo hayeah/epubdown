@@ -161,10 +161,62 @@ export class ContentToMarkdown {
     return new ContentToMarkdown(td);
   }
 
+  private transformSvgImages(dom: Document): void {
+    const SVG_NS = "http://www.w3.org/2000/svg";
+
+    // Find all SVG elements
+    const svgElements = dom.getElementsByTagNameNS(SVG_NS, "svg");
+    const svgsToProcess: Element[] = Array.from(svgElements);
+
+    // Also look for svg: prefixed elements
+    const svgPrefixedElements = dom.querySelectorAll("svg\\:svg");
+    svgsToProcess.push(...Array.from(svgPrefixedElements));
+
+    for (const svg of svgsToProcess) {
+      // Look for image elements within the SVG
+      const images = svg.getElementsByTagNameNS(SVG_NS, "image");
+      const imagesToProcess: Element[] = Array.from(images);
+
+      // Also look for svg:image elements
+      const svgPrefixedImages = svg.querySelectorAll("svg\\:image");
+      imagesToProcess.push(...Array.from(svgPrefixedImages));
+
+      for (const image of imagesToProcess) {
+        // Get the href attribute (could be xlink:href or href)
+        const href =
+          image.getAttribute("xlink:href") ||
+          image.getAttribute("href") ||
+          image.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+
+        if (href) {
+          // Create a regular img element
+          const img = dom.createElement("img");
+          img.setAttribute("src", href);
+          img.setAttribute("alt", "_[SVG cover image not supported]_");
+
+          // Replace the SVG with the img element
+          if (svg.parentNode) {
+            svg.parentNode.insertBefore(img, svg);
+          }
+        }
+      }
+
+      // Remove the SVG element after processing
+      if (svg.parentNode) {
+        svg.parentNode.removeChild(svg);
+      }
+    }
+  }
+
   async convertXMLFile(xmlFile: XMLFile): Promise<string> {
+    // Transform SVG images to regular img tags before passing to Turndown
+    this.transformSvgImages(xmlFile.dom);
+
     // Pass the body element from the XMLFile DOM to TurndownService
     const body = xmlFile.dom.querySelector("body");
     const elementToConvert = body || xmlFile.dom.documentElement;
-    return this.turndownService.turndown(elementToConvert as any);
+
+    const result = this.turndownService.turndown(elementToConvert as any);
+    return result;
   }
 }

@@ -188,6 +188,42 @@ describe("ContentToMarkdown", () => {
     expect(result).toContain('<x-image src="images/no-alt.png"></x-image>');
   });
 
+  it("converts SVG image elements to x-image elements", async () => {
+    const html = `
+      <html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <body>
+          <div>
+            <svg:svg viewBox="0 0 700 1064">
+              <svg:image height="1064" transform="translate(0 0)" width="700" xlink:href="../images/9780192806840.jpg"></svg:image>
+            </svg:svg>
+          </div>
+          <p>Some text</p>
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <image href="images/cover.png" width="100" height="100"></image>
+          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg">
+            <image xlink:href="images/another.jpg"></image>
+          </svg>
+        </body>
+      </html>
+    `;
+    const xmlFile = createMockXMLFile(html);
+    const converter = ContentToMarkdown.create();
+    const result = await converter.convertXMLFile(xmlFile);
+
+    // Should convert SVG image elements to x-image tags with the special alt text
+    expect(result).toContain(
+      '<x-image src="../images/9780192806840.jpg" alt="_[SVG cover image not supported]_"></x-image>',
+    );
+    expect(result).toContain(
+      '<x-image src="images/cover.png" alt="_[SVG cover image not supported]_"></x-image>',
+    );
+    expect(result).toContain(
+      '<x-image src="images/another.jpg" alt="_[SVG cover image not supported]_"></x-image>',
+    );
+    expect(result).toContain("Some text");
+  });
+
   describe("Self-closing tag fix", () => {
     // Note: EPUB XHTML files often contain self-closing non-void tags like <title/> which are valid in XML
     // but problematic when parsed as HTML. The original issue was that TurndownService would re-parse
