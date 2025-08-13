@@ -8,6 +8,7 @@ export const CommandPalette = observer(() => {
   const store = useCommandPaletteStore();
   const menuRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     store.bindMenuElGetter(() => menuRef.current);
@@ -21,10 +22,14 @@ export const CommandPalette = observer(() => {
 
   useLayoutEffect(() => {
     if (!store.isOpen) return;
-    // Focus the menu container to capture keyboard events
-    menuRef.current?.focus({ preventScroll: true });
+    // Focus the input if enabled, otherwise focus the menu container
+    if (store.enableFilterInput && inputRef.current) {
+      inputRef.current.focus({ preventScroll: true });
+    } else {
+      menuRef.current?.focus({ preventScroll: true });
+    }
     store.computeMenuXY();
-  }, [store, store.isOpen]);
+  }, [store, store.isOpen, store.enableFilterInput]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -115,30 +120,66 @@ export const CommandPalette = observer(() => {
             return;
           }
 
-          // Filtering via typing (IME not supported by design)
-          const printable =
-            e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey;
-          if (printable) {
-            e.preventDefault();
-            store.appendToQuery(e.key);
-            return;
-          }
+          // Only handle typing for filtering when input is disabled
+          if (!store.enableFilterInput) {
+            // Filtering via typing (IME not supported by design)
+            const printable =
+              e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey;
+            if (printable) {
+              e.preventDefault();
+              store.appendToQuery(e.key);
+              return;
+            }
 
-          // Backspace to delete last character
-          if (e.key === "Backspace" && !e.altKey && !e.ctrlKey && !e.metaKey) {
-            e.preventDefault();
-            store.backspaceQuery();
-            return;
-          }
+            // Backspace to delete last character
+            if (
+              e.key === "Backspace" &&
+              !e.altKey &&
+              !e.ctrlKey &&
+              !e.metaKey
+            ) {
+              e.preventDefault();
+              store.backspaceQuery();
+              return;
+            }
 
-          // Cmd + Backspace clears query (Mac)
-          if (e.key === "Backspace" && e.metaKey) {
-            e.preventDefault();
-            store.clearQuery();
-            return;
+            // Cmd + Backspace clears query (Mac)
+            if (e.key === "Backspace" && e.metaKey) {
+              e.preventDefault();
+              store.clearQuery();
+              return;
+            }
           }
         }}
       >
+        {store.enableFilterInput ? (
+          <div className="border-b border-gray-200 p-1.5">
+            <input
+              ref={inputRef}
+              type="text"
+              value={store.query}
+              onChange={(e) => store.setQuery(e.target.value)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                requestAnimationFrame(() => inputRef.current?.focus());
+              }}
+              placeholder="Type to search commands..."
+              className="w-full px-2 py-0.5 text-sm outline-none"
+            />
+          </div>
+        ) : (
+          store.query && (
+            <div className="border-b border-gray-200 px-3 py-2 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Search:</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {store.query}
+                </span>
+              </div>
+            </div>
+          )
+        )}
+
         <div ref={listRef} className="overflow-y-auto max-h-80">
           {store.filtered.length > 0 ? (
             store.filtered.map((cmd, idx) => (

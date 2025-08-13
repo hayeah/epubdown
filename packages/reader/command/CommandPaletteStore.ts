@@ -10,6 +10,9 @@ import type {
 } from "./types";
 
 export class CommandPaletteStore {
+  // config
+  enableFilterInput = true;
+
   // ui state
   isOpen = false;
   mode: CommandMode = "palette";
@@ -31,6 +34,7 @@ export class CommandPaletteStore {
   constructor(private events: AppEventSystem) {
     makeObservable(this, {
       // observable state
+      enableFilterInput: observable,
       isOpen: observable,
       mode: observable,
       query: observable,
@@ -150,6 +154,7 @@ export class CommandPaletteStore {
   // open and close
   openPalette(commands: Command[]) {
     this.mode = "palette";
+    this.enableFilterInput = true;
     this.widthPx = 560;
     this.anchorElement = null;
     this.position = null;
@@ -160,6 +165,7 @@ export class CommandPaletteStore {
 
   openMenu(commands: Command[], opts: OpenMenuOpts = {}) {
     this.mode = "menu";
+    this.enableFilterInput = true;
     this.widthPx = 320;
     this.anchorElement = opts.anchorElement ?? null;
     this.position = opts.position ?? null;
@@ -170,6 +176,7 @@ export class CommandPaletteStore {
 
   openSlide(commands: Command[]) {
     this.mode = "slide";
+    this.enableFilterInput = true;
     this.widthPx = 480;
     this.anchorElement = null;
     this.position = null;
@@ -180,6 +187,7 @@ export class CommandPaletteStore {
 
   openSelection(commands: Command[], opts: OpenSelectionOpts) {
     this.mode = "selection";
+    this.enableFilterInput = false;
     this.widthPx = 320;
 
     // Do NOT save/clone ranges; rely on native selection
