@@ -146,7 +146,6 @@ const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
         icon: <Copy className="w-4 h-4" />,
         scope: "context",
         action: () => {
-          store.restoreSelection();
           navigator.clipboard.writeText(selected);
           store.setLastAction(`Copied: "${selected.substring(0, 30)}..."`);
           store.close();
@@ -158,7 +157,6 @@ const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
         icon: <Highlighter className="w-4 h-4" />,
         scope: "context",
         action: () => {
-          store.restoreSelection();
           store.setLastAction(`Highlighted: "${selected.substring(0, 30)}..."`);
           store.close();
         },
@@ -169,7 +167,6 @@ const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
         icon: <MessageSquare className="w-4 h-4" />,
         scope: "context",
         action: () => {
-          store.restoreSelection();
           store.setLastAction(`Add note to: "${selected.substring(0, 30)}..."`);
           store.close();
         },
@@ -180,7 +177,6 @@ const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
         icon: <Share2 className="w-4 h-4" />,
         scope: "context",
         action: () => {
-          store.restoreSelection();
           store.setLastAction(`Share: "${selected.substring(0, 30)}..."`);
           store.close();
         },
@@ -191,7 +187,6 @@ const DemoInner = observer(({ store }: { store: CommandPaletteStore }) => {
         icon: <Search className="w-4 h-4" />,
         scope: "context",
         action: () => {
-          store.restoreSelection();
           store.setLastAction(`Search for: "${selected.substring(0, 30)}..."`);
           store.close();
         },

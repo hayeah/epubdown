@@ -5,7 +5,7 @@ import { getSelectionContext } from "../utils/selectionUtils";
 export class ReaderTemplateContext {
   constructor(
     private reader: ReaderStore,
-    private palette: CommandPaletteStore,
+    private palette: CommandPaletteStore, // kept for compatibility; no longer used
   ) {}
 
   get bookTitle(): string {
@@ -22,30 +22,18 @@ export class ReaderTemplateContext {
   }
 
   get selectionText(): string {
-    // Use saved selection from palette if available
-    if (
-      this.palette.savedSelection &&
-      !this.palette.savedSelection.isCollapsed
-    ) {
-      return this.palette.savedSelection.toString().trim();
-    }
-
-    return "";
+    const sel = window.getSelection();
+    return sel && !sel.isCollapsed ? sel.toString().trim() : "";
   }
 
   get selectionContext(): string {
-    // Use saved selection from palette if available
-    if (this.palette.savedSelection) {
-      const context = getSelectionContext(this.palette.savedSelection);
-      const { beforeContext, selectedText, afterContext } = context;
-
-      if (!selectedText) {
-        return "";
-      }
-
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) {
+      const { beforeContext, selectedText, afterContext } =
+        getSelectionContext(sel);
+      if (!selectedText) return "";
       return `${beforeContext} <<${selectedText}>> ${afterContext}`.trim();
     }
-
     return "";
   }
 

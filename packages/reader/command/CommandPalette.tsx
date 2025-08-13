@@ -8,7 +8,6 @@ export const CommandPalette = observer(() => {
   const store = useCommandPaletteStore();
   const menuRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     store.bindMenuElGetter(() => menuRef.current);
@@ -22,11 +21,10 @@ export const CommandPalette = observer(() => {
 
   useLayoutEffect(() => {
     if (!store.isOpen) return;
-    if (store.showSearch && store.autoFocusInput && inputRef.current) {
-      inputRef.current.focus({ preventScroll: true });
-    }
+    // Focus the menu container to capture keyboard events
+    menuRef.current?.focus({ preventScroll: true });
     store.computeMenuXY();
-  }, [store, store.isOpen, store.showSearch, store.autoFocusInput]);
+  }, [store, store.isOpen]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -56,27 +54,6 @@ export const CommandPalette = observer(() => {
 
   return createPortal(
     <>
-      {/* Selection overlay - render below menu */}
-      {store.mode === "selection" &&
-        store.selectionRects.length > 0 &&
-        store.selectionRects.map((r: DOMRect) => (
-          <div
-            key={`${r.left}-${r.top}-${r.width}-${r.height}`}
-            style={{
-              position: "fixed",
-              left: r.left,
-              top: r.top,
-              width: r.width,
-              height: r.height,
-              pointerEvents: "none",
-              background: "rgba(59,130,246,0.15)",
-              boxShadow: "0 0 0 1px rgba(59,130,246,0.6) inset",
-              borderRadius: 2,
-              zIndex: 9990, // below menu (9999), above most content
-            }}
-          />
-        ))}
-
       {isPalette && (
         <div
           className="fixed inset-0 bg-black/20 z-[9998]"
@@ -95,7 +72,8 @@ export const CommandPalette = observer(() => {
       <div
         ref={menuRef}
         role="menu"
-        className="fixed bg-white border border-gray-200 rounded-lg z-[9999] overflow-hidden"
+        tabIndex={-1}
+        className="fixed bg-white border border-gray-200 rounded-lg z-[9999] overflow-hidden outline-none"
         style={{
           width: `${store.widthPx}px`,
           maxWidth: "calc(100vw - 20px)",
@@ -105,44 +83,62 @@ export const CommandPalette = observer(() => {
           boxShadow: "0 2px 8px rgba(0,0,0,.15)",
         }}
         onKeyDown={(e) => {
+          // Navigation keys
           if (e.key === "ArrowDown") {
             e.preventDefault();
             store.moveSelection(1);
-          } else if (e.key === "ArrowUp") {
+            return;
+          }
+          if (e.key === "ArrowUp") {
             e.preventDefault();
             store.moveSelection(-1);
-          } else if (e.key === "Home") {
+            return;
+          }
+          if (e.key === "Home") {
             e.preventDefault();
             store.selectFirst();
-          } else if (e.key === "End") {
+            return;
+          }
+          if (e.key === "End") {
             e.preventDefault();
             store.selectLast();
-          } else if (e.key === "Enter") {
+            return;
+          }
+          if (e.key === "Enter") {
             e.preventDefault();
             store.executeSelected(() => store.close());
-          } else if (e.key === "Escape") {
+            return;
+          }
+          if (e.key === "Escape") {
             e.preventDefault();
             store.close();
+            return;
+          }
+
+          // Filtering via typing (IME not supported by design)
+          const printable =
+            e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey;
+          if (printable) {
+            e.preventDefault();
+            store.appendToQuery(e.key);
+            return;
+          }
+
+          // Backspace to delete last character
+          if (e.key === "Backspace" && !e.altKey && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            store.backspaceQuery();
+            return;
+          }
+
+          // Cmd + Backspace clears query (Mac)
+          if (e.key === "Backspace" && e.metaKey) {
+            e.preventDefault();
+            store.clearQuery();
+            return;
           }
         }}
       >
-        {store.showSearch && (
-          <div className="border-b border-gray-200 p-1.5">
-            <input
-              ref={inputRef}
-              type="text"
-              value={store.query}
-              onChange={(e) => store.setQuery(e.target.value)}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                requestAnimationFrame(() => inputRef.current?.focus());
-              }}
-              placeholder="Type to search commands..."
-              className="w-full px-2 py-0.5 text-sm outline-none"
-            />
-          </div>
-        )}
-
         <div ref={listRef} className="overflow-y-auto max-h-80">
           {store.filtered.length > 0 ? (
             store.filtered.map((cmd, idx) => (

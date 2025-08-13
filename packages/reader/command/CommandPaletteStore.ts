@@ -10,10 +10,6 @@ import type {
 } from "./types";
 
 export class CommandPaletteStore {
-  // config
-  readonly showSearch = true;
-  readonly autoFocusInput = true;
-
   // ui state
   isOpen = false;
   mode: CommandMode = "palette";
@@ -25,17 +21,12 @@ export class CommandPaletteStore {
   anchorElement: HTMLElement | null = null;
   position: { x: number; y: number } | null = null;
   selectionRect: DOMRect | null = null;
-  selectionRects: DOMRect[] = [];
   menuXY = { x: 0, y: 0 };
   widthPx = 560; // derived per mode in setter
 
   // commands
   private currentCommands: Command[] = [];
   lastAction = "";
-
-  // selection support
-  savedRange: Range | null = null;
-  savedSelection: Selection | null = null;
 
   constructor(private events: AppEventSystem) {
     makeObservable(this, {
@@ -54,6 +45,9 @@ export class CommandPaletteStore {
 
       // actions
       setQuery: action,
+      appendToQuery: action,
+      backspaceQuery: action,
+      clearQuery: action,
       moveSelection: action,
       selectFirst: action,
       selectLast: action,
@@ -68,7 +62,6 @@ export class CommandPaletteStore {
       close: action,
       computeMenuXY: action,
       bindMenuElGetter: action,
-      restoreSelection: action,
     });
   }
 
@@ -104,6 +97,19 @@ export class CommandPaletteStore {
   setQuery(q: string) {
     this.query = q;
     this.selectedIndex = 0;
+  }
+
+  appendToQuery(ch: string) {
+    this.setQuery(this.query + ch);
+  }
+
+  backspaceQuery() {
+    if (!this.query) return;
+    this.setQuery(this.query.slice(0, -1));
+  }
+
+  clearQuery() {
+    this.setQuery("");
   }
 
   moveSelection(delta: number) {
@@ -175,19 +181,10 @@ export class CommandPaletteStore {
   openSelection(commands: Command[], opts: OpenSelectionOpts) {
     this.mode = "selection";
     this.widthPx = 320;
-    this.savedRange = opts.range.cloneRange();
 
-    // Save selection object immediately
-    const selection = window.getSelection();
-    if (selection && !selection.isCollapsed) {
-      this.savedSelection = selection;
-    }
-
+    // Do NOT save/clone ranges; rely on native selection
     const rect = opts.range.getBoundingClientRect();
     this.selectionRect = rect;
-    this.selectionRects = Array.from(opts.range.getClientRects()).filter(
-      (r) => r.width > 0 && r.height > 0,
-    );
     this.currentCommands = commands;
     this._open();
   }
@@ -197,9 +194,9 @@ export class CommandPaletteStore {
     this.query = "";
     this.hoveredIndex = null;
     this.selectionRect = null;
-    this.selectionRects = [];
-    this.savedSelection = null;
-    window.getSelection()?.removeAllRanges();
+
+    // Do NOT clear the browser selection anymore
+    // window.getSelection()?.removeAllRanges(); <-- removed
   }
 
   private _open() {
@@ -248,10 +245,5 @@ export class CommandPaletteStore {
     this._menuEl = getter;
   }
 
-  // selection helpers
-  restoreSelection() {
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    if (this.savedRange) sel?.addRange(this.savedRange);
-  }
+  // Note: restoreSelection() method has been removed as we no longer save/restore selections
 }
