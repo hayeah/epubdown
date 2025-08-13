@@ -253,36 +253,6 @@ export class ReaderStore {
     }
   }
 
-  async getImage(resolver: XMLFile, href: string): Promise<string> {
-    const imageData = await resolver.readRaw(href);
-    if (!imageData) {
-      throw new Error("Image not found");
-    }
-
-    // Detect mime type from file extension
-    const ext = href.split(".").pop()?.toLowerCase();
-    const mimeType =
-      ext === "png"
-        ? "image/png"
-        : ext === "gif"
-          ? "image/gif"
-          : ext === "webp"
-            ? "image/webp"
-            : ext === "svg"
-              ? "image/svg+xml"
-              : "image/jpeg";
-
-    const base64 = btoa(
-      Array.from(imageData).reduce(
-        (data, byte) => data + String.fromCharCode(byte),
-        "",
-      ),
-    );
-    const dataUrl = `data:${mimeType};base64,${base64}`;
-
-    return dataUrl;
-  }
-
   async getFootnote(resolver: XMLFile, href: string): Promise<string> {
     // Check if href has a fragment identifier
     const hashIndex = href.indexOf("#");

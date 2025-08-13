@@ -1,8 +1,44 @@
-import { AlertCircle, ImageIcon } from "lucide-react";
+import type { EPub } from "@epubdown/core";
+import { AlertCircle, Loader } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
+import { uint8ArrayToBase64 } from "../lib/base64";
 import { useReaderStore } from "../stores/RootStore";
+import { usePromise } from "../utils/usePromise";
+
+// Helper functions for image loading
+function isExternalUrl(src: string): boolean {
+  return /^(https?:|data:|blob:)/i.test(src);
+}
+
+async function getImageFromArchive(
+  epub: EPub | null,
+  src: string,
+): Promise<string> {
+  if (!src) throw new Error("Empty image src");
+  if (isExternalUrl(src)) return src;
+  if (!epub) throw new Error("Archive not loaded");
+
+  const decoded = decodeURIComponent(src);
+  const bytes = await epub.resolver.readRaw(decoded);
+  if (!bytes) throw new Error("Image not found");
+
+  const ext = decoded.split(".").pop()?.toLowerCase();
+  const mime =
+    ext === "png"
+      ? "image/png"
+      : ext === "gif"
+        ? "image/gif"
+        : ext === "webp"
+          ? "image/webp"
+          : ext === "svg"
+            ? "image/svg+xml"
+            : "image/jpeg";
+
+  const base64 = uint8ArrayToBase64(bytes);
+  return `data:${mime};base64,${base64}`;
+}
 
 // Image component that uses ReaderStore directly
 export interface ImageProps {
@@ -17,75 +53,21 @@ export interface ImageProps {
 export const Image: React.FC<ImageProps> = observer(
   ({ src, alt = "", title, width, height, className }) => {
     const readerStore = useReaderStore();
-    const [isInView, setIsInView] = useState(false);
-    const [imageSrc, setImageSrc] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const imgRef = useRef<HTMLSpanElement>(null);
-    const observerRef = useRef<IntersectionObserver | null>(null);
 
-    // Intersection Observer for viewport detection
-    useEffect(() => {
-      if (!imgRef.current) return;
-
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              setIsInView(true);
-              observerRef.current?.unobserve(entry.target);
-            }
-          }
-        },
-        {
-          rootMargin: "50px", // Start loading 50px before entering viewport
-          threshold: 0.1,
-        },
-      );
-
-      observerRef.current.observe(imgRef.current);
-
-      return () => {
-        observerRef.current?.disconnect();
-      };
-    }, []);
-
-    // Load image data when in view
-    useEffect(() => {
-      if (!isInView || imageSrc) return;
-
-      const currentChapter = readerStore.currentChapter;
-      if (!currentChapter) return;
-
-      let cancelled = false;
-
-      const loadImage = async () => {
-        setError(null);
-        try {
-          // Use the store's getImage method which already handles conversion
-          const dataUrl = await readerStore.getImage(currentChapter, src);
-
-          if (!cancelled) {
-            setImageSrc(dataUrl);
-          }
-        } catch (err) {
-          if (!cancelled) {
-            setError(
-              err instanceof Error ? err.message : "Failed to load image",
-            );
-          }
-        }
-      };
-
-      loadImage();
-
-      return () => {
-        cancelled = true;
-      };
-    }, [isInView, src, imageSrc, readerStore]);
+    // Use usePromise for clean async loading
+    const {
+      value: imageSrc,
+      error,
+      loading,
+    } = usePromise(
+      async (signal) => {
+        return await getImageFromArchive(readerStore.epub, src);
+      },
+      [src, readerStore.epub]
+    );
 
     const handleImageError = useCallback(() => {
       console.error("img on error:", src);
-      setError("Failed to display image");
     }, [src]);
 
     // Placeholder dimensions style
@@ -109,22 +91,20 @@ export const Image: React.FC<ImageProps> = observer(
       );
     }
 
-    if (!imageSrc) {
+    if (loading) {
       return (
         <span
-          ref={imgRef}
           style={{ ...placeholderStyle, display: "inline-block" }}
           className={`bg-gray-100 inline-flex items-center justify-center border border-dashed border-gray-300 rounded text-gray-500 ${className || ""}`}
         >
-          <ImageIcon className="w-8 h-8" />
+          <Loader className="w-8 h-8 animate-spin" />
         </span>
       );
     }
 
     return (
       <img
-        ref={imgRef as any}
-        src={imageSrc}
+        src={imageSrc || ""}
         alt={alt}
         title={title}
         width={width}

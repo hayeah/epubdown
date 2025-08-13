@@ -34,6 +34,7 @@ export class EPub {
   constructor(
     public readonly container: XMLFile,
     public readonly opf: XMLFile,
+    public readonly resolver: DataResolver,
   ) {}
 
   /**
@@ -71,7 +72,7 @@ export class EPub {
       throw new Error(`OPF file not found: ${opfPath}`);
     }
 
-    return new EPub(container, opf);
+    return new EPub(container, opf, resolver);
   }
 
   static async fromZip(

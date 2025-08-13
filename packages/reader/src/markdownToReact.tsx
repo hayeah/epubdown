@@ -22,11 +22,33 @@ export async function markdownToReact(
     //   Children already processed. Can return element/string/null
     //   Use for: wrapping processed nodes, modifying final output
 
-    // We use replace for x-image/x-footnote to handle as atomic units
     replace(domNode) {
       if (domNode.type === "tag" && domNode instanceof Element) {
         const tag = domNode.name;
 
+        // Handle native img tags
+        if (tag === "img") {
+          const {
+            src,
+            alt,
+            title,
+            width,
+            height,
+            class: className,
+          } = domNode.attribs;
+          return (
+            <Image
+              src={src || ""}
+              alt={alt}
+              title={title}
+              width={width ? Number.parseInt(width) : undefined}
+              height={height ? Number.parseInt(height) : undefined}
+              className={className}
+            />
+          );
+        }
+
+        // Handle x-image tags for backward compatibility
         if (tag === "x-image") {
           const {
             src,
