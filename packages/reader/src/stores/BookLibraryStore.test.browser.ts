@@ -121,4 +121,56 @@ describe("BookLibraryStore", () => {
     const result = await rootStore.bookLibraryStore.loadBookForReading(999999);
     expect(result).toBeNull();
   });
+
+  it("should ensure book exists and dedupe by OPF hash", async () => {
+    const file = await loadEpub("/Alice's Adventures in Wonderland.epub");
+
+    // First call - should add the book
+    const bookId1 = await rootStore.bookLibraryStore.ensureBook(file);
+    expect(bookId1).toBeTruthy();
+
+    // Second call - should return the same book ID (deduplication)
+    const bookId2 = await rootStore.bookLibraryStore.ensureBook(file);
+    expect(bookId2).toBe(bookId1);
+
+    // Books list should still have only one book
+    await rootStore.bookLibraryStore.loadBooks();
+    expect(rootStore.bookLibraryStore.books.length).toBe(1);
+  });
+
+  it("should repair missing blob when ensuring book", async () => {
+    const file = await loadEpub("/Alice's Adventures in Wonderland.epub");
+
+    // Add book normally first
+    const bookId = await rootStore.bookLibraryStore.addBook(file);
+
+    // Delete the book's blob to simulate corruption
+    // Then verify ensureBook can repair it
+    await rootStore.bookLibraryStore.deleteBook(bookId);
+
+    // Re-add just the metadata without the blob (simulating partial corruption)
+    const arrayBuffer = await file.arrayBuffer();
+    const { EPub } = await import("@epubdown/core");
+    const epub = await EPub.fromZip(arrayBuffer);
+    const contentHash = await epub.opfhash();
+    const meta = epub.metadata.toJSON();
+
+    const bookId2 = await rootStore.bookLibraryStore.bookDb.addBook({
+      title: meta.title || file.name,
+      author: meta.creator || meta.author,
+      filename: file.name,
+      fileSize: file.size,
+      metadata: JSON.stringify(meta),
+      contentHash,
+    });
+
+    // ensureBook should detect the missing blob and repair it
+    const repairedId = await rootStore.bookLibraryStore.ensureBook(file);
+    expect(repairedId).toBe(bookId2);
+
+    // Verify the book can now be loaded (blob is restored)
+    const result = await rootStore.bookLibraryStore.loadBookForReading(bookId2);
+    expect(result).toBeTruthy();
+    expect(result?.blob).toBeTruthy();
+  });
 });

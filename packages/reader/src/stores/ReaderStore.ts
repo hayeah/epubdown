@@ -596,4 +596,14 @@ export class ReaderStore {
       document.title = bookTitle;
     }
   }
+
+  /**
+   * Open a book in a new tab/window
+   * Centralizes the logic for opening books from various sources (drop, etc.)
+   */
+  async openBookInNewTab(file: File): Promise<void> {
+    const id = await this.bookLibraryStore.ensureBook(file);
+    const url = new URL(`/book/${id}`, window.location.href).toString();
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 }

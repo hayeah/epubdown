@@ -195,6 +195,42 @@ export class BookLibraryStore {
     }
   }
 
+  async ensureBook(file: File): Promise<number> {
+    const arrayBuffer = await file.arrayBuffer();
+    const epub = await EPub.fromZip(arrayBuffer);
+
+    const contentHash = await epub.opfhash();
+    const existing = await this.bookDb.findByHash(contentHash);
+
+    if (existing) {
+      const key = `book-${existing.id}`;
+      const blob = await this.blobStore.getBlob(key);
+      if (!blob) {
+        await this.blobStore.put(key, file);
+      }
+      // Optionally refresh the list later
+      this.loadBooksDebounced();
+      return existing.id;
+    }
+
+    const meta = epub.metadata.toJSON();
+    const id = await this.bookDb.addBook({
+      title: meta.title || file.name,
+      author: meta.creator || meta.author,
+      filename: file.name,
+      fileSize: file.size,
+      metadata: JSON.stringify(meta),
+      contentHash,
+    });
+
+    await this.blobStore.put(`book-${id}`, file);
+
+    // Keep the library list fresh in the background
+    this.loadBooksDebounced();
+
+    return id;
+  }
+
   async addBook(file: File): Promise<number> {
     // Parse the EPUB to get metadata
     const arrayBuffer = await file.arrayBuffer();
