@@ -51,3 +51,8 @@ export function useCommandPaletteStore(): CommandPaletteStore {
   const rootStore = useRootStore();
   return rootStore.commandPaletteStore;
 }
+
+export function useEventSystem(): AppEventSystem {
+  const rootStore = useRootStore();
+  return rootStore.eventSystem;
+}

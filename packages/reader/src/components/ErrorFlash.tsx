@@ -1,6 +1,7 @@
 import { AlertCircle, ChevronDown, ChevronUp, X } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useEventSystem } from "../stores/RootStore";
 
 export interface ErrorItem {
   id: string;
@@ -20,12 +21,33 @@ export const ErrorFlash: React.FC<ErrorFlashProps> = ({
   onDismissError,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const eventSystem = useEventSystem();
   const maxVisible = 5;
   const hasMore = errors.length > maxVisible;
   const visibleErrors = isExpanded ? errors : errors.slice(0, maxVisible);
 
+  // Register bgClick event to dismiss when clicking outside
+  useEffect(() => {
+    const dispose = eventSystem.register([
+      {
+        id: "errorFlash.dismissOnBgClick",
+        event: {
+          kind: "bgClick",
+          shield: () => containerRef.current,
+        },
+        run: () => onDismiss(),
+      },
+    ]);
+
+    return dispose;
+  }, [eventSystem, onDismiss]);
+
   return (
-    <div className="fixed top-4 right-4 max-w-md w-full z-50 animate-slide-in">
+    <div
+      ref={containerRef}
+      className="fixed top-4 right-4 max-w-md w-full z-50 animate-slide-in"
+    >
       <div className="bg-red-50 border border-red-200 rounded-lg shadow-lg">
         {/* Header */}
         <div className="px-4 py-3 flex items-start justify-between border-b border-red-200">
