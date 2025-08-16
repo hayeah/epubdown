@@ -56,7 +56,7 @@ export class BookDatabase {
 
   async getAllBooks(): Promise<BookMetadata[]> {
     const results = await this.db.query(
-      "SELECT * FROM books ORDER BY (last_opened_at IS NULL) ASC, id DESC",
+      "SELECT * FROM books ORDER BY COALESCE(last_opened_at, created_at) DESC, id DESC",
     );
 
     return results.rows.map(this.rowToBookMetadata);
@@ -69,7 +69,7 @@ export class BookDatabase {
 
     const searchPattern = `%${query.toLowerCase()}%`;
     const results = await this.db.query(
-      "SELECT * FROM books WHERE LOWER(title) LIKE ? OR LOWER(author) LIKE ? ORDER BY (last_opened_at IS NULL) ASC, id DESC",
+      "SELECT * FROM books WHERE LOWER(title) LIKE ? OR LOWER(author) LIKE ? ORDER BY COALESCE(last_opened_at, created_at) DESC, id DESC",
       [searchPattern, searchPattern],
     );
 
