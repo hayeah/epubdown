@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useEffect, useRef } from "react";
 import { useReadingProgress } from "../stores/ReadingProgressStore";
@@ -15,6 +16,8 @@ export const ChapterContent: React.FC<ChapterContentProps> = observer(
     const contentRef = useRef<HTMLDivElement>(null);
 
     const render = readerStore.currentChapterRender;
+    const { currentChapterIndex, chapters } = readerStore;
+    const hasNextChapter = currentChapterIndex < chapters.length - 1;
 
     // Set up IntersectionObserver for reading position tracking
     useEffect(() => {
@@ -56,6 +59,12 @@ export const ChapterContent: React.FC<ChapterContentProps> = observer(
       };
     }, [render, readingProgress]);
 
+    const handleContinueReading = () => {
+      if (hasNextChapter) {
+        readerStore.handleChapterChange(currentChapterIndex + 1);
+      }
+    };
+
     if (!render) {
       return (
         <div className="text-center p-8 text-gray-500">Loading chapter...</div>
@@ -67,6 +76,23 @@ export const ChapterContent: React.FC<ChapterContentProps> = observer(
         <div className="chapter-content" ref={contentRef}>
           {render.reactTree}
         </div>
+
+        {/* Continue Reading Link */}
+        {hasNextChapter && (
+          <div className="flex justify-end mt-12 mb-8">
+            <button
+              type="button"
+              onClick={handleContinueReading}
+              className="group flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-full bg-white hover:bg-gray-50 transition-all duration-300 ease-out hover:shadow-md"
+            >
+              <span>Continue reading</span>
+              <ArrowRight
+                size={16}
+                className="transition-transform duration-300 group-hover:translate-x-1"
+              />
+            </button>
+          </div>
+        )}
       </article>
     );
   },
