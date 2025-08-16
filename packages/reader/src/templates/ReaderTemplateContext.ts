@@ -32,7 +32,7 @@ export class ReaderTemplateContext {
       const { beforeContext, selectedText, afterContext } =
         getSelectionContext(sel);
       if (!selectedText) return "";
-      return `${beforeContext} <<${selectedText}>> ${afterContext}`.trim();
+      return `${beforeContext} ${selectedText} ${afterContext}`.trim();
     }
     return "";
   }
