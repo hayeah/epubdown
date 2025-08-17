@@ -100,6 +100,13 @@ export class ReaderStore {
       return this.events.register([
         "view:reader", // Push the layer
         {
+          id: "reader.selectAll",
+          event: { kind: "key", combo: "meta+a" },
+          layer: "view:reader",
+          when: () => !!this.currentChapterRender && !!readerContainer,
+          run: () => this.selectChapterContent(readerContainer),
+        },
+        {
           id: "reader.copyWithContext",
           event: { kind: "key", combo: "meta+shift+c" },
           layer: "view:reader",
@@ -318,6 +325,25 @@ export class ReaderStore {
 
   toggleSidebar() {
     this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  selectChapterContent(readerContainer?: HTMLElement) {
+    if (!readerContainer) return;
+
+    // Find the chapter content element within the reader container
+    const chapterContent = readerContainer.querySelector(".chapter-content");
+    if (!chapterContent) return;
+
+    // Create a range that selects all content in the chapter
+    const range = document.createRange();
+    range.selectNodeContents(chapterContent);
+
+    // Clear existing selection and add the new range
+    const selection = window.getSelection();
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
   }
 
   async copySelectionWithContext() {
