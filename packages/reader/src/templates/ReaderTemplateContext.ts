@@ -37,6 +37,11 @@ export class ReaderTemplateContext {
     return "";
   }
 
+  get chapterContent(): string {
+    // Get the markdown content of the current chapter
+    return this.reader.currentChapterRender?.markdown || "";
+  }
+
   // Method that returns a promise for the timestamp
   async getTimestamp(): Promise<string> {
     // Can include async operations if needed

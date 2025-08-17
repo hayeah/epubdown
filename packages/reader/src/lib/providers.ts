@@ -9,7 +9,9 @@ import { RootStore } from "../stores/RootStore";
 import { ReaderTemplateContext } from "../templates/ReaderTemplateContext";
 import { type ReaderTemplates, parseTemplates } from "../templates/Template";
 // @ts-ignore - raw import
-import templatesRaw from "../templates/templates.md.txt?raw";
+import globalTemplatesRaw from "../templates/reader.global.templates.md.txt?raw";
+// @ts-ignore - raw import
+import selectionTemplatesRaw from "../templates/reader.selection.templates.md.txt?raw";
 import { BlobStore } from "./BlobStore";
 import { BookDatabase } from "./BookDatabase";
 import { runMigrations } from "./runMigrations";
@@ -78,7 +80,10 @@ export function provideEventSystem(): AppEventSystem {
 }
 
 export function provideReaderTemplates(): ReaderTemplates {
-  return parseTemplates(templatesRaw);
+  return {
+    selection: parseTemplates(selectionTemplatesRaw),
+    global: parseTemplates(globalTemplatesRaw),
+  };
 }
 
 export function provideReaderTemplateContext(

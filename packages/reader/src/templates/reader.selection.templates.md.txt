@@ -84,3 +84,20 @@ Explain the selection
     - explain words, terms, places, people in the selection
 
 - use images to enrich your content if possible
+
+# Generate Image
+
+Title: {{ bookTitle }}
+Chapter: {{ chapterTitle }}
+
+## Context
+
+{{ selectionContext }}
+
+## Selection
+
+{{ selectionText }}
+
+## Task
+
+Based on the selection and context, please generate an image.

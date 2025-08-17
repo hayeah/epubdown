@@ -1,0 +1,22 @@
+# Chapter Overview
+
+Title: {{ bookTitle }}
+Chapter: {{ chapterTitle }}
+
+{{ chapterContent }}
+
+---
+
+- give a shorter version of the passage
+- start with an overview
+- divide into subsections with headings
+- for each subsection
+    - start the section with a short "exact quote", to help me locate where it starts
+    - the key messages in point forms
+
+# Copy Chapter
+
+Title: {{ bookTitle }}
+Chapter: {{ chapterTitle }}
+
+{{ chapterContent }}

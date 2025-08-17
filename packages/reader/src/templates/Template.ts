@@ -60,5 +60,8 @@ export function parseTemplates(md: string): Template[] {
 }
 
 // Type aliases for DI
-export type ReaderTemplates = Template[];
+export type ReaderTemplates = {
+  selection: Template[];
+  global: Template[];
+};
 export const ReaderTemplatesToken = Symbol("ReaderTemplates");

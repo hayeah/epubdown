@@ -107,6 +107,16 @@ export class ReaderStore {
           run: () => this.selectChapterContent(readerContainer),
         },
         {
+          id: "reader.openCommandPalette",
+          event: { kind: "key", combo: "meta+k" },
+          layer: "view:reader",
+          when: () => !!this.currentChapterRender,
+          run: () => {
+            const commands = this.buildGlobalCommands();
+            this.palette.openPalette(commands);
+          },
+        },
+        {
           id: "reader.copyWithContext",
           event: { kind: "key", combo: "meta+shift+c" },
           layer: "view:reader",
@@ -350,8 +360,10 @@ export class ReaderStore {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) return;
 
-    // Find the "copy" template
-    const copyTemplate = this.templates.find((t) => t.id === "copy");
+    // Find the "copy-with-context" template in selection templates
+    const copyTemplate = this.templates.selection.find(
+      (t) => t.id === "copy-with-context",
+    );
     if (!copyTemplate) {
       // Fallback to just copying the text
       copyToClipboard(selection.toString());
@@ -366,12 +378,31 @@ export class ReaderStore {
   private buildSelectionCommands(selected: string): Command[] {
     const commands: Command[] = [];
 
-    // Generate commands from templates
-    for (const def of this.templates) {
+    // Generate commands from selection templates
+    for (const def of this.templates.selection) {
       commands.push({
         id: def.id,
         label: def.title,
         scope: "context",
+        action: async () => {
+          const output = await def.render(this.templateContext);
+          copyToClipboard(output);
+        },
+      });
+    }
+
+    return commands;
+  }
+
+  private buildGlobalCommands(): Command[] {
+    const commands: Command[] = [];
+
+    // Generate commands from global templates
+    for (const def of this.templates.global) {
+      commands.push({
+        id: def.id,
+        label: def.title,
+        scope: "global",
         action: async () => {
           const output = await def.render(this.templateContext);
           copyToClipboard(output);
