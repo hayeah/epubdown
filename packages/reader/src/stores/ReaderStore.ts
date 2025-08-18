@@ -447,17 +447,12 @@ export class ReaderStore {
   }
 
   handleTocChapterSelect(path: string) {
-    if (!this.currentBookId || !this.navigate) return;
+    if (!this.navigate) return;
 
-    // Split path and fragment
-    const [pathPart, fragment] = path.split("#");
-
-    // Find chapter index from path (findChapterIndexByPath now handles stripping anchors)
-    const chapterIndex = this.findChapterIndexByPath(path);
-    if (chapterIndex !== -1) {
-      const url = `/book/${this.currentBookId}/${chapterIndex}`;
-      const fullUrl = fragment ? `${url}#${fragment}` : url;
-      this.navigate(fullUrl);
+    // Use the existing method that handles path-to-URL conversion with fragments
+    const url = this.rootedHrefToBookHref(path);
+    if (url) {
+      this.navigate(url);
     }
   }
 
@@ -618,7 +613,7 @@ export class ReaderStore {
     // Split into path and fragment
     const [pathPart, fragment] = decodedHref.split("#");
 
-    // Find chapter index for the path
+    // Find chapter index for the path (findChapterIndexByPath handles anchor stripping internally)
     const chapterIndex = this.findChapterIndexByPath(pathPart || "");
 
     if (chapterIndex === -1) return null;
