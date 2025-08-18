@@ -50,14 +50,18 @@ export const TableOfContents: React.FC = observer(() => {
             // Calculate indentation based on level
             const indent = item.level * 1.5; // 1.5rem per level
 
+            // Split path and fragment
+            const [pathPart, fragment] = item.path.split("#");
+
             // Find chapter index for this path
             const chapterIndex = readerStore.findChapterIndexByPath(item.path);
 
-            // Generate the full URL for this chapter
-            const fullHref =
-              readerStore.currentBookId && chapterIndex !== -1
-                ? `/book/${readerStore.currentBookId}/${chapterIndex}`
-                : "#";
+            // Generate the full URL for this chapter with fragment if present
+            let fullHref = "#";
+            if (readerStore.currentBookId && chapterIndex !== -1) {
+              const baseUrl = `/book/${readerStore.currentBookId}/${chapterIndex}`;
+              fullHref = fragment ? `${baseUrl}#${fragment}` : baseUrl;
+            }
 
             return (
               <li key={item.href} style={{ paddingLeft: `${indent}rem` }}>

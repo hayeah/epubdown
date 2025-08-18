@@ -449,10 +449,15 @@ export class ReaderStore {
   handleTocChapterSelect(path: string) {
     if (!this.currentBookId || !this.navigate) return;
 
-    // Find chapter index from path
+    // Split path and fragment
+    const [pathPart, fragment] = path.split("#");
+
+    // Find chapter index from path (findChapterIndexByPath now handles stripping anchors)
     const chapterIndex = this.findChapterIndexByPath(path);
     if (chapterIndex !== -1) {
-      this.navigate(`/book/${this.currentBookId}/${chapterIndex}`);
+      const url = `/book/${this.currentBookId}/${chapterIndex}`;
+      const fullUrl = fragment ? `${url}#${fragment}` : url;
+      this.navigate(fullUrl);
     }
   }
 
@@ -579,7 +584,11 @@ export class ReaderStore {
   }
 
   findChapterIndexByPath(path: string): number {
-    return this.chapters.findIndex((chapter) => chapter.path === path);
+    // Strip anchor fragment before comparing
+    const pathWithoutAnchor = path.split("#")[0] || path;
+    return this.chapters.findIndex(
+      (chapter) => chapter.path === pathWithoutAnchor,
+    );
   }
 
   /**
