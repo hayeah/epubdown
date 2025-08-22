@@ -54,9 +54,7 @@ export class EpubDumper {
     const startTime = performance.now();
     const result = await fn();
     const elapsed = performance.now() - startTime;
-    if (elapsed > 100) {
-      console.log(`  [${elapsed.toFixed(2)}ms] ${msg}`);
-    }
+    console.log(`  [${elapsed.toFixed(2)}ms] ${msg}`);
     return result;
   }
 
@@ -180,7 +178,7 @@ export class EpubDumper {
     for await (const chapter of this.epub.chapters(false)) {
       index += 1;
 
-      await this.time(`chapter ${index}`, async () => {
+      await this.time(`item[${index}] ${chapter.path}`, async () => {
         // Get markdown content using chapter.path
         const content = await this.epub.chapterMarkdown(chapter.path);
 
