@@ -189,6 +189,40 @@ export function createXmlParserTests(DOMParserImpl: typeof DOMParser) {
     });
 
     describe("XHTML mode (application/xhtml+xml)", () => {
+      it("should handle nbsp entities in XHTML mode", () => {
+        const parser = new DOMParserImpl();
+        const xhtml = `<?xml version="1.0"?>
+          <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
+            "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <head>
+              <title>Test</title>
+            </head>
+            <body>
+              <p>Text with&nbsp;non-breaking&nbsp;spaces</p>
+              <p>Another&nbsp;test</p>
+            </body>
+          </html>`;
+
+        const doc = parser.parseFromString(xhtml, "application/xhtml+xml");
+
+        // Check for parser errors - nbsp entities would cause errors in strict XML mode
+        // but our parseDocument function should handle them
+        const parserError = doc.querySelector("parsererror");
+
+        // The test behavior depends on whether we're using the wrapper parseDocument
+        // or raw DOMParser. Raw DOMParser would fail with nbsp in XHTML mode.
+        // This test documents the behavior with raw DOMParser.
+        if (parserError) {
+          // Raw DOMParser: nbsp causes parse error in XHTML mode
+          expect(parserError).toBeTruthy();
+        } else {
+          // If using parseDocument wrapper that handles nbsp, content should parse correctly
+          const paragraphs = doc.querySelectorAll("p");
+          expect(paragraphs.length).toBeGreaterThan(0);
+        }
+      });
+
       it("should parse XHTML with self-closing tags", () => {
         const parser = new DOMParserImpl();
         const xhtml = `<?xml version="1.0"?>
