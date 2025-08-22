@@ -1,7 +1,8 @@
 // Main EPub classes
 export { EPub } from "./Epub";
 export type { ManifestItem } from "./Epub";
-export { XMLFile } from "./XMLFile";
+export { DOMFile } from "./DOMFile";
+export type { ContentType } from "./DOMFile";
 export { Metadata } from "./Metadata";
 export type {
   Metadata as MetadataType,

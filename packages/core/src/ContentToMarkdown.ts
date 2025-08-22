@@ -1,5 +1,5 @@
 import TurndownService from "turndown";
-import type { XMLFile } from "./XMLFile";
+import type { DOMFile } from "./DOMFile";
 import { normalizePath } from "./utils/normalizePath";
 
 export interface ConversionOptions {
@@ -240,11 +240,11 @@ export class ContentToMarkdown {
     }
   }
 
-  async convertXMLFile(xmlFile: XMLFile): Promise<string> {
+  async convertXMLFile(xmlFile: DOMFile): Promise<string> {
     // Transform SVG images to regular img tags before passing to Turndown
     this.transformSvgImages(xmlFile.dom);
 
-    // Pass the body element from the XMLFile DOM to TurndownService
+    // Pass the body element from the DOMFile DOM to TurndownService
     const body = xmlFile.dom.querySelector("body");
     const elementToConvert = body || xmlFile.dom.documentElement;
 

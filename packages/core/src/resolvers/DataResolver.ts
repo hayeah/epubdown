@@ -42,15 +42,15 @@ export abstract class DataResolver {
   }
 
   async readXMLFile(href: string): Promise<any> {
-    const { XMLFile } = await import("../XMLFile");
+    const { DOMFile } = await import("../DOMFile");
     // Handle absolute paths by using root resolver
     if (href.startsWith("/")) {
       // Create a root resolver (base = "") and use it
       const rootResolver = this.createInstance("");
-      return XMLFile.load(href.slice(1), rootResolver);
+      return DOMFile.load(href.slice(1), rootResolver);
     }
     // Handle relative paths normally
-    return XMLFile.load(href, this);
+    return DOMFile.load(href, this);
   }
 
   abstract createInstance(base: string): DataResolver;

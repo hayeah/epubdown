@@ -4,13 +4,16 @@ import { normalizePath } from "./utils/normalizePath";
 import { querySelectorNamespaced } from "./utils/querySelectorNamespaced";
 import { parseDocument } from "./xmlParser";
 
-export class XMLFile extends DataResolver {
+export type ContentType = "xml" | "html" | "xhtml";
+
+export class DOMFile extends DataResolver {
   constructor(
     public readonly base: string,
     public readonly name: string,
     public readonly content: string,
-    public readonly dom: XMLDocument,
+    public readonly dom: Document,
     public readonly resolver: DataResolver,
+    public readonly contentType: ContentType = "xml",
   ) {
     super(base);
   }
@@ -24,18 +27,29 @@ export class XMLFile extends DataResolver {
   static async load(
     href: string,
     resolver: DataResolver,
-  ): Promise<XMLFile | undefined> {
+    contentType?: ContentType,
+  ): Promise<DOMFile | undefined> {
     const content = await resolver.read(href);
     if (!content) {
       return undefined;
     }
 
-    const dom = parseDocument(content, "xml") as XMLDocument;
+    // Determine content type based on file extension if not provided
+    const detectedContentType = contentType || DOMFile.detectContentType(href);
+
+    const dom = parseDocument(content, detectedContentType);
     const fullPath = normalizePath(resolver.base, href);
     const newBase = dirname(fullPath);
     const name = basename(href);
 
-    return new XMLFile(newBase, name, content, dom, resolver.rebase(newBase));
+    return new DOMFile(
+      newBase,
+      name,
+      content,
+      dom,
+      resolver.rebase(newBase),
+      detectedContentType,
+    );
   }
 
   async readRaw(href: string): Promise<Uint8Array | undefined> {
@@ -72,5 +86,33 @@ export class XMLFile extends DataResolver {
     ns?: string | null,
   ): Element | null {
     return querySelectorNamespaced(this.dom, tag, attribute, ns);
+  }
+
+  /**
+   * Detect content type based on file extension and MIME type patterns
+   */
+  static detectContentType(href: string): ContentType {
+    const lowerHref = href.toLowerCase();
+
+    // Check for HTML/XHTML extensions
+    if (lowerHref.endsWith(".html") || lowerHref.endsWith(".htm")) {
+      return "html";
+    }
+    if (lowerHref.endsWith(".xhtml") || lowerHref.endsWith(".xhtm")) {
+      return "xhtml";
+    }
+
+    // Check for known XML files
+    if (
+      lowerHref.endsWith(".xml") ||
+      lowerHref.endsWith(".opf") ||
+      lowerHref.endsWith(".ncx") ||
+      lowerHref.includes("container.xml")
+    ) {
+      return "xml";
+    }
+
+    // Default to xhtml for unknown extensions in EPUB context
+    return "xhtml";
   }
 }

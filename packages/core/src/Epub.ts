@@ -1,8 +1,8 @@
 import JSZip from "jszip";
 import { ContentToMarkdown } from "./ContentToMarkdown";
+import type { DOMFile } from "./DOMFile";
 import { Metadata } from "./Metadata";
 import { TableOfContents } from "./TableOfContents";
-import type { XMLFile } from "./XMLFile";
 import { type DataResolver, ZipDataResolver } from "./resolvers";
 import { normalizePath } from "./utils/normalizePath";
 
@@ -32,8 +32,8 @@ export class EPub {
   private _metadata?: Metadata;
 
   constructor(
-    public readonly container: XMLFile,
-    public readonly opf: XMLFile,
+    public readonly container: DOMFile,
+    public readonly opf: DOMFile,
     public readonly resolver: DataResolver,
   ) {}
 
@@ -161,7 +161,7 @@ export class EPub {
     return result;
   }
 
-  async getChapter(ref: string): Promise<XMLFile | undefined> {
+  async getChapter(ref: string): Promise<DOMFile | undefined> {
     // readXMLFile now handles both relative and absolute paths
     return this.opf.readXMLFile(ref);
   }
@@ -169,9 +169,9 @@ export class EPub {
   /**
    * Async generator to iterate through spine chapters
    * @param linearOnly If true, skip non-linear spine items
-   * @returns Generator yielding XMLFile objects with href and title properties
+   * @returns Generator yielding DOMFile objects with href and title properties
    */
-  async *chapters(linearOnly = true): AsyncGenerator<XMLFile> {
+  async *chapters(linearOnly = true): AsyncGenerator<DOMFile> {
     const spineItems = this.spineWithManifest(linearOnly).filter(
       (item) =>
         item.manifestItem.mediaType.includes("xhtml") ||
@@ -192,7 +192,7 @@ export class EPub {
    * @returns Promise<string> The markdown content
    */
   async chapterMarkdown(ref: string): Promise<string> {
-    // Get the chapter XMLFile
+    // Get the chapter DOMFile
     const chapter = await this.getChapter(ref);
     if (!chapter) {
       throw new Error(`Chapter not found: ${ref}`);

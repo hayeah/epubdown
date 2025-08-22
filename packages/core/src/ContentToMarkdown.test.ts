@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { ContentToMarkdown } from "./ContentToMarkdown";
-import { XMLFile } from "./XMLFile";
+import { DOMFile } from "./DOMFile";
 import { FileDataResolver } from "./resolvers/FileDataResolver";
 import { parseDocument } from "./xmlParser";
 
-function createMockXMLFile(html: string): XMLFile {
-  const dom = parseDocument(html, "xml") as XMLDocument;
+function createMockXMLFile(html: string): DOMFile {
+  // Detect if this is XHTML based on namespace declaration
+  const contentType = html.includes('xmlns="http://www.w3.org/1999/xhtml"')
+    ? "xhtml"
+    : "html";
+  const dom = parseDocument(html, contentType);
   const resolver = new FileDataResolver("");
-  return new XMLFile("", "test.xhtml", html, dom, resolver);
+  return new DOMFile("", "test.xhtml", html, dom, resolver, contentType);
 }
 
 describe("ContentToMarkdown", () => {
@@ -279,14 +283,17 @@ describe("ContentToMarkdown", () => {
     });
 
     it("should handle mixed self-closing tags", async () => {
-      const html = `<body>
-        <custom-tag/>
-        <title/>
-        <a id="test"/>
-        <h1>Content After Self-Closing Tags</h1>
-        <br/>
-        <p>More content</p>
-      </body>`;
+      // Test with XHTML content (typical in EPUBs)
+      const html = `<html xmlns="http://www.w3.org/1999/xhtml">
+        <body>
+          <custom-tag/>
+          <title/>
+          <a id="test"/>
+          <h1>Content After Self-Closing Tags</h1>
+          <br/>
+          <p>More content</p>
+        </body>
+      </html>`;
 
       const xmlFile = createMockXMLFile(html);
       const converter = ContentToMarkdown.create();

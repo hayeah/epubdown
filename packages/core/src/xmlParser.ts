@@ -82,7 +82,7 @@ export function parseDocument(str: string, contentType = "xml"): Document {
   // Handle shortcuts
   const mimeTypeMap: Record<string, string> = {
     html: "text/html",
-    xhtml: "application/xhtml+xml",
+    xhtml: "application/xhtml+xml", // Parse XHTML as XML to preserve structure
     xml: "text/xml",
   };
 

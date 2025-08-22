@@ -1,6 +1,6 @@
 import { join } from "node:path";
+import { DOMFile } from "./DOMFile";
 import type { EPub } from "./Epub";
-import { XMLFile } from "./XMLFile";
 import { normalizePath } from "./utils/normalizePath";
 import { parseDocument } from "./xmlParser";
 
@@ -28,7 +28,7 @@ export class TableOfContents {
    * Get the table of contents as HTML
    * First checks for EPUB3 nav document, then falls back to NCX converted to HTML
    */
-  async html(): Promise<XMLFile | undefined> {
+  async html(): Promise<DOMFile | undefined> {
     // First check for EPUB3 nav document
     const navFile = await this.nav();
     if (navFile) {
@@ -42,7 +42,7 @@ export class TableOfContents {
   /**
    * Get EPUB3 navigation document
    */
-  async nav(): Promise<XMLFile | undefined> {
+  async nav(): Promise<DOMFile | undefined> {
     const manifest = this.epub.opf.querySelector("manifest");
     if (!manifest) return undefined;
 
@@ -58,7 +58,7 @@ export class TableOfContents {
   /**
    * Get EPUB2 NCX document
    */
-  async ncx(): Promise<XMLFile | undefined> {
+  async ncx(): Promise<DOMFile | undefined> {
     const manifest = this.epub.opf.querySelector("manifest");
     if (!manifest) return undefined;
 
@@ -76,7 +76,7 @@ export class TableOfContents {
   /**
    * Convert NCX to HTML navigation format
    */
-  async ncxToHTML(): Promise<XMLFile | undefined> {
+  async ncxToHTML(): Promise<DOMFile | undefined> {
     const ncxFile = await this.ncx();
     if (!ncxFile) return undefined;
 
@@ -128,12 +128,13 @@ export class TableOfContents {
     const olMarkup = convertNavPoints(navMap);
     const html = `<nav xmlns:epub="http://www.idpf.org/2007/ops" epub:type="toc">\n${olMarkup}\n</nav>`;
 
-    return new XMLFile(
+    return new DOMFile(
       ncxFile.base,
       "ncx.xml.html",
       html,
-      parseDocument(html, "xml") as XMLDocument,
+      parseDocument(html, "html"),
       ncxFile.resolver,
+      "html",
     );
   }
 
