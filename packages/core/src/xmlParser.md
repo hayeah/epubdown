@@ -49,16 +49,25 @@ jsdom provides excellent standards compliance for both HTML and XML parsing:
 ## Usage Examples
 
 ```typescript
-import { parseHtml, parseXml } from './xmlParser';
+import { parseDocument } from './xmlParser';
 
 // HTML parsing (forgiving)
-const htmlDoc = parseHtml('<div><p>Hello</div>'); // Missing </p> is handled
+const htmlDoc = parseDocument('<div><p>Hello</div>', 'html'); // Missing </p> is handled
 
-// XML parsing (strict)
-const xmlDoc = parseXml('<?xml version="1.0"?><root><item/></root>');
+// XML parsing (strict) - default
+const xmlDoc = parseDocument('<?xml version="1.0"?><root><item/></root>');
+// or explicitly:
+const xmlDoc2 = parseDocument('<?xml version="1.0"?><root><item/></root>', 'xml');
+
+// XHTML parsing
+const xhtmlDoc = parseDocument('<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><body/></html>', 'xhtml');
+
+// Using full MIME types
+const xmlDoc3 = parseDocument('<root/>', 'application/xml');
+const xhtmlDoc2 = parseDocument('<html/>', 'application/xhtml+xml');
 
 // Invalid XML creates parsererror
-const invalidXml = parseXml('<root><unclosed>');
+const invalidXml = parseDocument('<root><unclosed>', 'xml');
 // xmlDoc.querySelector('parsererror') will contain the error
 ```
 

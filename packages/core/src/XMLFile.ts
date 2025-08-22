@@ -2,7 +2,7 @@ import { basename, dirname, join } from "node:path";
 import { DataResolver } from "./resolvers/DataResolver";
 import { normalizePath } from "./utils/normalizePath";
 import { querySelectorNamespaced } from "./utils/querySelectorNamespaced";
-import { parseXml } from "./xmlParser";
+import { parseDocument } from "./xmlParser";
 
 export class XMLFile extends DataResolver {
   constructor(
@@ -30,7 +30,7 @@ export class XMLFile extends DataResolver {
       return undefined;
     }
 
-    const dom = parseXml(content) as XMLDocument;
+    const dom = parseDocument(content, "xml") as XMLDocument;
     const fullPath = normalizePath(resolver.base, href);
     const newBase = dirname(fullPath);
     const name = basename(href);

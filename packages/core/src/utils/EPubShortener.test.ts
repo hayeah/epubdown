@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EPub } from "../Epub";
 import { FileDataResolver } from "../resolvers/FileDataResolver";
 import { fetchEpub } from "../testUtils";
-import { parseHtml } from "../xmlParser";
+import { parseDocument } from "../xmlParser";
 import { shorten, shortenDir } from "./EPubShortener";
 import { unzip } from "./zipUtils";
 
@@ -45,7 +45,7 @@ describe("EPubShortener", () => {
           "Call me Ishmael. Some years ago—never mind how long precisely—having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world.";
 
         // Parse the chapter content to check text nodes
-        const doc = parseHtml(chapter.content);
+        const doc = parseDocument(chapter.content, "html");
         const textContent = doc.body?.textContent?.trim() || "";
 
         if (textContent.length > 15) {

@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { parseHtml, parseXml } from "../xmlParser";
+import { parseDocument } from "../xmlParser";
 import { createQuerySelectorNamespacedTests } from "./querySelectorNamespaced.test.shared";
 
 describe(
   "querySelectorNamespaced - browser",
-  createQuerySelectorNamespacedTests(parseXml, parseHtml),
+  createQuerySelectorNamespacedTests(
+    (xml: string) => parseDocument(xml, "xml"),
+    (html: string) => parseDocument(html, "html"),
+  ),
 );
 
 describe("Browser environment", () => {

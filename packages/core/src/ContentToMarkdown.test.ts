@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { ContentToMarkdown } from "./ContentToMarkdown";
 import { XMLFile } from "./XMLFile";
 import { FileDataResolver } from "./resolvers/FileDataResolver";
-import { parseXml } from "./xmlParser";
+import { parseDocument } from "./xmlParser";
 
 function createMockXMLFile(html: string): XMLFile {
-  const dom = parseXml(html) as XMLDocument;
+  const dom = parseDocument(html, "xml") as XMLDocument;
   const resolver = new FileDataResolver("");
   return new XMLFile("", "test.xhtml", html, dom, resolver);
 }

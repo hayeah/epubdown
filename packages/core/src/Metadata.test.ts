@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { EPub } from "./Epub";
 import { Metadata } from "./Metadata";
 import { compareOrUpdateFixture, fetchEpub } from "./testUtils";
-import { parseXml } from "./xmlParser";
+import { parseDocument } from "./xmlParser";
 
 describe("Metadata", () => {
   describe("unit tests", () => {
@@ -229,7 +229,7 @@ describe("Metadata", () => {
         </metadata>
       `;
 
-      const doc = parseXml(xml);
+      const doc = parseDocument(xml, "xml");
       const metadataElement = doc.querySelector("metadata");
       if (!metadataElement) throw new Error("metadata element not found");
       const metadata = Metadata.fromDom(metadataElement);
@@ -252,7 +252,7 @@ describe("Metadata", () => {
         </metadata>
       `;
 
-      const doc = parseXml(xml);
+      const doc = parseDocument(xml, "xml");
       const metadataElement = doc.querySelector("metadata");
       if (!metadataElement) throw new Error("metadata element not found");
       const metadata = Metadata.fromDom(metadataElement);
@@ -272,7 +272,7 @@ describe("Metadata", () => {
         </metadata>
       `;
 
-      const doc = parseXml(xml);
+      const doc = parseDocument(xml, "xml");
       const metadataElement = doc.querySelector("metadata");
       if (!metadataElement) throw new Error("metadata element not found");
       const metadata = Metadata.fromDom(metadataElement);
@@ -296,7 +296,7 @@ describe("Metadata", () => {
         </metadata>
       `;
 
-      const doc = parseXml(xml);
+      const doc = parseDocument(xml, "xml");
       const metadataElement = doc.querySelector("metadata");
       if (!metadataElement) throw new Error("metadata element not found");
       const metadata = Metadata.fromDom(metadataElement);

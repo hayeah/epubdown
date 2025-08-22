@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseXml } from "./xmlParser";
+import { parseDocument } from "./xmlParser";
 
 /**
  * This test suite demonstrates how jsdom's XML parsing behavior
@@ -21,7 +21,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
       const markup =
         '<root xmlns:custom="http://example.com"><custom:element>test</custom:element></root>';
 
-      const xmlDoc = parseXml(markup);
+      const xmlDoc = parseDocument(markup, "xml");
 
       // Check namespace-aware methods
       const elementsNS = xmlDoc.getElementsByTagNameNS(
@@ -46,7 +46,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
       const markup =
         '<root xmlns="http://example.com/default"><child>content</child></root>';
 
-      const xmlDoc = parseXml(markup);
+      const xmlDoc = parseDocument(markup, "xml");
 
       const root = xmlDoc.documentElement;
       expect(root.namespaceURI).toBe("http://example.com/default");
@@ -68,7 +68,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
        */
       const malformed = "<div><p>unclosed paragraph<div>nested</div>";
 
-      const xmlDoc = parseXml(malformed);
+      const xmlDoc = parseDocument(malformed, "xml");
 
       // Check for parsererror element
       const parseError = xmlDoc.querySelector("parsererror");
@@ -83,7 +83,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
        */
       const invalidXml = "<div><br><span>test</span></div>";
 
-      const xmlDoc = parseXml(invalidXml);
+      const xmlDoc = parseDocument(invalidXml, "xml");
 
       // Should have a parsererror
       const parseError = xmlDoc.querySelector("parsererror");
@@ -96,7 +96,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
        */
       const validXml = "<div><br/><span>test</span></div>";
 
-      const xmlDoc = parseXml(validXml);
+      const xmlDoc = parseDocument(validXml, "xml");
 
       // Should parse successfully
       const parseError = xmlDoc.querySelector("parsererror");
@@ -114,7 +114,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
        */
       const markup = "<DIV><SPAN>test</SPAN></DIV>";
 
-      const xmlDoc = parseXml(markup);
+      const xmlDoc = parseDocument(markup, "xml");
 
       // Element names should preserve case
       const divElement = xmlDoc.querySelector("DIV");
@@ -135,7 +135,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
        */
       const markup = "<root><![CDATA[<test>& special chars</test>]]></root>";
 
-      const xmlDoc = parseXml(markup);
+      const xmlDoc = parseDocument(markup, "xml");
 
       const root = xmlDoc.querySelector("root");
       expect(root?.textContent).toBe("<test>& special chars</test>");
@@ -154,7 +154,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
       const markup =
         "<root>&lt;test&gt; &amp; &quot;quotes&quot; &apos;apostrophe&apos;</root>";
 
-      const xmlDoc = parseXml(markup);
+      const xmlDoc = parseDocument(markup, "xml");
 
       const root = xmlDoc.querySelector("root");
       expect(root?.textContent).toBe("<test> & \"quotes\" 'apostrophe'");
@@ -167,7 +167,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
        */
       const markup = "<root>&nbsp;&copy;</root>";
 
-      const xmlDoc = parseXml(markup);
+      const xmlDoc = parseDocument(markup, "xml");
 
       // Should produce a parsererror for undefined entities
       const parseError = xmlDoc.querySelector("parsererror");
@@ -182,7 +182,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
        */
       const unquotedAttr = "<div id=test></div>";
 
-      const xmlDoc = parseXml(unquotedAttr);
+      const xmlDoc = parseDocument(unquotedAttr, "xml");
 
       // Should have a parsererror
       const parseError = xmlDoc.querySelector("parsererror");
@@ -195,7 +195,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
        */
       const duplicateAttr = '<div class="foo" class="bar"></div>';
 
-      const xmlDoc = parseXml(duplicateAttr);
+      const xmlDoc = parseDocument(duplicateAttr, "xml");
 
       // Should have a parsererror
       const parseError = xmlDoc.querySelector("parsererror");
@@ -211,7 +211,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
       const markup =
         '<?xml version="1.0" encoding="UTF-8"?><root><?custom-pi data?></root>';
 
-      const xmlDoc = parseXml(markup);
+      const xmlDoc = parseDocument(markup, "xml");
 
       expect(xmlDoc.querySelector("root")).toBeTruthy();
 
@@ -236,7 +236,7 @@ describe("xmlParser - jsdom XML parsing compliance", () => {
        */
       const markup = "<root><!-- This is a comment --><element/></root>";
 
-      const xmlDoc = parseXml(markup);
+      const xmlDoc = parseDocument(markup, "xml");
 
       const root = xmlDoc.documentElement;
       let commentFound = false;

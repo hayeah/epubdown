@@ -1,8 +1,11 @@
 import { describe } from "vitest";
-import { parseHtml, parseXml } from "../xmlParser";
+import { parseDocument } from "../xmlParser";
 import { createQuerySelectorNamespacedTests } from "./querySelectorNamespaced.test.shared";
 
 describe(
   "querySelectorNamespaced - jsdom",
-  createQuerySelectorNamespacedTests(parseXml, parseHtml),
+  createQuerySelectorNamespacedTests(
+    (xml: string) => parseDocument(xml, "xml"),
+    (html: string) => parseDocument(html, "html"),
+  ),
 );

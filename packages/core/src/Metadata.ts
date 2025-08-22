@@ -15,7 +15,7 @@
     add support as needed.
 
 */
-import { parseXml } from "./xmlParser";
+import { parseDocument } from "./xmlParser";
 
 export interface DCProperty {
   name: string;
@@ -155,7 +155,7 @@ export class Metadata {
 
   /** Build a Metadata instance from a raw XML string. */
   static fromXml(xml: string): Metadata {
-    const doc = parseXml(xml);
+    const doc = parseDocument(xml, "xml");
 
     // <package> is the root in an OPF file
     const pkg = doc.querySelector("package");

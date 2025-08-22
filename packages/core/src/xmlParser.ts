@@ -47,10 +47,7 @@ if (import.meta.SSR ?? typeof window === "undefined") {
         try {
           const cleanedString = cleanContent(string);
           const dom = new JSDOM(cleanedString, {
-            contentType:
-              mimeType === "application/xhtml+xml"
-                ? "application/xml"
-                : mimeType,
+            contentType: mimeType,
           });
           return dom.window.document;
         } catch (error) {
@@ -71,14 +68,31 @@ if (import.meta.SSR ?? typeof window === "undefined") {
 
 export { DOMParser };
 
-export function parseXml(xml: string): Document {
-  return new DOMParser().parseFromString(xml, "text/xml");
-}
+export function parseDocument(str: string, contentType = "xml"): Document {
+  // Handle shortcuts
+  const mimeTypeMap: Record<string, string> = {
+    html: "text/html",
+    xhtml: "application/xhtml+xml",
+    xml: "text/xml",
+  };
 
-export function parseHtml(html: string): Document {
-  return new DOMParser().parseFromString(html, "text/html");
-}
+  // Use mapped MIME type if it's a shortcut, otherwise use as-is
+  const mimeType = mimeTypeMap[contentType] || contentType;
 
-export function parseDocument(doc: string, mode: "html" | "xml"): Document {
-  return mode === "html" ? parseHtml(doc) : parseXml(doc);
+  // Validate that we have a supported MIME type
+  const supportedTypes = [
+    "text/html",
+    "text/xml",
+    "application/xml",
+    "application/xhtml+xml",
+  ];
+
+  if (!supportedTypes.includes(mimeType)) {
+    throw new Error(`Unsupported content type: ${contentType}`);
+  }
+
+  return new DOMParser().parseFromString(
+    str,
+    mimeType as DOMParserSupportedType,
+  );
 }

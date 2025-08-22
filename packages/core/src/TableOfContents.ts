@@ -2,7 +2,7 @@ import { join } from "node:path";
 import type { EPub } from "./Epub";
 import { XMLFile } from "./XMLFile";
 import { normalizePath } from "./utils/normalizePath";
-import { parseXml } from "./xmlParser";
+import { parseDocument } from "./xmlParser";
 
 export interface NavItem {
   id?: string;
@@ -132,7 +132,7 @@ export class TableOfContents {
       ncxFile.base,
       "ncx.xml.html",
       html,
-      parseXml(html) as XMLDocument,
+      parseDocument(html, "xml") as XMLDocument,
       ncxFile.resolver,
     );
   }

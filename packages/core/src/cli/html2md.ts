@@ -6,7 +6,7 @@ import { hideBin } from "yargs/helpers";
 import { ContentToMarkdown } from "../ContentToMarkdown";
 import { XMLFile } from "../XMLFile";
 import { FileDataResolver } from "../resolvers/FileDataResolver";
-import { parseXml } from "../xmlParser";
+import { parseDocument } from "../xmlParser";
 
 const argv = yargs(hideBin(process.argv))
   .usage("Usage: $0 [options]")
@@ -37,7 +37,7 @@ async function main() {
     }
 
     // Parse HTML/XML content and convert to markdown
-    const dom = parseXml(htmlContent) as XMLDocument;
+    const dom = parseDocument(htmlContent, "xml") as XMLDocument;
     const resolver = new FileDataResolver("/");
     const xmlFile = new XMLFile(
       "/",
