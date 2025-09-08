@@ -165,7 +165,7 @@ describe("ContentToMarkdown", () => {
     expect(result).toContain("Item 2");
   });
 
-  it("converts img tags to x-image elements", async () => {
+  it("converts img tags to markdown images", async () => {
     const html = `
       <html>
         <body>
@@ -181,18 +181,17 @@ describe("ContentToMarkdown", () => {
     const converter = ContentToMarkdown.create();
     const result = await converter.convertXMLFile(xmlFile);
 
+    // Base path defaults to '/', so relative paths normalize to absolute
     expect(result).toContain("Text before image");
-    expect(result).toContain(
-      '<x-image src="images/photo.jpg" alt="A photo"></x-image>',
-    );
+    expect(result).toContain("![A photo](/images/photo.jpg)");
     expect(result).toContain("Text after image");
-    expect(result).toContain(
-      '<x-image src="images/9780262538459.jpg" alt=""></x-image>',
-    );
-    expect(result).toContain('<x-image src="images/no-alt.png"></x-image>');
+    // Empty alt should be preserved as empty
+    expect(result).toContain("![](/images/9780262538459.jpg)");
+    // Missing alt is set to filename
+    expect(result).toContain("![no-alt.png](/images/no-alt.png)");
   });
 
-  it("converts SVG image elements to x-image elements", async () => {
+  it("converts SVG image elements to markdown images", async () => {
     const html = `
       <html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
         <body>
@@ -215,15 +214,15 @@ describe("ContentToMarkdown", () => {
     const converter = ContentToMarkdown.create();
     const result = await converter.convertXMLFile(xmlFile);
 
-    // Should convert SVG image elements to x-image tags with the special alt text
+    // Should convert SVG image elements to img with special alt; markdown conversion applies
     expect(result).toContain(
-      '<x-image src="../images/9780192806840.jpg" alt="_[SVG cover image not supported]_"></x-image>',
+      "![_[SVG cover image not supported]_](/images/9780192806840.jpg)",
     );
     expect(result).toContain(
-      '<x-image src="images/cover.png" alt="_[SVG cover image not supported]_"></x-image>',
+      "![_[SVG cover image not supported]_](/images/cover.png)",
     );
     expect(result).toContain(
-      '<x-image src="images/another.jpg" alt="_[SVG cover image not supported]_"></x-image>',
+      "![_[SVG cover image not supported]_](/images/another.jpg)",
     );
     expect(result).toContain("Some text");
   });
@@ -278,7 +277,7 @@ describe("ContentToMarkdown", () => {
 
       expect(result).toContain("Title");
       expect(result).toContain("* * *"); // hr converts to * * *
-      expect(result).toContain('<x-image src="test.jpg"></x-image>'); // img converts to x-image
+      expect(result).toContain("![test.jpg](/test.jpg)"); // img converts to markdown image with filename alt
       expect(result).toContain("Content");
     });
 
