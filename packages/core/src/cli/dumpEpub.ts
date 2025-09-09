@@ -9,6 +9,7 @@ async function dumpPath(
   targetPath: string,
   verbose: boolean,
   outputPath?: string,
+  itemIndex?: number,
 ) {
   const stats = await fs.stat(targetPath);
 
@@ -18,6 +19,7 @@ async function dumpPath(
     const dumper = await EpubDumper.fromZipFile(targetPath, {
       verbose,
       outputDir: outputPath,
+      onlyItemIndex: itemIndex,
     });
     await dumper.dump();
   } else if (stats.isDirectory()) {
@@ -46,6 +48,7 @@ async function dumpPath(
         const dumper = await EpubDumper.fromZipFile(epubPath, {
           verbose,
           outputDir: perFileOutputDir,
+          onlyItemIndex: itemIndex,
         });
         await dumper.dump();
       }
@@ -55,6 +58,7 @@ async function dumpPath(
       const dumper = await EpubDumper.fromDirectory(targetPath, {
         verbose,
         outputDir: outputPath,
+        onlyItemIndex: itemIndex,
       });
       await dumper.dump();
     }
@@ -67,6 +71,7 @@ interface Args {
   _: string[];
   verbose?: boolean;
   outputPath?: string;
+  itemIndex?: number;
   [x: string]: unknown;
 }
 
@@ -89,6 +94,12 @@ async function main() {
       description:
         "Output directory or file-specific dump path. For a single .epub, uses this as the dump directory. For a directory of .epub files, creates one subdir per file under this path.",
     })
+    .option("itemIndex", {
+      alias: "i",
+      type: "number",
+      description:
+        "Dump only a specific item (1-based index) from the chapter sequence (spine XHTML/HTML). Metadata files are still dumped.",
+    })
     .demandCommand(1, "Please provide an input path")
     .help()
     .alias("help", "h")
@@ -101,7 +112,12 @@ async function main() {
   }
 
   try {
-    await dumpPath(targetPath, argv.verbose || false, argv.outputPath);
+    await dumpPath(
+      targetPath,
+      argv.verbose || false,
+      argv.outputPath,
+      argv.itemIndex,
+    );
   } catch (error) {
     console.error(`Error dumping ${targetPath}:`, error);
     process.exit(1);

@@ -8,6 +8,11 @@ import { unzip } from "./zipUtils";
 interface DumpOptions {
   verbose?: boolean;
   outputDir?: string;
+  /**
+   * When provided, dump only the Nth chapter (1-based) from the chapter iteration
+   * rather than dumping all chapters and metadata.
+   */
+  onlyItemIndex?: number;
 }
 
 export class EpubDumper {
@@ -174,9 +179,13 @@ export class EpubDumper {
     const chapterList: Array<{ index: number; title: string; path: string }> =
       [];
     let index = 0;
+    const only = this.options.onlyItemIndex;
 
     for await (const chapter of this.epub.chapters(false)) {
       index += 1;
+      if (only && index !== only) {
+        continue;
+      }
 
       await this.time(`item[${index}] ${chapter.path}`, async () => {
         // Get markdown content using chapter.path
@@ -198,6 +207,9 @@ export class EpubDumper {
           path: chapter.path,
         });
       });
+
+      // If only one item is requested, stop after dumping it
+      if (only) break;
     }
 
     // Write chapter list to root

@@ -3,10 +3,10 @@ Dump EPUB Debug Artifacts
 Usage
 
 - Single .epub file
-  - `bun packages/core/src/cli/dumpEpub.ts <input.epub> [-v] [-o <outputPath>]`
+  - `bun packages/core/src/cli/dumpEpub.ts <input.epub> [-v] [-o <outputPath>] [-i <itemIndex>]`
 
 - Directory input
-  - Directory of .epub files: `bun packages/core/src/cli/dumpEpub.ts <dir> [-v] [-o <outputDir>]`
+- Directory of .epub files: `bun packages/core/src/cli/dumpEpub.ts <dir> [-v] [-o <outputDir>] [-i <itemIndex>]`
     - With `-o/--outputPath`, each file dumps under `<outputDir>/<filename>.epub.dump/`
   - Already-extracted EPUB directory: `bun packages/core/src/cli/dumpEpub.ts <extracted-epub-dir> [-v] [-o <outputDir>]`
 
@@ -16,6 +16,8 @@ Options
 - `-o, --outputPath` Dump output directory
   - Single file: uses this directory for the dump
   - Directory of files: creates a subdir per EPUB under this path
+- `-i, --itemIndex` Dump only a specific chapter (1-based index) from the spine
+  - Still dumps metadata files (container/opf/manifest/toc/etc.)
 
 Output
 
@@ -32,6 +34,9 @@ Examples
 - Dump a specific file with verbose logs to a chosen folder:
   - `bun packages/core/src/cli/dumpEpub.ts -v -o /tmp/epub-dumps \
      "/path/to/your/book.epub"`
+  - Only dump the 3rd spine item:
+    - `bun packages/core/src/cli/dumpEpub.ts -v -o /tmp/epub-dumps -i 3 \
+       "/path/to/your/book.epub"`
 
 - Dump the sample repo EPUBs to /tmp:
   - `bun packages/core/src/cli/dumpEpub.ts -v -o /tmp/epub-dumps epubs/`
