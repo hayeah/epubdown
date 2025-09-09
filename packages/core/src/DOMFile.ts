@@ -34,8 +34,9 @@ export class DOMFile extends DataResolver {
       return undefined;
     }
 
-    // Determine content type based on file extension if not provided
-    const detectedContentType = contentType || DOMFile.detectContentType(href);
+    // Determine content type based on file extension and peek at content
+    const detectedContentType =
+      contentType || DOMFile.detectContentType(href, content);
 
     const dom = parseDocument(content, detectedContentType);
     const fullPath = normalizePath(resolver.base, href);
@@ -91,18 +92,13 @@ export class DOMFile extends DataResolver {
   /**
    * Detect content type based on file extension and MIME type patterns
    */
-  static detectContentType(href: string): ContentType {
+  static detectContentType(href: string, content?: string): ContentType {
     const lowerHref = href.toLowerCase();
 
-    // Check for HTML/XHTML extensions
-    if (lowerHref.endsWith(".html") || lowerHref.endsWith(".htm")) {
-      return "html";
-    }
+    // Strong signals from file extension
     if (lowerHref.endsWith(".xhtml") || lowerHref.endsWith(".xhtm")) {
       return "xhtml";
     }
-
-    // Check for known XML files
     if (
       lowerHref.endsWith(".xml") ||
       lowerHref.endsWith(".opf") ||
@@ -110,6 +106,20 @@ export class DOMFile extends DataResolver {
       lowerHref.includes("container.xml")
     ) {
       return "xml";
+    }
+
+    // Heuristic for .html files that are actually XHTML
+    if (lowerHref.endsWith(".html") || lowerHref.endsWith(".htm")) {
+      const sample = (content || "").slice(0, 2048).toLowerCase();
+      if (
+        sample.includes("<?xml") ||
+        sample.includes('<!doctype html public "-//w3c//dtd xhtml') ||
+        sample.includes('xmlns="http://www.w3.org/1999/xhtml"') ||
+        sample.includes("xml:lang=")
+      ) {
+        return "xhtml";
+      }
+      return "html";
     }
 
     // Default to xhtml for unknown extensions in EPUB context
