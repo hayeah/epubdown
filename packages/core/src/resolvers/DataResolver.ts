@@ -45,10 +45,7 @@ export abstract class DataResolver {
   /**
    * Read a file and parse as a DOMFile with an explicit content type
    */
-  async readDOMFile(
-    href: string,
-    contentType?: string,
-  ): Promise<any> {
+  async readDOMFile(href: string, contentType?: string): Promise<any> {
     if (href.startsWith("/")) {
       const rootResolver = this.createInstance("");
       return DOMFile.load(href.slice(1), rootResolver, contentType);

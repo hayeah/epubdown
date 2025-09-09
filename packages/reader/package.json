@@ -18,7 +18,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:browser": "vitest run --config vitest.config.browser.ts",
+    "test:browser": "vitest run -c vitest.config.browser.ts",
     "check": "biome check --write"
   },
   "dependencies": {
@@ -45,9 +45,9 @@
     "@tailwindcss/vite": "^4.1.7",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
-    "@types/bun": "latest",
+    "@types/bun": "catalog:",
     "@types/lodash": "^4.17.20",
-    "@types/node": "^22.10.2",
+    "@types/node": "catalog:",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
     "@types/yargs": "^17.0.33",
@@ -57,9 +57,10 @@
     "jszip": "^3",
     "rollup-plugin-visualizer": "^6.0.0",
     "tswire": "https://github.com/hayeah/tswire",
-    "vite": "^6",
-    "vite-plugin-node-polyfills": "^0.23.0",
-    "vitest": "^3.1.4"
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-node-polyfills": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "react": "^19",

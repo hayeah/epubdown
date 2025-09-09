@@ -26,8 +26,7 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
-    "test": "vitest run",
-    "test:browser": "vitest run --browser.headless=false",
+    "test:browser": "vitest run -c vitest.config.browser.ts",
     "typecheck": "tsc --noEmit",
     "check": "biome check --write"
   },
@@ -35,15 +34,10 @@
     "wa-sqlite": "https://github.com/rhashimoto/wa-sqlite#a883e224392667d45d2a0c42e2c0dcc1f6abcf29"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@vitest/browser": "^3.1.4",
-    "happy-dom": "^15.0.0",
-    "playwright": "^1.40.0",
-    "typescript": "^5.0.0",
-    "vite": "^5.0.0",
-    "vitest": "^3.1.4"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-node-polyfills": "catalog:",
+    "vitest": "catalog:"
   }
 }

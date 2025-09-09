@@ -33,12 +33,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@playwright/test": "^1.54.1",
     "@prettier/plugin-xml": "^3.4.2",
     "@types/turndown": "^5.0.5",
     "prettier": "^3.6.2",
-    "typescript": "^5",
-    "vite-plugin-node-polyfills": "^0.23.0",
-    "vitest": "^3.1.4"
+    "typescript": "catalog:",
+    "vite-plugin-node-polyfills": "catalog:",
+    "vitest": "catalog:"
   }
 }
