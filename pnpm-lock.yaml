@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@biomejs/biome':
+      specifier: ^1.9.4
+      version: 1.9.4
     '@types/bun':
       specifier: latest
       version: 1.2.21
@@ -30,7 +33,7 @@ importers:
   .:
     devDependencies:
       '@biomejs/biome':
-        specifier: 1.9.4
+        specifier: 'catalog:'
         version: 1.9.4
 
   packages/core:
@@ -55,7 +58,7 @@ importers:
         version: 17.7.2
     devDependencies:
       '@biomejs/biome':
-        specifier: ^1.9.4
+        specifier: 'catalog:'
         version: 1.9.4
       '@prettier/plugin-xml':
         specifier: ^3.4.2
@@ -131,7 +134,7 @@ importers:
         version: 17.7.2
     devDependencies:
       '@biomejs/biome':
-        specifier: ^1.9.4
+        specifier: 'catalog:'
         version: 1.9.4
       '@tailwindcss/vite':
         specifier: ^4.1.7
@@ -197,6 +200,9 @@ importers:
         specifier: https://github.com/rhashimoto/wa-sqlite#a883e224392667d45d2a0c42e2c0dcc1f6abcf29
         version: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/a883e224392667d45d2a0c42e2c0dcc1f6abcf29
     devDependencies:
+      '@biomejs/biome':
+        specifier: 'catalog:'
+        version: 1.9.4
       '@types/node':
         specifier: 'catalog:'
         version: 22.15.21

@@ -4,6 +4,7 @@ packages:
   - packages/sqlite-browser
 
 catalog:
+  "@biomejs/biome": ^1.9.4
   "@types/bun": latest
   "@types/node": ^22.10.2
   "@vitest/browser": ^3.1.4
