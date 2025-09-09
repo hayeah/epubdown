@@ -49,7 +49,10 @@ export class EPub {
 
   static async init(resolver: DataResolver): Promise<EPub> {
     // Parse container.xml
-    const container = await resolver.readXMLFile("META-INF/container.xml");
+    const container = await resolver.readDOMFile(
+      "META-INF/container.xml",
+      "xml",
+    );
     if (!container) {
       throw new Error("Invalid EPUB: META-INF/container.xml not found");
     }
@@ -67,7 +70,8 @@ export class EPub {
       throw new Error("Invalid EPUB: OPF path not found");
     }
 
-    const opf = await resolver.readXMLFile(opfPath);
+    const opfMediaType = rootfile.getAttribute("media-type");
+    const opf = await resolver.readDOMFile(opfPath, opfMediaType);
     if (!opf) {
       throw new Error(`OPF file not found: ${opfPath}`);
     }
@@ -162,8 +166,20 @@ export class EPub {
   }
 
   async getChapter(ref: string): Promise<DOMFile | undefined> {
-    // readXMLFile now handles both relative and absolute paths
-    return this.opf.readXMLFile(ref);
+    // Determine content type from OPF manifest media-type when possible
+    const manifestItems = this.manifest();
+    const manifestByPath = new Map(
+      manifestItems.map((m) => [m.path, m as ManifestItem]),
+    );
+
+    // Normalize the incoming ref to an absolute path for matching
+    const absoluteRef = normalizePath(this.opf.base, ref);
+
+    const manifestItem = manifestByPath.get(absoluteRef);
+    const contentType = manifestItem ? manifestItem.mediaType : undefined;
+
+    // readDOMFile handles both relative and absolute paths and accepts contentType
+    return this.opf.readDOMFile(ref, contentType);
   }
 
   /**

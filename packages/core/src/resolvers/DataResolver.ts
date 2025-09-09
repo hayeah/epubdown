@@ -1,3 +1,4 @@
+import { type ContentType, DOMFile } from "../DOMFile";
 import { normalizePath } from "../utils/normalizePath";
 
 export abstract class DataResolver {
@@ -41,16 +42,18 @@ export abstract class DataResolver {
     return this.createInstance(base);
   }
 
-  async readXMLFile(href: string): Promise<any> {
-    const { DOMFile } = await import("../DOMFile");
-    // Handle absolute paths by using root resolver
+  /**
+   * Read a file and parse as a DOMFile with an explicit content type
+   */
+  async readDOMFile(
+    href: string,
+    contentType?: string,
+  ): Promise<any> {
     if (href.startsWith("/")) {
-      // Create a root resolver (base = "") and use it
       const rootResolver = this.createInstance("");
-      return DOMFile.load(href.slice(1), rootResolver);
+      return DOMFile.load(href.slice(1), rootResolver, contentType);
     }
-    // Handle relative paths normally
-    return DOMFile.load(href, this);
+    return DOMFile.load(href, this, contentType);
   }
 
   abstract createInstance(base: string): DataResolver;

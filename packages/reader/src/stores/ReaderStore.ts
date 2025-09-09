@@ -1,8 +1,8 @@
 import {
   ContentToMarkdown,
+  type DOMFile,
   EPub,
   type FlatNavItem,
-  type XMLFile,
 } from "@epubdown/core";
 import {
   action,
@@ -31,7 +31,7 @@ export type NavigateFunction = (path: string) => void;
 export class ReaderStore {
   // EPub state
   epub: EPub | null = null;
-  chapters: XMLFile[] = [];
+  chapters: DOMFile[] = [];
   metadata: Record<string, any> = {};
   currentChapterIndex = 0;
   currentBookId: number | null = null;
@@ -227,7 +227,7 @@ export class ReaderStore {
     const epub = await EPub.fromZip(arrayBuffer);
 
     // Load chapters
-    const chapterArray: XMLFile[] = [];
+    const chapterArray: DOMFile[] = [];
     for await (const chapter of epub.chapters()) {
       chapterArray.push(chapter);
     }
@@ -273,7 +273,7 @@ export class ReaderStore {
     }
   }
 
-  async getFootnote(resolver: XMLFile, href: string): Promise<string> {
+  async getFootnote(resolver: DOMFile, href: string): Promise<string> {
     // Check if href has a fragment identifier
     const hashIndex = href.indexOf("#");
     let targetHref = href;
@@ -290,7 +290,7 @@ export class ReaderStore {
       content = resolver.content;
     } else {
       // Otherwise, resolve and read the target file
-      const targetFile = await resolver.readXMLFile(targetHref);
+      const targetFile = await resolver.readDOMFile(targetHref);
       content = targetFile?.content;
     }
 

@@ -52,7 +52,9 @@ export class TableOfContents {
     const href = navItem.getAttribute("href");
     if (!href) return undefined;
 
-    return this.epub.opf.readXMLFile(href);
+    // Prefer OPF-declared media-type; DOMFile maps it to parser mode internally
+    const mediaType = navItem.getAttribute("media-type");
+    return this.epub.opf.readDOMFile(href, mediaType);
   }
 
   /**
@@ -70,7 +72,9 @@ export class TableOfContents {
     const href = ncxItem.getAttribute("href");
     if (!href) return undefined;
 
-    return this.epub.opf.readXMLFile(href);
+    // Use the NCX media-type from manifest
+    const mediaType = ncxItem.getAttribute("media-type");
+    return this.epub.opf.readDOMFile(href, mediaType);
   }
 
   /**
