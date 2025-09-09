@@ -5,10 +5,10 @@
   "scripts": {
     "dev": "pnpm -C packages/reader dev",
     "build": "pnpm -r --parallel build",
+    "test": "pnpm -r test",
     "format": "biome format --write",
     "lint": "biome lint --write",
-    "check": "biome check --write",
-    "test": "vitest run"
+    "check": "biome check --write"
   },
   "packageManager": "pnpm@10.0.0",
   "devDependencies": {
