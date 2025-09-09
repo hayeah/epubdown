@@ -27,8 +27,7 @@
     "dev": "vite build --watch",
     "build": "vite build",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "test:watch:browser": "vitest --browser.headless=false",
+    "test:browser": "vitest run --browser.headless=false",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

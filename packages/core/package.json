@@ -19,7 +19,6 @@
     "shorten-epub": "./src/cli/shorten-epub.ts"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
     "test": "vitest run",
     "test:browser": "vitest run -c vitest.config.browser.ts"
   },
@@ -37,7 +36,6 @@
     "@prettier/plugin-xml": "^3.4.2",
     "@types/turndown": "^5.0.5",
     "prettier": "^3.6.2",
-    "tsup": "^8",
     "typescript": "^5",
     "vite-plugin-node-polyfills": "^0.23.0",
     "vitest": "^3.1.4"
