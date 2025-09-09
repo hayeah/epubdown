@@ -20,7 +20,8 @@
   },
   "scripts": {
     "test": "vitest run",
-    "test:browser": "vitest run -c vitest.config.browser.ts"
+    "test:browser": "vitest run -c vitest.config.browser.ts",
+    "check": "biome check --write"
   },
   "dependencies": {
     "@types/jsdom": "^21.1.7",

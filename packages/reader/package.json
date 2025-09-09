@@ -18,7 +18,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:browser": "vitest run --config vitest.config.browser.ts"
+    "test:browser": "vitest run --config vitest.config.browser.ts",
+    "check": "biome check --write"
   },
   "dependencies": {
     "@epubdown/core": "workspace:^",

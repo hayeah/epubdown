@@ -28,7 +28,8 @@
     "build": "vite build",
     "test": "vitest run",
     "test:browser": "vitest run --browser.headless=false",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check": "biome check --write"
   },
   "dependencies": {
     "wa-sqlite": "https://github.com/rhashimoto/wa-sqlite#a883e224392667d45d2a0c42e2c0dcc1f6abcf29"
