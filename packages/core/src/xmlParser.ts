@@ -16,9 +16,9 @@ let DOMParser: DOMParserCtor;
 function cleanContent(content: string): string {
   // Remove style tags to prevent CSS parsing errors in jsdom
   let cleanedContent = content.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
-  // Remove script tags for additional safety
+  // Remove script tags - handle both self-closing and regular tags
   cleanedContent = cleanedContent.replace(
-    /<script[^>]*>[\s\S]*?<\/script>/gi,
+    /<script[^>]*(?:\/>|>[\s\S]*?<\/script>)/gi,
     "",
   );
   return cleanedContent;
