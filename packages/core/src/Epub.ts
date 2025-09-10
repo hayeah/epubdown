@@ -30,6 +30,7 @@ interface SpineItem {
 export class EPub {
   private _toc?: TableOfContents;
   private _metadata?: Metadata;
+  private _manifestByPath?: Map<string, ManifestItem>;
 
   constructor(
     public readonly container: DOMFile,
@@ -50,7 +51,7 @@ export class EPub {
   static async init(resolver: DataResolver): Promise<EPub> {
     // Parse container.xml
     const container = await resolver.readDOMFile(
-      "META-INF/container.xml",
+      "/META-INF/container.xml",
       "xml",
     );
     if (!container) {
@@ -65,15 +66,16 @@ export class EPub {
       throw new Error("Invalid EPUB: OPF file not found in container");
     }
 
-    const opfPath = rootfile.getAttribute("full-path");
-    if (!opfPath) {
+    const opfRel = rootfile.getAttribute("full-path");
+    if (!opfRel) {
       throw new Error("Invalid EPUB: OPF path not found");
     }
+    const opfAbs = normalizePath("/", opfRel);
 
-    const opfMediaType = rootfile.getAttribute("media-type");
-    const opf = await resolver.readDOMFile(opfPath, opfMediaType);
+    const opfMediaType = rootfile.getAttribute("media-type") || "xml";
+    const opf = await resolver.readDOMFile(opfAbs, opfMediaType);
     if (!opf) {
-      throw new Error(`OPF file not found: ${opfPath}`);
+      throw new Error(`OPF file not found: ${opfAbs}`);
     }
 
     return new EPub(container, opf, resolver);
@@ -165,21 +167,45 @@ export class EPub {
     return result;
   }
 
-  async getChapter(ref: string): Promise<DOMFile | undefined> {
-    // Determine content type from OPF manifest media-type when possible
-    const manifestItems = this.manifest();
-    const manifestByPath = new Map(
-      manifestItems.map((m) => [m.path, m as ManifestItem]),
-    );
+  /**
+   * Get manifest items indexed by absolute path (memoized)
+   */
+  manifestByPath(): Map<string, ManifestItem> {
+    if (!this._manifestByPath) {
+      const items = this.manifest();
+      this._manifestByPath = new Map(items.map((m) => [m.path, m]));
+    }
+    return this._manifestByPath;
+  }
 
-    // Normalize the incoming ref to an absolute path for matching
-    const absoluteRef = normalizePath(this.opf.base, ref);
+  /**
+   * Read a DOMFile from the EPUB, automatically resolving media type from manifest
+   * @param absPath Absolute path from EPUB root
+   * @param explicitMediaType Optional explicit media type, overrides manifest
+   */
+  async readDOMFile(
+    absPath: string,
+    explicitMediaType?: string,
+  ): Promise<DOMFile | undefined> {
+    if (!absPath.startsWith("/")) {
+      throw new Error(`absolute path required, got: ${absPath}`);
+    }
 
-    const manifestItem = manifestByPath.get(absoluteRef);
-    const contentType = manifestItem ? manifestItem.mediaType : undefined;
+    // Try to get media type from manifest if not explicitly provided
+    let mediaType = explicitMediaType;
+    if (!mediaType) {
+      const item = this.manifestByPath().get(absPath);
+      mediaType = item?.mediaType;
+    }
 
-    // readDOMFile handles both relative and absolute paths and accepts contentType
-    return this.opf.readDOMFile(ref, contentType);
+    return this.resolver.readDOMFile(absPath, mediaType);
+  }
+
+  async getChapter(absRef: string): Promise<DOMFile | undefined> {
+    if (!absRef.startsWith("/")) {
+      throw new Error(`absolute chapter path required, got: ${absRef}`);
+    }
+    return this.readDOMFile(absRef);
   }
 
   /**
@@ -195,8 +221,7 @@ export class EPub {
     );
 
     for (const spineItem of spineItems) {
-      const href = spineItem.manifestItem.href;
-      const chapter = await this.getChapter(href);
+      const chapter = await this.getChapter(spineItem.manifestItem.path);
       if (!chapter) continue;
       yield chapter;
     }
@@ -204,12 +229,17 @@ export class EPub {
 
   /**
    * Convert a chapter to markdown with proper anchor ID preservation
-   * @param ref The href/path string to load the chapter
+   * @param ref The absolute path to load the chapter
    * @returns Promise<string> The markdown content
    */
   async chapterMarkdown(ref: string): Promise<string> {
+    // Ensure ref is absolute
+    const absRef = ref.startsWith("/")
+      ? ref
+      : normalizePath(this.opf.base, ref);
+
     // Get the chapter DOMFile
-    const chapter = await this.getChapter(ref);
+    const chapter = await this.getChapter(absRef);
     if (!chapter) {
       throw new Error(`Chapter not found: ${ref}`);
     }

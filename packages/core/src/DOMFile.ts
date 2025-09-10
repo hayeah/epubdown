@@ -1,6 +1,5 @@
 import { basename, dirname, join } from "node:path";
-import { DataResolver } from "./resolvers/DataResolver";
-import { normalizePath } from "./utils/normalizePath";
+import type { DataResolver } from "./resolvers/DataResolver";
 import { querySelectorNamespaced } from "./utils/querySelectorNamespaced";
 import { parseDocument } from "./xmlParser";
 
@@ -64,17 +63,14 @@ function detectContentType(href: string, content?: string): ContentType {
   return "xhtml";
 }
 
-export class DOMFile extends DataResolver {
+export class DOMFile {
   constructor(
     public readonly base: string,
     public readonly name: string,
     public readonly content: string,
     public readonly dom: Document,
-    public readonly resolver: DataResolver,
     public readonly contentType: string,
-  ) {
-    super(base);
-  }
+  ) {}
 
   get path() {
     const relativePath = join(this.base, this.name);
@@ -83,44 +79,27 @@ export class DOMFile extends DataResolver {
   }
 
   static async load(
-    href: string,
+    absHref: string,
     resolver: DataResolver,
     contentType?: string,
   ): Promise<DOMFile | undefined> {
-    const content = await resolver.read(href);
+    if (!absHref.startsWith("/")) {
+      throw new Error(`Absolute path required, got: ${absHref}`);
+    }
+
+    const content = await resolver.read(absHref);
     if (!content) {
       return undefined;
     }
 
-    let actualContentType = contentType || detectContentType(href, content);
+    let actualContentType = contentType || detectContentType(absHref, content);
     actualContentType = normalizeContentType(actualContentType);
 
     const dom = parseDocument(content, actualContentType);
-    const fullPath = normalizePath(resolver.base, href);
-    const newBase = dirname(fullPath);
-    const name = basename(href);
+    const newBase = dirname(absHref);
+    const name = basename(absHref);
 
-    return new DOMFile(
-      newBase,
-      name,
-      content,
-      dom,
-      resolver.rebase(newBase),
-      actualContentType,
-    );
-  }
-
-  async readRaw(href: string): Promise<Uint8Array | undefined> {
-    return this.resolver.readRaw(href);
-  }
-
-  async read(href: string): Promise<string | undefined> {
-    return this.resolver.read(href);
-  }
-
-  createInstance(base: string): DataResolver {
-    // throw new Error("Not implemented");
-    return this.resolver.createInstance(base);
+    return new DOMFile(newBase, name, content, dom, actualContentType);
   }
 
   querySelector(selector: string): Element | null {

@@ -1,15 +1,13 @@
 import { type ContentType, DOMFile } from "../DOMFile";
-import { normalizePath } from "../utils/normalizePath";
 
 export abstract class DataResolver {
-  constructor(public readonly base: string = "") {}
-
   /**
    * Read a file as a UTF-8 string
-   * Implemented using readRaw with UTF-8 decoding
+   * @param absPath Absolute path from EPUB root (must start with /)
    */
-  async read(href: string): Promise<string | undefined> {
-    const data = await this.readRaw(href);
+  async read(absPath: string): Promise<string | undefined> {
+    this.assertAbsolute(absPath);
+    const data = await this.readRaw(absPath);
     if (!data) return undefined;
 
     // Convert Uint8Array to string using TextDecoder
@@ -19,39 +17,30 @@ export abstract class DataResolver {
 
   /**
    * Read a file as raw bytes - must be implemented by subclasses
+   * @param absPath Absolute path from EPUB root (must start with /)
    */
-  abstract readRaw(href: string): Promise<Uint8Array | undefined>;
-
-  /**
-   * Resolve an href to an absolute path
-   * If href starts with /, returns it as-is
-   * Otherwise normalizes it relative to the current base
-   * Always returns an absolute path starting with /
-   */
-  protected resolveHref(href: string): string {
-    if (href.startsWith("/")) {
-      // Already absolute
-      return href;
-    }
-    // Relative path - normalize relative to base
-    return normalizePath(this.base, href);
-  }
-
-  // Can be implemented in base class since it just creates new instance
-  rebase(base: string): DataResolver {
-    return this.createInstance(base);
-  }
+  abstract readRaw(absPath: string): Promise<Uint8Array | undefined>;
 
   /**
    * Read a file and parse as a DOMFile with an explicit content type
+   * @param absPath Absolute path from EPUB root (must start with /)
+   * @param contentType Optional explicit content type
    */
-  async readDOMFile(href: string, contentType?: string): Promise<any> {
-    if (href.startsWith("/")) {
-      const rootResolver = this.createInstance("");
-      return DOMFile.load(href.slice(1), rootResolver, contentType);
-    }
-    return DOMFile.load(href, this, contentType);
+  async readDOMFile(
+    absPath: string,
+    contentType?: string,
+  ): Promise<DOMFile | undefined> {
+    this.assertAbsolute(absPath);
+    return DOMFile.load(absPath, this, contentType);
   }
 
-  abstract createInstance(base: string): DataResolver;
+  /**
+   * Assert that a path is absolute
+   * @throws Error if path is not absolute
+   */
+  protected assertAbsolute(path: string): void {
+    if (!path.startsWith("/")) {
+      throw new Error(`Expected absolute path from EPUB root, got: ${path}`);
+    }
+  }
 }

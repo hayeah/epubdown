@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ContentToMarkdown } from "./ContentToMarkdown";
 import { DOMFile } from "./DOMFile";
-import { FileDataResolver } from "./resolvers/FileDataResolver";
 import { parseDocument } from "./xmlParser";
 
 function createMockXMLFile(html: string): DOMFile {
@@ -10,8 +9,7 @@ function createMockXMLFile(html: string): DOMFile {
     ? "xhtml"
     : "html";
   const dom = parseDocument(html, contentType);
-  const resolver = new FileDataResolver("");
-  return new DOMFile("", "test.xhtml", html, dom, resolver, contentType);
+  return new DOMFile("/", "test.xhtml", html, dom, contentType);
 }
 
 describe("ContentToMarkdown", () => {

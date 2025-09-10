@@ -3,6 +3,7 @@ import {
   type DOMFile,
   EPub,
   type FlatNavItem,
+  normalizePath,
 } from "@epubdown/core";
 import {
   action,
@@ -273,38 +274,36 @@ export class ReaderStore {
     }
   }
 
-  async getFootnote(resolver: DOMFile, href: string): Promise<string> {
-    // Check if href has a fragment identifier
-    const hashIndex = href.indexOf("#");
-    let targetHref = href;
-    let fragmentId = "";
+  async getFootnote(chapter: DOMFile, href: string): Promise<string> {
+    // Decode and split href
+    const decoded = decodeURIComponent(href || "");
+    const [maybePath, fragment] = decoded.split("#");
 
-    if (hashIndex !== -1) {
-      targetHref = href.substring(0, hashIndex);
-      fragmentId = href.substring(hashIndex + 1);
-    }
+    // Determine the absolute file path
+    const filePath =
+      !maybePath || maybePath === chapter.name
+        ? chapter.path
+        : maybePath.startsWith("/")
+          ? maybePath
+          : normalizePath(chapter.base, maybePath);
 
-    // If the href is just a fragment, read from the current file
-    let content: string | undefined;
-    if (targetHref === "" || targetHref === resolver.name) {
-      content = resolver.content;
-    } else {
-      // Otherwise, resolve and read the target file
-      const targetFile = await resolver.readDOMFile(targetHref);
-      content = targetFile?.content;
-    }
+    // Load the target file content via epub.readDOMFile
+    const target =
+      filePath === chapter.path
+        ? chapter.content
+        : (await this.epub?.readDOMFile(filePath))?.content;
 
-    if (!content) {
+    if (!target) {
       throw new Error("Footnote file not found");
     }
 
     // Extract footnote content from HTML
     const parser = new DOMParser();
-    const doc = parser.parseFromString(content, "text/html");
+    const doc = parser.parseFromString(target, "text/html");
 
     let footnoteContent = "";
-    if (fragmentId) {
-      const element = doc.getElementById(fragmentId);
+    if (fragment) {
+      const element = doc.getElementById(fragment);
       if (element) {
         footnoteContent = element.textContent || "";
       }

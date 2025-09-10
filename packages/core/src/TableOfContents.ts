@@ -52,9 +52,12 @@ export class TableOfContents {
     const href = navItem.getAttribute("href");
     if (!href) return undefined;
 
+    // Convert to absolute path
+    const abs = normalizePath(this.epub.opf.base, href);
+
     // Prefer OPF-declared media-type; DOMFile maps it to parser mode internally
-    const mediaType = navItem.getAttribute("media-type");
-    return this.epub.opf.readDOMFile(href, mediaType);
+    const mediaType = navItem.getAttribute("media-type") || "html";
+    return this.epub.readDOMFile(abs, mediaType);
   }
 
   /**
@@ -72,9 +75,11 @@ export class TableOfContents {
     const href = ncxItem.getAttribute("href");
     if (!href) return undefined;
 
+    // Convert to absolute path
+    const abs = normalizePath(this.epub.opf.base, href);
+
     // Use the NCX media-type from manifest
-    const mediaType = ncxItem.getAttribute("media-type");
-    return this.epub.opf.readDOMFile(href, mediaType);
+    return this.epub.readDOMFile(abs, "application/x-dtbncx+xml");
   }
 
   /**
@@ -137,7 +142,6 @@ export class TableOfContents {
       "ncx.xml.html",
       html,
       parseDocument(html, "html"),
-      ncxFile.resolver,
       "html",
     );
   }

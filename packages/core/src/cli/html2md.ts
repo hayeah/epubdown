@@ -5,7 +5,6 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { ContentToMarkdown } from "../ContentToMarkdown";
 import { DOMFile } from "../DOMFile";
-import { FileDataResolver } from "../resolvers/FileDataResolver";
 import { parseDocument } from "../xmlParser";
 
 const argv = yargs(hideBin(process.argv))
@@ -38,13 +37,11 @@ async function main() {
 
     // Parse HTML/XML content and convert to markdown
     const dom = parseDocument(htmlContent, "html");
-    const resolver = new FileDataResolver("/");
     const xmlFile = new DOMFile(
       "/",
       argv.input || "stdin",
       htmlContent,
       dom,
-      resolver,
       "html",
     );
     const converter = ContentToMarkdown.create();
