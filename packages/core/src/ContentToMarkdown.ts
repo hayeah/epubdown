@@ -103,6 +103,7 @@ export class ContentToMarkdown {
   // Apply a sequence of DOM-first transforms
   private transformDocument(doc: Document): Document {
     this.removeMetadataElements(doc);
+    this.normalizeHeadings(doc);
     this.normalizeLinkHrefs(doc);
     this.normalizeImageSources(doc);
     return doc;
@@ -118,6 +119,39 @@ export class ContentToMarkdown {
       'nav[hidden], nav[aria-hidden="true"]',
     )) {
       n.remove();
+    }
+  }
+
+  private normalizeHeadings(doc: Document): void {
+    // Find all heading elements (h1-h6)
+    const headings = doc.querySelectorAll("h1, h2, h3, h4, h5, h6");
+
+    for (const heading of headings) {
+      // Extract any images before simplifying the heading
+      const images = heading.querySelectorAll("img");
+      const extractedImages: Element[] = [];
+
+      for (const img of images) {
+        extractedImages.push(img.cloneNode(true) as Element);
+      }
+
+      // Flatten the heading to just text content
+      const textContent = heading.textContent?.trim() || "";
+      heading.textContent = textContent;
+
+      // Insert extracted images after the heading
+      if (extractedImages.length > 0) {
+        const imageContainer = doc.createElement("div");
+        for (const img of extractedImages) {
+          imageContainer.appendChild(img);
+        }
+
+        if (heading.nextSibling) {
+          heading.parentNode?.insertBefore(imageContainer, heading.nextSibling);
+        } else {
+          heading.parentNode?.appendChild(imageContainer);
+        }
+      }
     }
   }
 

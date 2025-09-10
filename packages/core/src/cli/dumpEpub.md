@@ -22,6 +22,7 @@ Options
 Output
 
 - Writes dump files next to content by default, or under `--outputPath` when provided
+- **Note**: Output directories can be reused - existing dump files will be overwritten
 - Examples of emitted files:
   - `container.dump.xml`, `opf.dump.xml`, `metadata.dump.json`, `manifest.dump.json`
   - `spineManifest.dump.json`, `toc.navItems.dump.json`, `toc.flatNavItems.dump.json`
@@ -40,3 +41,8 @@ Examples
 
 - Dump the sample repo EPUBs to /tmp:
   - `bun packages/core/src/cli/dumpEpub.ts -v -o /tmp/epub-dumps epubs/`
+
+- Generate unique temp directory names for different debugging sessions:
+  - Using timestamp: `/tmp/epub-dump-$(date +%Y%m%d-%H%M%S)`
+  - Using book name: `/tmp/epub-dump-$(basename "$BOOK" .epub)`
+  - Using mktemp for guaranteed uniqueness: `$(mktemp -d /tmp/epub-dump.XXXXXX)`
