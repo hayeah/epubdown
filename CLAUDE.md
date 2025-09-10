@@ -1,108 +1,34 @@
-- Once you are satisfied with the code, commit it.
-  - Run relevant tests before commiting.
-    - When you work on a workspace package (e.g. `packages/core`), remember to cd into it to run tests.
-    - `cd packages/core && pnpm run check`
-  - Always run pre-commit to clean up before commit.
-  - If I ask you to make changes, create a new commit for the amend after you are happy with the changes.
-- If you are in a git work tree, YOU MUST not cd out of the work tree into the root repo, or other work trees.
-  - The work trees are typically named `.forks/001`, `.forks/002`. DO NOT cd or make changes out of these by accident.
-
-# Typescript Style Guide
-
-- In general don't use `try ... catch`, let error bubble up, so it's easier for the dev to debug.
-  - Use `try ... catch` for cleanup.
-
-## Method Naming
-
-- do not use `get` prefix to define a getter method. Use a noun.
-  - BAD: getItems
-  - Good: items
-
-## Null Checks in Tests
-
-- An assertion inside a branch may never execute if the branch condition is false, yet the test still reports success.
-
-```ts
-// BAD: assertion can be skipped
-if (result !== null) {
-  expect(result.value).toBe(42);
-}
-```
 
 
-```ts
-// GOOD: make the expectation unconditional
-expect(result?.value).toBe(42);
-```
+# Coder Workflow (IMPORTANT)
 
-## Typescript Class
+This is your workflow for a coding task:
 
-- how you should write typescript class
-  - Use `constructor(public foo: str, public bar number)` to declare and assign to instance properties
-  - Prefer composition & injection into the constructor, rather than constructing complex classes inside the constructor
-  - if a property requires async to initialize, create an async factory method on the class, then inject the awaited value into a normal constructor
-    - this avoids an `init` instance method
-  - Example code:
+- Work on the task. 
+- Run tests and/or verify that it works.
+- Run typecheck / linter.
+- Run formatter.
+- Git commit.
+- Done notification.
 
-```
-private readonly dbName: string;
-  private readonly storeName: string;
+Once you've completed your task and are satisfied with the code, you should commit it.
 
-  constructor(
-    private readonly db: IDBDatabase,
-    config: BlobStoreConfig,
-  ) {
-    this.dbName = config.dbName;
-    this.storeName = config.storeName;
-  }
+---
 
-  static async create(config: BlobStoreConfig): Promise<BlobStore> {
-    const dbName = config.dbName;
-    const storeName = config.storeName;
-    const version = BlobStore.CURRENT_DB_VERSION;
+- Add test, typecheck, format to your TODO list so you always do them before commit.
+- You SHOULD ignore errors and warnings unrelated to your changes.
+- If I ask you to make further changes, create a new commit on top of the previous one.
 
-    const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      // ...
-    });
+## Terminal & Shell
 
-    return new BlobStore(db, config);
-  }
-```
+- Avoid using `cd` to change cwd, as you might get confused. You SHOULD run commands and tasks from the repo root.
 
-# Make Notes
+## Git Commit
 
-- When making complex or tricky changes to a file, you should make notes beside the source file.
-- If the file is named `BlobStore.ts`, name your note `BlobStore.md`. Replace extension with `.md`.
-- Make sure that the notes are up to date, current with the latest implementation.
-- Commit your notes along with the code changes.
-
-# File Naming Convention
-
-- If a file primarily export a class or a component, name the file the same as the exported name.
-  - For example `export BlobStore` should be named `BlobStore.ts`.
-  - For example `export MyComponent` should be named `MyComponent.tsx`.
-- test files (vitest) should be placed in the same directory as the source code.
-  - tests for "src/BlobStore.ts" should be "src/BlobStore.test.ts"
-- tests that should run in browser have the naming convention of: "src/BlobStore.test.browser.ts"
-
-## Sharing Tests
-
-For isomorphic JS code that need to work both in the browser and node/bun, we'd want to share tests between browser and jsdom:
-
-  1. Create a .test.shared.ts file with a factory function that returns test suites
-  2. The factory accepts environment-specific dependencies.
-  3. Import and call the factory in both .test.ts (jsdom) and .test.browser.ts files
-
-# Lint / Format
-
-- If you worked on typescript, run `tsc` to type check and fix errors.
-  - run in package root
-- `pnpm -w run check` to do automatic lint fixing, format.
-  - run in repo root
-
-# Commit Message
-
-- you MUST NOT include this in
+- Generally, you work in a clean git worktree, but you should be careful not to check in spurious files like temporary output.
+    - Prefer not to use `git -A`, because you might inadvertently check-in spurious files. Explicitly specify the files you want to check in.
+    - If you decide to use `git -A`, run git status to check if there's anything spurious in the untracked files.
+- You MUST NOT include this in the commit message.
 
 ```
 🤖 Generated with [Claude Code](https://claude.ai/code)
@@ -110,9 +36,10 @@ For isomorphic JS code that need to work both in the browser and node/bun, we'd 
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
-# Done Notification
+## Done Notification
 
-- After you are with a task (after lint, test, & commit), notify the user.
+After you are with a task, notify the user.
+
 - Run `fork.py status`
   - project name
   - workspace number
@@ -122,3 +49,208 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - exec `say.py --voice shimmer "{project name} {workspace number} for review. {super concise commit msg}"`
   - This will play a voice msg to the user. It shouldn't be too long.
 
+
+
+# epubdown: Project Overview
+
+* epubdown is a small monorepo for turning EPUBs into Markdown and reading them in a browser.
+* It consists of:
+
+  * a core library for EPUB parsing, metadata, ToC, and HTML→Markdown
+  * a React reader app that persists data in the browser
+  * a lightweight SQLite-in-the-browser layer
+
+# Tech & Tooling
+
+* Package manager
+
+  * pnpm `10.x` (repo pins `pnpm@10.0.0` in `packageManager`)
+* Language
+
+  * TypeScript everywhere, ESM modules (`"type": "module"`)
+* Build & bundling
+
+  * Vite (app and library mode)
+  * Rollup Visualizer for bundle inspection (reader)
+* Testing
+
+  * Vitest
+  * Node env tests and browser env tests (Playwright provider via shared config)
+* Linting & formatting
+
+  * Biome (`format`, `lint`, `check`), quote style set to double quotes, relaxed rules in tests (non-null assertions allowed)
+* UI
+
+  * React 19
+  * Tailwind CSS 4 (beta) via `@tailwindcss/vite`
+  * Wouter for routing, MobX for state
+* EPUB plumbing
+
+  * `jszip`, `jsdom`, `turndown` (custom xml branch)
+* Browser storage
+
+  * `wa-sqlite` wrapped by `@hayeah/sqlite-browser`
+
+# Monorepo Layout
+
+* Root
+
+  * `package.json` with workspace-wide scripts (`dev`, `build`, `test`, `format`, `lint`, `check`)
+  * `tsconfig.base.json` shared compiler options
+  * `tsconfig.json` includes only `packages/*/src/**/*` and excludes tests for typechecking speed
+  * `biome.json` shared lint/format config
+  * `vitest.config.browser.shared.ts` shared browser-test config (Playwright, public `epubs` dir)
+  * `.vscode/tasks.json` optional `vibe` template tasks
+* packages
+
+  * `packages/core` `@epubdown/core`
+
+    * EPUB parsing, metadata, ToC, HTML→Markdown
+    * CLIs under `src/cli` (see “CLI” below)
+    * Node tests and browser tests
+  * `packages/reader` `@epubdown/reader`
+
+    * React app, routes, components, library UI, markdown rendering
+    * Tailwind v4 setup, Vite + React plugin
+  * `packages/sqlite-browser` `@hayeah/sqlite-browser`
+
+    * Thin wrapper to run SQLite in the browser backed by IndexedDB
+    * Built as an ES library
+
+# Everyday Commands
+
+* Format code
+  * `pnpm format`  (Biome formatter)
+* Lint code
+  * `pnpm lint`    (Biome linter, auto-fixes when possible)
+* Full check (lint + format + analyze)
+  * `pnpm check`
+* Per-package scripts
+
+  * Core
+
+    * `pnpm -C packages/core test`
+    * `pnpm -C packages/core test:browser`
+    * `pnpm -C packages/core check`
+  * Reader
+
+    * `pnpm -C packages/reader dev`
+    * `pnpm -C packages/reader build`
+    * `pnpm -C packages/reader preview`
+    * `pnpm -C packages/reader test`
+    * `pnpm -C packages/reader test:browser`
+    * `pnpm -C packages/reader check`
+  * SQLite-browser
+
+    * `pnpm -C packages/sqlite-browser dev`   (library build watch)
+    * `pnpm -C packages/sqlite-browser build`
+    * `pnpm -C packages/sqlite-browser typecheck`
+    * `pnpm -C packages/sqlite-browser test:browser`
+    * `pnpm -C packages/sqlite-browser check`
+
+# Package: @epubdown/core
+
+* Purpose
+
+  * Read EPUB zips, parse OPF/NCX/Navigation, extract metadata, and convert chapter HTML to Markdown
+* Key modules
+
+  * `Epub.ts`  entry for EPUB reading orchestration
+  * `TableOfContents.ts` ToC parsing across EPUB flavors
+  * `Metadata.ts` metadata parsing
+  * `ContentToMarkdown.ts` HTML→Markdown using `turndown` xml branch
+  * `xmlParser.ts` JSDOM-based XML parsing utilities
+  * `resolvers/*` swapping file/zip data sources
+  * `utils/*` dumpers, shorteners, path normalization
+* CLIs (TypeScript files under `src/cli`)
+
+  * `anonymize-xml.ts` remove sensitive data in XML
+  * `shorten-epub.ts` strip or shrink heavy assets
+  * `dumpEpub.ts` inspect EPUB internals
+  * `html2md.ts` convert HTML to Markdown
+* Running CLIs during dev
+
+  * Use `bun` to execute TS directly, for example:
+
+    * `bun packages/core/src/cli/dumpEpub.ts --help`
+
+# Package: @epubdown/reader
+
+* Purpose
+
+  * Browser reader app for library management and reading
+* Highlights
+
+  * React 19 + Tailwind 4, small router (Wouter), MobX stores
+  * Markdown rendering via `react-markdown` + `remark-gfm` and custom components
+  * App structure under `src/` with `book/`, `library/`, `markdown/`, `stores/`
+  * Prototype pages under `prototype/` for fast iteration
+* Dev server
+
+  * `pnpm dev` or `pnpm -C packages/reader dev`
+* Build
+
+  * Library mode disabled for the app; normal Vite SPA build with multiple HTML inputs (main and prototype library)
+
+# Package: @hayeah/sqlite-browser
+
+* Purpose
+
+  * Thin wrapper around `wa-sqlite` with IndexedDB persistence helpers
+* Build
+
+  * Vite library mode emitting ES module
+* Tests
+
+  * Browser tests including helpers to nuke IndexedDB between runs
+
+# Testing Strategy
+
+* Node environment
+
+  * Logic and parsing tests run under `vitest` with `environment: "node"` in `packages/core/vitest.config.ts`
+* Browser environment
+
+  * DOM and storage tests run in headless Chromium via Vitest Browser + Playwright provider
+  * Shared browser test config lives at the repo root: `vitest.config.browser.shared.ts`
+  * Per-package browser config extends the shared one
+* Test file patterns
+
+  * Generic tests: `*.test.ts` or `*.test.tsx`
+  * Browser-only tests: `*.test.browser.ts` or `*.test.browser.tsx`
+  * Shared test content: `*.test.shared.ts` used by both node and browser suites
+  * Benchmarks: `*.bench.ts`
+
+# File Naming Conventions
+
+* Source files
+
+  * PascalCase for modules that primarily export a class or a composable component
+
+    * Examples: `Epub.ts`, `TableOfContents.ts`, `ChapterNavigation.tsx`
+  * lowerCamelCase for general-purpose utilities
+
+    * Examples: `xmlParser.ts`, `normalizePath.ts`, `dateUtils.ts`
+  * kebab-case for CLI entrypoints
+
+    * Examples: `anonymize-xml.ts`, `shorten-epub.ts`, `dumpEpub.ts`
+* Tests
+
+  * Unit/integration tests: `Name.test.ts` or `Name.test.tsx`
+  * Browser-only tests: `Name.test.browser.ts(x)`
+  * Shared tests: `Name.test.shared.ts(x)` consumed by both environments
+  * Benchmarks: `Name.bench.ts`
+* Types and declarations
+
+  * Ambient or module declarations: `name.d.ts`
+
+* React components
+
+  * Prefer one component per file with `PascalCase.tsx`
+  * Co-locate component-specific styles or test files next to the component
+
+* Paths and aliases
+
+  * In `packages/reader/tsconfig.json`, imports to workspace packages are aliased to their `src` for DX
+
+    * Use package names (`@epubdown/core`, `@hayeah/sqlite-browser`) in imports; they resolve to source during dev/tests
