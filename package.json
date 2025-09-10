@@ -6,12 +6,14 @@
     "dev": "pnpm -C packages/reader dev",
     "build": "pnpm -r --parallel build",
     "test": "pnpm -r test",
+    "tsc": "tsc --noEmit",
     "format": "biome format --write",
     "lint": "biome lint --write",
     "check": "biome check --write"
   },
   "packageManager": "pnpm@10.0.0",
   "devDependencies": {
-    "@biomejs/biome": "catalog:"
+    "@biomejs/biome": "catalog:",
+    "typescript": "catalog:"
   }
 }

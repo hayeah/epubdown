@@ -70,6 +70,8 @@
   * `pnpm format`  (Biome formatter)
 * Lint code
   * `pnpm lint`    (Biome linter, auto-fixes when possible)
+* Typecheck
+  * `pnpm tsc`     (TypeScript type checking)
 * Full check (lint + format + analyze)
   * `pnpm check`
 * Per-package scripts
@@ -91,7 +93,7 @@
 
     * `pnpm -C packages/sqlite-browser dev`   (library build watch)
     * `pnpm -C packages/sqlite-browser build`
-    * `pnpm -C packages/sqlite-browser typecheck`
+    * `pnpm -C packages/sqlite-browser exec tsc --noEmit`   (typecheck)
     * `pnpm -C packages/sqlite-browser test:browser`
     * `pnpm -C packages/sqlite-browser check`
 

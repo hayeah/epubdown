@@ -35,6 +35,9 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 1.9.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.3
 
   packages/core:
     dependencies:
