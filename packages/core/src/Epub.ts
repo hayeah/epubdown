@@ -244,16 +244,9 @@ export class EPub {
       throw new Error(`Chapter not found: ${ref}`);
     }
 
-    // Get TOC anchor links (memoized)
-    const tocLinks = await this.toc.anchorLinks();
-
-    // Get the keepIds for this chapter
-    const chapterPath = chapter.path;
-    const keepIds = tocLinks.get(chapterPath) || new Set<string>();
-
-    // Create converter with keepIds and basePath for link normalization
+    // Create converter with preserveIDs and basePath for link normalization
     const converter = ContentToMarkdown.create({
-      keepIds,
+      preserveIDs: true,
       basePath: chapter.base,
     });
 

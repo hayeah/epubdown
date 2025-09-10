@@ -24,7 +24,7 @@ export class EpubDumper {
     private readonly baseDir: string,
     private readonly options: DumpOptions = {},
   ) {
-    this.converter = ContentToMarkdown.create();
+    this.converter = ContentToMarkdown.create({ preserveIDs: true });
     this.outputDir = options.outputDir || baseDir;
   }
 

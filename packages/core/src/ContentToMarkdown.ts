@@ -3,18 +3,11 @@ import type { DOMFile } from "./DOMFile";
 import { normalizePath } from "./utils/normalizePath";
 
 export interface ConversionOptions {
-  keepIds?: Set<string>;
+  preserveIDs?: boolean;
   basePath?: string;
 }
 
-interface TurndownFactoryOptions {
-  keepIds?: Set<string>;
-  basePath?: string;
-}
-
-function createTurndownService(
-  options?: TurndownFactoryOptions,
-): TurndownService {
+function createTurndownService(): TurndownService {
   // Minimal Turndown configuration; no custom rules that mutate DOM
   return new TurndownService({
     headingStyle: "atx",
@@ -29,12 +22,38 @@ export class ContentToMarkdown {
 
   // Base path used for normalizing relative resource URLs in the DOM
   private _basePath?: string;
+  private _preserveIDs?: boolean;
 
   static create(options?: ConversionOptions): ContentToMarkdown {
-    const td = createTurndownService(options);
+    const td = createTurndownService();
     const instance = new ContentToMarkdown(td);
-    // Store basePath for DOM normalization; keepIds intentionally unused for now
     instance._basePath = options?.basePath;
+    instance._preserveIDs = options?.preserveIDs;
+
+    // Keep anchor divs as raw HTML so IDs survive
+    if (options?.preserveIDs) {
+      td.addRule("preserve-anchor-divs", {
+        filter: (node) => {
+          // IMPORTANT: nodeName comparison must be case-insensitive
+          // In XHTML documents (like EPUBs), nodeName can be lowercase
+          const nodeName = node.nodeName.toUpperCase();
+          return (
+            nodeName === "DIV" &&
+            (node as Element).hasAttribute("data-anchor-ids")
+          );
+        },
+        replacement: (_content, node) => {
+          // Preserve the original div HTML exactly as-is
+          const div = node as Element;
+          const ids = div.getAttribute("data-anchor-ids");
+          if (ids) {
+            return `<div data-anchor-ids="${ids}">\u200B</div>\n\n`;
+          }
+          return "";
+        },
+      });
+    }
+
     return instance;
   }
 
@@ -103,6 +122,7 @@ export class ContentToMarkdown {
   // Apply a sequence of DOM-first transforms
   private transformDocument(doc: Document): Document {
     this.removeMetadataElements(doc);
+    if (this._preserveIDs) this.insertIdAnchors(doc);
     this.normalizeHeadings(doc);
     this.normalizeLinkHrefs(doc);
     this.normalizeImageSources(doc);
@@ -187,5 +207,91 @@ export class ContentToMarkdown {
     }
     const base = this._basePath ?? "/";
     return normalizePath(base, href);
+  }
+
+  /**
+   * Extracts IDs from block-level elements and inserts them as invisible anchor divs.
+   * This preserves element IDs in the markdown output while keeping them invisible.
+   * 
+   * For each block element with an ID (or containing elements with IDs), this function:
+   * 1. Collects all IDs from the element and its descendants
+   * 2. Removes the ID attributes from the original elements
+   * 3. Creates/updates an invisible div before the element with data-anchor-ids attribute
+   * 
+   * Example input:
+   *   <h2 id="chapter-1">Chapter Title</h2>
+   *   <p id="intro">Some text with <span id="ref-1">reference</span></p>
+   * 
+   * Example output:
+   *   <div data-anchor-ids="chapter-1" style="display:none"></div>
+   *   <h2>Chapter Title</h2>
+   *   <div data-anchor-ids="intro ref-1" style="display:none"></div>
+   *   <p>Some text with <span>reference</span></p>
+   *
+   */
+  private insertIdAnchors(doc: Document): void {
+    // Get all block containers
+    const heads = Array.from(doc.querySelectorAll("h1,h2,h3,h4,h5,h6"));
+    const paras = Array.from(doc.querySelectorAll("p"));
+    const divs = Array.from(doc.querySelectorAll("div"));
+
+    const containers: Element[] = [...heads, ...paras];
+
+    // Only include divs that don't contain p elements
+    for (const div of divs) {
+      if (!div.querySelector("p")) {
+        containers.push(div);
+      }
+    }
+
+    // Process each container
+    for (const container of containers) {
+      // Collect all IDs from this container and its descendants
+      const idsToPreserve: string[] = [];
+
+      // Check container itself
+      if (container.hasAttribute("id")) {
+        const id = container.getAttribute("id");
+        if (id) {
+          idsToPreserve.push(id);
+        }
+        container.removeAttribute("id");
+      }
+
+      // Find all elements with IDs inside this container
+      const elementsWithIds = container.querySelectorAll("[id]");
+      for (const el of elementsWithIds) {
+        const id = el.getAttribute("id");
+        if (id) {
+          idsToPreserve.push(id);
+          el.removeAttribute("id");
+        }
+      }
+
+      // If we found any IDs, create or update anchor div
+      if (idsToPreserve.length > 0 && container.parentNode) {
+        // Check if there's already an anchor div before this container
+        const prev = container.previousSibling;
+        if (
+          prev &&
+          prev.nodeType === 1 &&
+          (prev as Element).tagName.toLowerCase() === "div" &&
+          (prev as Element).hasAttribute("data-anchor-ids")
+        ) {
+          // Add to existing anchor div
+          const existingIds =
+            (prev as Element).getAttribute("data-anchor-ids") || "";
+          const ids = existingIds ? existingIds.split(" ") : [];
+          ids.push(...idsToPreserve);
+          (prev as Element).setAttribute("data-anchor-ids", ids.join(" "));
+        } else {
+          // Create new anchor div
+          const anchorDiv = doc.createElement("div");
+          anchorDiv.setAttribute("data-anchor-ids", idsToPreserve.join(" "));
+          anchorDiv.textContent = "\u200B"; // Zero-width space to ensure it's not empty
+          container.parentNode.insertBefore(anchorDiv, container);
+        }
+      }
+    }
   }
 }
