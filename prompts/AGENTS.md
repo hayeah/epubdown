@@ -1,3 +1,3 @@
-{{ include "./coder"}}
+{{ include "./coder.md"}}
 
 {{ include "./project-overview"}}
