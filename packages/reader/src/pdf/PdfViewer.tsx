@@ -13,6 +13,7 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const observerRef = useRef<IntersectionObserver | null>(null);
   const [pageInputValue, setPageInputValue] = useState("");
+  const initialScrollDone = useRef(false);
 
   // Track container width and compute initial zoom
   useEffect(() => {
@@ -137,6 +138,32 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       observerRef.current?.observe(pageDiv);
     });
 
+    // Get page from URL and scroll to it after creating page placeholders
+    const urlParams = new URLSearchParams(window.location.search);
+    const pageFromUrl = parseInt(urlParams.get("page") || "1", 10);
+    if (
+      pageFromUrl > 1 &&
+      pageFromUrl <= store.pageCount &&
+      !initialScrollDone.current
+    ) {
+      const pageDiv = pageRefs.current.get(pageFromUrl);
+      if (pageDiv) {
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
+          pageDiv.scrollIntoView({ behavior: "instant", block: "start" });
+          // Set the current page immediately to prevent drift
+          store.setCurrentPage(pageFromUrl);
+          // Delay setting the flag to allow scroll to complete
+          setTimeout(() => {
+            initialScrollDone.current = true;
+          }, 100);
+        });
+      }
+    } else if (!initialScrollDone.current) {
+      // Even if page is 1, mark initial scroll as done
+      initialScrollDone.current = true;
+    }
+
     return () => {
       observerRef.current?.disconnect();
     };
@@ -177,6 +204,9 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   useEffect(() => {
     if (visiblePages.size === 0) return;
 
+    // Skip updating if we haven't done the initial scroll yet
+    if (!initialScrollDone.current) return;
+
     // Find the topmost visible page
     const sortedPages = Array.from(visiblePages).sort((a, b) => a - b);
     const currentPage = sortedPages[0];
@@ -194,16 +224,10 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
     }
   }, []);
 
-  // Apply URL params on mount and scroll to page
+  // Apply URL params on mount
   useEffect(() => {
     store.updateFromUrl(new URL(window.location.href));
-    // Scroll to the page from URL after PDF loads
-    if (store.pdf && store.currentPage > 1) {
-      setTimeout(() => {
-        scrollToPage(store.currentPage);
-      }, 100); // Small delay to ensure DOM is ready
-    }
-  }, [store.pdf, scrollToPage]);
+  }, [store]);
 
   // Zoom controls
   const handleZoomIn = () => {
