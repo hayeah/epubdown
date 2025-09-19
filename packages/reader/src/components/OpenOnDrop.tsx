@@ -27,7 +27,7 @@ export function OpenOnDrop({
     onDragLeave: () => setIsDragging(false),
     accept: {
       "application/epub+zip": [".epub"],
-      "application/pdf": [".pdf"]
+      "application/pdf": [".pdf"],
     },
     multiple: true,
     noClick,

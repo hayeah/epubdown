@@ -46,14 +46,24 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
         setRenderedPages((prev) => new Set(prev).add(pageNum));
 
         const page = await store.pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: store.zoom });
+
+        // Get device pixel ratio for high-DPI displays
+        const devicePixelRatio = window.devicePixelRatio || 1;
+
+        // Create viewport with zoom scale
+        const viewport = page.getViewport({
+          scale: store.zoom * devicePixelRatio,
+        });
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
+        // Set actual canvas size with device pixel ratio
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        canvas.style.width = `${viewport.width}px`;
-        canvas.style.height = `${viewport.height}px`;
+
+        // Set display size (CSS pixels)
+        canvas.style.width = `${viewport.width / devicePixelRatio}px`;
+        canvas.style.height = `${viewport.height / devicePixelRatio}px`;
 
         await page.render({ canvasContext: ctx, viewport }).promise;
 
