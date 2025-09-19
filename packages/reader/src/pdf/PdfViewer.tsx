@@ -334,9 +334,14 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
     [pageInputValue, store, scrollToPage],
   );
 
-  const handlePageInputFocus = useCallback(() => {
-    setIsInputFocused(true);
-  }, []);
+  const handlePageInputFocus = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsInputFocused(true);
+      // Select all text on focus
+      e.target.select();
+    },
+    [],
+  );
 
   const handlePageInputBlur = useCallback(() => {
     setIsInputFocused(false);
