@@ -12,7 +12,6 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const [pageInputValue, setPageInputValue] = useState("");
   const initialScrollDone = useRef(false);
 
   // Track container width and compute initial zoom
@@ -224,13 +223,13 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
     if (currentPage && currentPage !== store.currentPage) {
       store.setCurrentPage(currentPage);
     }
-  }, [visiblePages, store]);
+  }, [visiblePages, store.currentPage, store]);
 
   // Scroll to page when currentPage changes programmatically
   const scrollToPage = useCallback((pageNum: number) => {
     const pageDiv = pageRefs.current.get(pageNum);
     if (pageDiv) {
-      pageDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+      pageDiv.scrollIntoView({ behavior: "instant", block: "start" });
     }
   }, []);
 
@@ -255,31 +254,26 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   // Handle page input
   const handlePageInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setPageInputValue(e.target.value);
+      const value = e.target.value;
+      if (value === "") return;
+
+      const pageNum = parseInt(value, 10);
+      if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= store.pageCount) {
+        store.setCurrentPage(pageNum);
+        scrollToPage(pageNum);
+      }
     },
-    [],
+    [store, scrollToPage],
   );
 
   const handlePageInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
-        const pageNum = parseInt(pageInputValue, 10);
-        if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= store.pageCount) {
-          store.setCurrentPage(pageNum);
-          scrollToPage(pageNum);
-          setPageInputValue("");
-        }
-      } else if (e.key === "Escape") {
-        setPageInputValue("");
         (e.target as HTMLInputElement).blur();
       }
     },
-    [pageInputValue, store.pageCount, scrollToPage, store],
+    [],
   );
-
-  const handlePageInputBlur = useCallback(() => {
-    setPageInputValue("");
-  }, []);
 
   if (store.isLoading) {
     return (
@@ -334,30 +328,16 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       {store.pageCount > 0 && (
         <div className="fixed bottom-4 right-4 z-10 bg-white rounded-lg shadow-md px-3 py-2">
           <span className="text-sm text-gray-600 flex items-center gap-1">
-            Page{" "}
-            {pageInputValue === "" ? (
-              <button
-                type="button"
-                onClick={() => setPageInputValue(String(store.currentPage))}
-                className="text-blue-600 hover:underline min-w-[2ch] text-center"
-                title="Click to jump to page"
-              >
-                {store.currentPage}
-              </button>
-            ) : (
-              <input
-                type="number"
-                value={pageInputValue}
-                onChange={handlePageInputChange}
-                onKeyDown={handlePageInputKeyDown}
-                onBlur={handlePageInputBlur}
-                className="w-12 px-1 border border-gray-300 rounded text-center"
-                min="1"
-                max={store.pageCount}
-                autoFocus
-              />
-            )}
-            {" of "}
+            <input
+              type="number"
+              value={store.currentPage}
+              onChange={handlePageInputChange}
+              onKeyDown={handlePageInputKeyDown}
+              className="w-16 px-1 border border-gray-300 rounded text-center"
+              min="1"
+              max={store.pageCount}
+            />
+            {" / "}
             {store.pageCount}
           </span>
         </div>
