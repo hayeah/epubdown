@@ -31,6 +31,7 @@
     "marked": "^5",
     "mobx": "^6",
     "mobx-react-lite": "^4",
+    "pdfjs-dist": "^5.4.149",
     "react": "^19",
     "react-dom": "^19",
     "react-dropzone": "^14.3.8",

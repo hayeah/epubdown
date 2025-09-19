@@ -1,5 +1,7 @@
 import type { SQLiteDB } from "@hayeah/sqlite-browser";
 
+export type FileType = "epub" | "pdf";
+
 export interface BookMetadata {
   id: number;
   title: string;
@@ -10,6 +12,7 @@ export interface BookMetadata {
   lastOpenedAt?: number;
   metadata?: string; // JSON string of book metadata
   contentHash: Uint8Array;
+  fileType: FileType;
 }
 
 export class BookDatabase {
@@ -22,8 +25,8 @@ export class BookDatabase {
   async addBook(book: Omit<BookMetadata, "id" | "createdAt">): Promise<number> {
     const sql = `
       INSERT INTO books (
-        title, author, filename, file_size, created_at, metadata, content_hash
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        title, author, filename, file_size, created_at, metadata, content_hash, file_type
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING id
     `;
 
@@ -35,6 +38,7 @@ export class BookDatabase {
       Date.now(),
       book.metadata || null, // Already a JSON string
       book.contentHash,
+      book.fileType,
     ]);
 
     if (!result.rows[0]) {
@@ -110,6 +114,7 @@ export class BookDatabase {
       lastOpenedAt: row.last_opened_at,
       metadata: row.metadata, // JSON string
       contentHash: row.content_hash,
+      fileType: row.file_type || "epub", // Default to epub for backwards compatibility
     };
   }
 }

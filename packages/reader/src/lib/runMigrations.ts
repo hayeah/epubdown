@@ -28,4 +28,11 @@ export async function runMigrations(db: SQLiteDB): Promise<void> {
   `;
 
   await migrator.up([{ name: "create_books_table", up: createBooksTable }]);
+
+  const addFileTypeColumn = `
+    ALTER TABLE books ADD COLUMN file_type TEXT NOT NULL DEFAULT 'epub';
+    CREATE INDEX IF NOT EXISTS idx_books_file_type ON books(file_type);
+  `;
+
+  await migrator.up([{ name: "add_file_type_column", up: addFileTypeColumn }]);
 }

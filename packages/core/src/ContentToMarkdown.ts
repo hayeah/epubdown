@@ -212,16 +212,16 @@ export class ContentToMarkdown {
   /**
    * Extracts IDs from block-level elements and inserts them as invisible anchor divs.
    * This preserves element IDs in the markdown output while keeping them invisible.
-   * 
+   *
    * For each block element with an ID (or containing elements with IDs), this function:
    * 1. Collects all IDs from the element and its descendants
    * 2. Removes the ID attributes from the original elements
    * 3. Creates/updates an invisible div before the element with data-anchor-ids attribute
-   * 
+   *
    * Example input:
    *   <h2 id="chapter-1">Chapter Title</h2>
    *   <p id="intro">Some text with <span id="ref-1">reference</span></p>
-   * 
+   *
    * Example output:
    *   <div data-anchor-ids="chapter-1" style="display:none"></div>
    *   <h2>Chapter Title</h2>

@@ -36,7 +36,7 @@ export const Library = observer(() => {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <p className="text-gray-500 text-lg">
-              Drop EPUB files here or click Upload
+              Drop EPUB or PDF files here or click Upload
             </p>
           </div>
         </div>
@@ -72,7 +72,7 @@ export const Library = observer(() => {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".epub"
+              accept=".epub,.pdf"
               multiple
               onChange={handleFileSelect}
               className="hidden"
