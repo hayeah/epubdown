@@ -1,6 +1,7 @@
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PdfReaderStore } from "../stores/PdfReaderStore";
+import { NarrowIntersectionObserver } from "../utils/NarrowIntersectionObserver";
 
 interface PdfViewerProps {
   store: PdfReaderStore;
@@ -11,10 +12,12 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   const [renderedPages, setRenderedPages] = useState<Set<number>>(new Set());
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const narrowObserverRef = useRef<NarrowIntersectionObserver | null>(null);
+  const loadingObserverRef = useRef<IntersectionObserver | null>(null);
   const [pageInputValue, setPageInputValue] = useState<string>("");
   const [isInputFocused, setIsInputFocused] = useState(false);
   const initialScrollDone = useRef(false);
+  const [debugMode, setDebugMode] = useState(false);
 
   // Track container width and compute initial zoom
   useEffect(() => {
@@ -117,12 +120,34 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       pageRefs.current.set(i, pageDiv);
     }
 
-    // Setup intersection observer
-    if (observerRef.current) {
-      observerRef.current.disconnect();
+    // Setup narrow intersection observer for accurate page tracking
+    if (narrowObserverRef.current) {
+      narrowObserverRef.current.disconnect();
     }
 
-    observerRef.current = new IntersectionObserver(
+    narrowObserverRef.current = new NarrowIntersectionObserver({
+      topPosition: 0.1, // 10% from top for better PDF reading accuracy
+      onIntersect: (entry) => {
+        const pageNum = parseInt(
+          (entry.target as HTMLElement).dataset.pageNumber || "0",
+        );
+        if (pageNum > 0 && pageNum !== store.currentPage) {
+          store.setCurrentPage(pageNum);
+          // Update input value if not focused
+          if (!isInputFocused) {
+            setPageInputValue(String(pageNum));
+          }
+        }
+      },
+      debug: debugMode,
+    });
+
+    // Setup a separate observer for lazy loading with wider margins
+    if (loadingObserverRef.current) {
+      loadingObserverRef.current.disconnect();
+    }
+
+    loadingObserverRef.current = new IntersectionObserver(
       (entries) => {
         const newVisiblePages = new Set<number>();
 
@@ -139,14 +164,15 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       },
       {
         root: null,
-        rootMargin: "100px", // Start loading 100px before page is visible
-        threshold: 0.01,
+        rootMargin: "200px", // Start loading 200px before page is visible
+        threshold: 0,
       },
     );
 
-    // Observe all pages
+    // Observe all pages with both observers
     pageRefs.current.forEach((pageDiv) => {
-      observerRef.current?.observe(pageDiv);
+      narrowObserverRef.current?.observe(pageDiv); // For accurate page tracking
+      loadingObserverRef.current?.observe(pageDiv); // For lazy loading
     });
 
     // Get page from URL and scroll to it after creating page placeholders
@@ -161,7 +187,12 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       if (pageDiv) {
         // Use requestAnimationFrame to ensure DOM is ready
         requestAnimationFrame(() => {
-          pageDiv.scrollIntoView({ behavior: "instant", block: "start" });
+          // Use the narrow observer's scroll method for precise positioning
+          if (narrowObserverRef.current) {
+            narrowObserverRef.current.scrollToElement(pageDiv);
+          } else {
+            pageDiv.scrollIntoView({ behavior: "instant", block: "start" });
+          }
           // Set the current page immediately to prevent drift
           store.setCurrentPage(pageFromUrl);
           // Delay setting the flag to allow scroll to complete
@@ -176,9 +207,10 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
     }
 
     return () => {
-      observerRef.current?.disconnect();
+      narrowObserverRef.current?.disconnect();
+      loadingObserverRef.current?.disconnect();
     };
-  }, [store.pdf, store.pageCount]);
+  }, [store.pdf, store.pageCount, isInputFocused, debugMode]);
 
   // Render visible pages
   useEffect(() => {
@@ -211,25 +243,9 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
     }
   }, [store.zoom]);
 
-  // Update current page based on visible pages
-  useEffect(() => {
-    if (visiblePages.size === 0) return;
-
-    // Skip updating if we haven't done the initial scroll yet
-    if (!initialScrollDone.current) return;
-
-    // Find the topmost visible page
-    const sortedPages = Array.from(visiblePages).sort((a, b) => a - b);
-    const currentPage = sortedPages[0];
-
-    if (currentPage && currentPage !== store.currentPage) {
-      store.setCurrentPage(currentPage);
-      // Update input value if not focused
-      if (!isInputFocused) {
-        setPageInputValue(String(currentPage));
-      }
-    }
-  }, [visiblePages, store.currentPage, store, isInputFocused]);
+  // The narrow observer now handles current page updates directly,
+  // so we don't need this effect for page tracking.
+  // visiblePages is only used for lazy loading now.
 
   // Sync input value with store when not focused
   useEffect(() => {
@@ -242,7 +258,11 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   const scrollToPage = useCallback((pageNum: number) => {
     const pageDiv = pageRefs.current.get(pageNum);
     if (pageDiv) {
-      pageDiv.scrollIntoView({ behavior: "instant", block: "start" });
+      if (narrowObserverRef.current) {
+        narrowObserverRef.current.scrollToElement(pageDiv);
+      } else {
+        pageDiv.scrollIntoView({ behavior: "instant", block: "start" });
+      }
     }
   }, []);
 
@@ -250,6 +270,27 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   useEffect(() => {
     store.updateFromUrl(new URL(window.location.href));
   }, [store]);
+
+  // Add global debug toggle function
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).togglePdfIntersectionDebug = () => {
+        setDebugMode((prev) => {
+          const newMode = !prev;
+          console.log(`PDF intersection debug mode: ${newMode ? "ON" : "OFF"}`);
+          if (narrowObserverRef.current) {
+            narrowObserverRef.current.setDebugMode(newMode);
+          }
+          return newMode;
+        });
+      };
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        delete (window as any).togglePdfIntersectionDebug;
+      }
+    };
+  }, []);
 
   // Zoom controls
   const handleZoomIn = () => {
