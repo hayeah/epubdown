@@ -12,6 +12,8 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const [pageInputValue, setPageInputValue] = useState<string>("");
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const initialScrollDone = useRef(false);
 
   // Track container width and compute initial zoom
@@ -222,8 +224,19 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
 
     if (currentPage && currentPage !== store.currentPage) {
       store.setCurrentPage(currentPage);
+      // Update input value if not focused
+      if (!isInputFocused) {
+        setPageInputValue(String(currentPage));
+      }
     }
-  }, [visiblePages, store.currentPage, store]);
+  }, [visiblePages, store.currentPage, store, isInputFocused]);
+
+  // Sync input value with store when not focused
+  useEffect(() => {
+    if (!isInputFocused) {
+      setPageInputValue(String(store.currentPage));
+    }
+  }, [store.currentPage, isInputFocused]);
 
   // Scroll to page when currentPage changes programmatically
   const scrollToPage = useCallback((pageNum: number) => {
@@ -254,26 +267,91 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   // Handle page input
   const handlePageInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      if (value === "") return;
-
-      const pageNum = parseInt(value, 10);
-      if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= store.pageCount) {
-        store.setCurrentPage(pageNum);
-        scrollToPage(pageNum);
-      }
+      setPageInputValue(e.target.value);
     },
-    [store, scrollToPage],
+    [],
   );
 
   const handlePageInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
+        const value = pageInputValue.trim();
+
+        if (value === "") {
+          // Reset to current page
+          setPageInputValue(String(store.currentPage));
+          (e.target as HTMLInputElement).blur();
+          return;
+        }
+
+        let targetPage: number;
+
+        // Handle relative navigation
+        if (value.startsWith("+")) {
+          const delta = parseInt(value.substring(1), 10);
+          if (!isNaN(delta)) {
+            targetPage = store.currentPage + delta;
+          } else {
+            // Invalid input, reset
+            setPageInputValue(String(store.currentPage));
+            (e.target as HTMLInputElement).blur();
+            return;
+          }
+        } else if (value.startsWith("-")) {
+          const delta = parseInt(value.substring(1), 10);
+          if (!isNaN(delta)) {
+            targetPage = store.currentPage - delta;
+          } else {
+            // Invalid input, reset
+            setPageInputValue(String(store.currentPage));
+            (e.target as HTMLInputElement).blur();
+            return;
+          }
+        } else {
+          // Absolute page number
+          targetPage = parseInt(value, 10);
+          if (isNaN(targetPage)) {
+            // Invalid input, reset
+            setPageInputValue(String(store.currentPage));
+            (e.target as HTMLInputElement).blur();
+            return;
+          }
+        }
+
+        // Clamp to valid range
+        targetPage = Math.max(1, Math.min(store.pageCount, targetPage));
+
+        store.setCurrentPage(targetPage);
+        scrollToPage(targetPage);
+        setPageInputValue(String(targetPage));
+        (e.target as HTMLInputElement).blur();
+      } else if (e.key === "Escape") {
+        // Reset to current page
+        setPageInputValue(String(store.currentPage));
         (e.target as HTMLInputElement).blur();
       }
     },
-    [],
+    [pageInputValue, store, scrollToPage],
   );
+
+  const handlePageInputFocus = useCallback(() => {
+    setIsInputFocused(true);
+  }, []);
+
+  const handlePageInputBlur = useCallback(() => {
+    setIsInputFocused(false);
+    // Reset to current page if input is invalid
+    const value = pageInputValue.trim();
+    if (
+      value === "" ||
+      (value !== String(store.currentPage) &&
+        !value.startsWith("+") &&
+        !value.startsWith("-") &&
+        isNaN(parseInt(value, 10)))
+    ) {
+      setPageInputValue(String(store.currentPage));
+    }
+  }, [pageInputValue, store.currentPage]);
 
   if (store.isLoading) {
     return (
@@ -329,13 +407,14 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
         <div className="fixed bottom-4 right-4 z-10 bg-white rounded-lg shadow-md px-3 py-2">
           <span className="text-sm text-gray-600 flex items-center gap-1">
             <input
-              type="number"
-              value={store.currentPage}
+              type="text"
+              value={pageInputValue}
               onChange={handlePageInputChange}
               onKeyDown={handlePageInputKeyDown}
+              onFocus={handlePageInputFocus}
+              onBlur={handlePageInputBlur}
               className="w-16 px-1 border border-gray-300 rounded text-center"
-              min="1"
-              max={store.pageCount}
+              placeholder={String(store.currentPage)}
             />
             {" / "}
             {store.pageCount}
