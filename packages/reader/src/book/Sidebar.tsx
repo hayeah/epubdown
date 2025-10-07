@@ -1,4 +1,4 @@
-import { Book, Menu, Search, X } from "lucide-react";
+import { Book, Code2, Menu, Search, X } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useEffect, useRef } from "react";
@@ -96,6 +96,22 @@ export const Sidebar = observer(({ children }: SidebarProps) => {
                     <span>Find Book</span>
                   </div>
                   <span className="text-xs text-gray-500">⌘F</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    readerStore.setHtmlMode(!readerStore.useHtmlMode)
+                  }
+                  className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Code2 className="w-5 h-5 text-gray-600" />
+                    <span>HTML rendering</span>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {readerStore.useHtmlMode ? "on" : "off"}
+                  </span>
                 </button>
               </div>
             </div>

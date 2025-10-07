@@ -12,10 +12,13 @@ import {
   observable,
   runInAction,
 } from "mobx";
+import React from "react";
 import type { CommandPaletteStore } from "../../command/CommandPaletteStore";
 import type { Command } from "../../command/types";
 import type { AppEventSystem } from "../app/context";
+import { BookHtmlView } from "../book/BookHtmlView";
 import type { EventPayload } from "../events/types";
+import { inlineChapterHTML } from "../lib/inlineHtmlAssets";
 import { markdownToReact } from "../markdownToReact";
 import { ReaderTemplateContext } from "../templates/ReaderTemplateContext";
 import type { ReaderTemplates } from "../templates/Template";
@@ -39,6 +42,8 @@ export class ReaderStore {
 
   // UI state
   isSidebarOpen = false;
+  useHtmlMode =
+    new URLSearchParams(window.location.search).get("mode") === "html";
   private popoverRef: HTMLElement | null = null;
 
   // Dependencies
@@ -66,6 +71,7 @@ export class ReaderStore {
       currentChapterIndex: observable,
       currentBookId: observable,
       isSidebarOpen: observable,
+      useHtmlMode: observable,
       currentChapterRender: observable.ref,
       tocInfo: observable.ref,
       handleLoadBook: action,
@@ -76,6 +82,7 @@ export class ReaderStore {
       loadBookAndChapter: action,
       setSidebarOpen: action,
       toggleSidebar: action,
+      setHtmlMode: action,
       handleUrlChange: action,
       handleChapterChange: action,
       handleTocChapterSelect: action,
@@ -196,6 +203,21 @@ export class ReaderStore {
   private async convertCurrentChapter() {
     const chapter = this.currentChapter;
     if (!chapter) return;
+
+    if (this.useHtmlMode) {
+      if (!this.epub) return;
+      const { html, cleanup } = await inlineChapterHTML(this.epub, chapter);
+      const reactTree = React.createElement(BookHtmlView, {
+        html,
+        cleanup,
+        onNavigate: (p) => this.handleTocChapterSelect(p),
+      });
+      runInAction(() => {
+        this.currentChapterRender = { markdown: "", reactTree };
+      });
+      return;
+    }
+
     // Create a converter with the current chapter's base path for proper path normalization
     const converter = ContentToMarkdown.create({ basePath: chapter.base });
     const markdown = await converter.convertXMLFile(chapter);
@@ -336,6 +358,17 @@ export class ReaderStore {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
+  setHtmlMode(on: boolean) {
+    this.useHtmlMode = on;
+    // Update URL query param (preserve fragment)
+    const u = new URL(window.location.href);
+    if (on) u.searchParams.set("mode", "html");
+    else u.searchParams.delete("mode");
+    this.navigate?.(u.pathname + u.search + u.hash);
+    // Re-render current chapter
+    void this.convertCurrentChapter();
+  }
+
   selectChapterContent(readerContainer?: HTMLElement) {
     if (!readerContainer) return;
 
@@ -414,9 +447,12 @@ export class ReaderStore {
 
   // Navigation methods
   async handleUrlChange(location: string): Promise<void> {
-    // Parse the location to extract bookId, chapterIndex, and fragment
-    const [pathname, fragment] = location.split("#");
-    const match = pathname?.match(/\/book\/([^\/]+)(?:\/(\d+))?/);
+    // Parse the location to extract bookId, chapterIndex, fragment, and mode
+    const [pathWithQuery, fragment] = location.split("#");
+    const url = new URL(pathWithQuery || location, window.location.origin);
+    this.useHtmlMode = url.searchParams.get("mode") === "html";
+
+    const match = url.pathname?.match(/\/book\/([^\/]+)(?:\/(\d+))?/);
     if (!match || !match[1]) return;
 
     const bookId = Number(match[1]);

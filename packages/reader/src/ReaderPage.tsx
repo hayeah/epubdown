@@ -54,9 +54,12 @@ export const ReaderPage = observer(() => {
 
   // Handle URL changes
   useEffect(() => {
-    if (match && params?.bookId && location !== lastProcessedUrl.current) {
-      lastProcessedUrl.current = location;
-      readerStore.handleUrlChange(location);
+    // Use full URL including query params and hash
+    const fullUrl =
+      window.location.pathname + window.location.search + window.location.hash;
+    if (match && params?.bookId && fullUrl !== lastProcessedUrl.current) {
+      lastProcessedUrl.current = fullUrl;
+      readerStore.handleUrlChange(fullUrl);
     }
   }, [match, params?.bookId, location, readerStore]);
 

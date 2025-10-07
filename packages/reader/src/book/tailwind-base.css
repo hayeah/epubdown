@@ -1,0 +1,7 @@
+/*
+ * Tailwind CSS base reset styles for Shadow DOM
+ * Using @layer to scope these styles to prevent conflicts
+ * Import base layer only - no utilities or components
+ */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/preflight" layer(base);
