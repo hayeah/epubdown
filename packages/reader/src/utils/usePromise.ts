@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
  * Run an async factory when deps change.
  * - Cancels on unmount or deps change (via AbortController).
  * - Guards against stale resolutions.
- * - Set `enabled=false` to skip.
+ * - Optional cleanup function will be called when deps change or on unmount.
  */
 export function usePromise<T>(
   factory: (signal: AbortSignal) => Promise<T>,
   deps: unknown[],
-  enabled = true,
+  cleanup?: () => void,
 ) {
   const [value, setValue] = useState<T | undefined>(undefined);
   const [error, setError] = useState<Error | null>(null);
@@ -17,8 +17,6 @@ export function usePromise<T>(
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: factory is intentionally omitted to allow inline definitions
   useEffect(() => {
-    if (!enabled) return;
-
     const ac = new AbortController();
     let fresh = true;
     setLoading(true);
@@ -41,8 +39,10 @@ export function usePromise<T>(
     return () => {
       fresh = false;
       ac.abort();
+      // Call cleanup function if provided
+      cleanup?.();
     };
-  }, [enabled, ...deps]);
+  }, [...deps]);
 
   return { value, error, loading } as const;
 }

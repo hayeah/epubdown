@@ -12,23 +12,13 @@ import {
   observable,
   runInAction,
 } from "mobx";
-import React from "react";
 import type { CommandPaletteStore } from "../../command/CommandPaletteStore";
 import type { Command } from "../../command/types";
 import type { AppEventSystem } from "../app/context";
-import { BookHtmlView } from "../book/BookHtmlView";
-import type { EventPayload } from "../events/types";
-import { inlineChapterHTML } from "../lib/inlineHtmlAssets";
-import { markdownToReact } from "../markdownToReact";
 import { ReaderTemplateContext } from "../templates/ReaderTemplateContext";
 import type { ReaderTemplates } from "../templates/Template";
-import { copyToClipboard, getSelectionContext } from "../utils/selectionUtils";
+import { copyToClipboard } from "../utils/selectionUtils";
 import type { BookLibraryStore } from "./BookLibraryStore";
-
-export interface MarkdownResult {
-  markdown: string;
-  reactTree: React.ReactNode;
-}
 
 export type NavigateFunction = (path: string) => void;
 
@@ -50,7 +40,6 @@ export class ReaderStore {
   private navigate: NavigateFunction | null = null;
 
   // Cached state
-  currentChapterRender: MarkdownResult | null = null;
   tocInfo: { navItems: FlatNavItem[] } | null = null;
   private labelByIndex: Map<number, string> = new Map();
 
@@ -72,7 +61,6 @@ export class ReaderStore {
       currentBookId: observable,
       isSidebarOpen: observable,
       useHtmlMode: observable,
-      currentChapterRender: observable.ref,
       tocInfo: observable.ref,
       handleLoadBook: action,
       setChapter: action,
@@ -111,14 +99,14 @@ export class ReaderStore {
           id: "reader.selectAll",
           event: { kind: "key", combo: "meta+a" },
           layer: "view:reader",
-          when: () => !!this.currentChapterRender && !!readerContainer,
+          when: () => !!this.currentChapter && !!readerContainer,
           run: () => this.selectChapterContent(readerContainer),
         },
         {
           id: "reader.openCommandPalette",
           event: { kind: "key", combo: "meta+k" },
           layer: "view:reader",
-          when: () => !!this.currentChapterRender,
+          when: () => !!this.currentChapter,
           run: () => {
             const commands = this.buildGlobalCommands();
             this.palette.openPalette(commands);
@@ -128,7 +116,7 @@ export class ReaderStore {
           id: "reader.copyWithContext",
           event: { kind: "key", combo: "meta+shift+c" },
           layer: "view:reader",
-          when: () => !!this.currentChapterRender,
+          when: () => !!this.currentChapter,
           run: () => this.copySelectionWithContext(),
         },
         {
@@ -142,7 +130,7 @@ export class ReaderStore {
           id: "reader.selection.openPalette",
           event: { kind: "textSelect", container: readerContainer },
           layer: "view:reader",
-          when: () => !!this.currentChapterRender && !!readerContainer,
+          when: () => !!this.currentChapter && !!readerContainer,
           run: (payload) => {
             if (payload.kind !== "textSelect") return;
             const selected = payload.text.trim();
@@ -200,33 +188,6 @@ export class ReaderStore {
     this.popoverRef = ref;
   }
 
-  private async convertCurrentChapter() {
-    const chapter = this.currentChapter;
-    if (!chapter) return;
-
-    if (this.useHtmlMode) {
-      if (!this.epub) return;
-      const { html, cleanup } = await inlineChapterHTML(this.epub, chapter);
-      const reactTree = React.createElement(BookHtmlView, {
-        html,
-        cleanup,
-        onNavigate: (p) => this.handleTocChapterSelect(p),
-      });
-      runInAction(() => {
-        this.currentChapterRender = { markdown: "", reactTree };
-      });
-      return;
-    }
-
-    // Create a converter with the current chapter's base path for proper path normalization
-    const converter = ContentToMarkdown.create({ basePath: chapter.base });
-    const markdown = await converter.convertXMLFile(chapter);
-    const reactTree = await markdownToReact(markdown);
-    runInAction(() => {
-      this.currentChapterRender = { markdown, reactTree };
-    });
-  }
-
   private async loadTocOnce() {
     if (!this.epub || this.tocInfo) return;
     this.tocInfo = await this.getTocInfo();
@@ -269,9 +230,6 @@ export class ReaderStore {
     runInAction(() => {
       this.currentChapterIndex = firstTocIndex;
     });
-
-    // Convert the current chapter
-    await this.convertCurrentChapter();
   }
 
   async setChapter(index: number) {
@@ -279,8 +237,6 @@ export class ReaderStore {
       this.currentChapterIndex = index;
       // Update page title when chapter changes
       this.updatePageTitle();
-      // Convert the new chapter
-      await this.convertCurrentChapter();
     }
   }
 
@@ -344,7 +300,6 @@ export class ReaderStore {
     this.metadata = {};
     this.currentBookId = null;
     this.isSidebarOpen = false;
-    this.currentChapterRender = null;
     this.tocInfo = null;
     this.labelByIndex.clear();
   }
@@ -365,8 +320,6 @@ export class ReaderStore {
     if (on) u.searchParams.set("mode", "html");
     else u.searchParams.delete("mode");
     this.navigate?.(u.pathname + u.search + u.hash);
-    // Re-render current chapter
-    void this.convertCurrentChapter();
   }
 
   selectChapterContent(readerContainer?: HTMLElement) {
@@ -477,7 +430,8 @@ export class ReaderStore {
 
   handleChapterChange(index: number) {
     if (this.currentBookId && this.navigate) {
-      this.navigate(`/book/${this.currentBookId}/${index}`);
+      const modeParam = this.useHtmlMode ? "?mode=html" : "";
+      this.navigate(`/book/${this.currentBookId}/${index}${modeParam}`);
     }
   }
 
@@ -536,9 +490,6 @@ export class ReaderStore {
     // Set chapter only if different
     if (this.currentChapterIndex !== targetChapterIndex) {
       await this.setChapter(targetChapterIndex);
-    } else if (isNewBook) {
-      // If it's a new book but same chapter index, still need to convert
-      await this.convertCurrentChapter();
     }
 
     // Update page title after loading book/chapter
@@ -653,9 +604,10 @@ export class ReaderStore {
 
     if (chapterIndex === -1) return null;
 
-    // Build the reader URL
+    // Build the reader URL with mode parameter if in HTML mode
+    const modeParam = this.useHtmlMode ? "?mode=html" : "";
     const fragmentPart = fragment ? `#${fragment}` : "";
-    return `/book/${this.currentBookId}/${chapterIndex}${fragmentPart}`;
+    return `/book/${this.currentBookId}/${chapterIndex}${modeParam}${fragmentPart}`;
   }
 
   private async firstTocChapterIndex(): Promise<number> {
@@ -701,5 +653,17 @@ export class ReaderStore {
     const id = await this.bookLibraryStore.ensureBook(file);
     const url = new URL(`/book/${id}`, window.location.href).toString();
     window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  /**
+   * Convert current chapter to markdown on demand
+   * Used by template context for copy operations
+   */
+  async getCurrentChapterMarkdown(): Promise<string> {
+    const chapter = this.currentChapter;
+    if (!chapter) return "";
+
+    const converter = ContentToMarkdown.create({ basePath: chapter.base });
+    return await converter.convertXMLFile(chapter);
   }
 }

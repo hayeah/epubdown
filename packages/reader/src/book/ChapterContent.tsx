@@ -1,8 +1,50 @@
+import { ContentToMarkdown, type DOMFile, type EPub } from "@epubdown/core";
 import { ArrowRight } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
+import { BookHtmlView } from "./BookHtmlView";
+import { inlineChapterHTML } from "../lib/inlineHtmlAssets";
+import { markdownToReact } from "../markdownToReact";
 import { useReadingProgress } from "../stores/ReadingProgressStore";
+import type { ReaderStore } from "../stores/ReaderStore";
 import { useReaderStore } from "../stores/RootStore";
+import { usePromise } from "../utils/usePromise";
+
+// Helper component for HTML mode rendering
+const HtmlModeRender: React.FC<{
+  epub: EPub;
+  chapter: DOMFile;
+  onNavigate: (path: string) => void;
+}> = ({ epub, chapter, onNavigate }) => {
+  return (
+    <BookHtmlView
+      epub={epub}
+      chapter={chapter}
+      onNavigate={onNavigate}
+    />
+  );
+};
+
+// Helper component for Markdown mode rendering
+const MarkdownModeRender: React.FC<{
+  chapter: DOMFile;
+}> = ({ chapter }) => {
+  const { value: reactTree } = usePromise(
+    async () => {
+      const converter = ContentToMarkdown.create({
+        basePath: chapter.base,
+      });
+      const markdown = await converter.convertXMLFile(chapter);
+      return await markdownToReact(markdown);
+    },
+    [chapter],
+    undefined,
+  );
+
+  if (!reactTree) return null;
+
+  return <>{reactTree}</>;
+};
 
 // Chapter content component that renders the chapter
 export interface ChapterContentProps {
@@ -15,13 +57,29 @@ export const ChapterContent: React.FC<ChapterContentProps> = observer(
     const readingProgress = useReadingProgress();
     const contentRef = useRef<HTMLDivElement>(null);
 
-    const render = readerStore.currentChapterRender;
-    const { currentChapterIndex, chapters } = readerStore;
+    const { currentChapter, currentChapterIndex, chapters, epub, useHtmlMode } =
+      readerStore;
     const hasNextChapter = currentChapterIndex < chapters.length - 1;
+
+    // Render content based on mode
+    let reactTree: React.ReactNode = null;
+    if (currentChapter) {
+      if (useHtmlMode && epub) {
+        reactTree = (
+          <HtmlModeRender
+            epub={epub}
+            chapter={currentChapter}
+            onNavigate={(p) => readerStore.handleTocChapterSelect(p)}
+          />
+        );
+      } else {
+        reactTree = <MarkdownModeRender chapter={currentChapter} />;
+      }
+    }
 
     // Set up IntersectionObserver for reading position tracking
     useEffect(() => {
-      if (!render || !contentRef.current) return;
+      if (!reactTree || !contentRef.current) return;
 
       const contentElement = contentRef.current;
 
@@ -57,7 +115,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = observer(
       return () => {
         readingProgress.stopTracking();
       };
-    }, [render, readingProgress]);
+    }, [reactTree, readingProgress]);
 
     const handleContinueReading = () => {
       if (hasNextChapter) {
@@ -65,7 +123,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = observer(
       }
     };
 
-    if (!render) {
+    if (!reactTree) {
       return (
         <div className="text-center p-8 text-gray-500">Loading chapter...</div>
       );
@@ -74,7 +132,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = observer(
     return (
       <article className={`epub-chapter ${className ?? ""}`}>
         <div className="chapter-content" ref={contentRef}>
-          {render.reactTree}
+          {reactTree}
         </div>
 
         {/* Continue Reading Link */}

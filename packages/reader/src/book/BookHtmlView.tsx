@@ -1,103 +1,95 @@
+// BookHtmlView.tsx
 import { observer } from "mobx-react-lite";
 import { useEffect, useRef } from "react";
 import tailwindBaseCSS from "./tailwind-base.css?inline";
+import { inlineChapterHTML } from "../lib/inlineHtmlAssets";
+import type { EPub, DOMFile } from "@epubdown/core";
 
 export interface BookHtmlViewProps {
-  html: string;
-  cleanup?: () => void;
+  epub: EPub;
+  chapter: DOMFile;
   onNavigate: (absPath: string) => void;
 }
 
 export const BookHtmlView = observer(function BookHtmlView({
-  html,
-  cleanup,
+  epub,
+  chapter,
   onNavigate,
 }: BookHtmlViewProps) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const lastCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!hostRef.current) return;
+    let cancelled = false;
 
-    // Check if shadow root already exists, if so use it, otherwise create new one
-    let shadow = hostRef.current.shadowRoot;
-    if (!shadow) {
-      shadow = hostRef.current.attachShadow({ mode: "open" });
-    } else {
-      // Clear existing content
-      shadow.innerHTML = "";
-    }
+    // Build and install the HTML for this chapter
+    (async () => {
+      // Revoke previous blob URLs BEFORE installing new HTML
+      lastCleanupRef.current?.();
+      lastCleanupRef.current = null;
 
-    // Create wrapper for author HTML
-    const wrapper = document.createElement("div");
-    wrapper.className = "chapter-html-body";
-    wrapper.innerHTML = html;
-
-    // Create styles element with Tailwind base reset
-    const stylesElement = document.createElement("style");
-
-    // Combine Tailwind base with additional reader-specific styles
-    const additionalStyles = `
-      /* Additional reader-specific styles */
-      .chapter-html-body {
-        max-width: 100%;
-        overflow-x: auto;
-      }
-
-      /* Ensure images don't overflow */
-      img {
-        max-width: 100%;
-        height: auto;
-      }
-
-      /* Ensure pre blocks are scrollable */
-      pre {
-        overflow-x: auto;
-      }
-
-      /* Table styling */
-      table {
-        border-collapse: collapse;
-      }
-    `;
-
-    stylesElement.textContent = tailwindBaseCSS + additionalStyles;
-    shadow.appendChild(stylesElement);
-    shadow.appendChild(wrapper);
-
-    // Link interception
-    const onClick = (e: MouseEvent) => {
-      const a = (e.target as HTMLElement).closest(
-        "a",
-      ) as HTMLAnchorElement | null;
-      if (!a || !a.getAttribute) return;
-
-      const href = a.getAttribute("href") || "";
-      if (!href) return;
-
-      // Allow external links to open normally
-      if (href.startsWith("http") || href.startsWith("mailto:")) return;
-
-      // Allow same-document fragments
-      if (href.startsWith("#")) {
-        // Let browser handle fragment navigation within shadow DOM
+      const { html, cleanup } = await inlineChapterHTML(epub, chapter);
+      if (cancelled) {
+        cleanup?.(); // don’t leak if we bailed mid-flight
         return;
       }
 
-      // Intercept internal navigation
-      e.preventDefault();
-      onNavigate(href);
-    };
+      let shadow = hostRef.current!.shadowRoot;
+      if (!shadow) shadow = hostRef.current!.attachShadow({ mode: "open" });
+      else shadow.innerHTML = "";
 
-    shadow.addEventListener("click", onClick as EventListener);
+      const styles = document.createElement("style");
+      styles.textContent = tailwindBaseCSS + `
+        .chapter-html-body{max-width:100%;overflow-x:auto}
+        img{max-width:100%;height:auto}
+        pre{overflow-x:auto}
+        table{border-collapse:collapse}
+      `;
 
+      const wrapper = document.createElement("div");
+      wrapper.className = "chapter-html-body";
+      wrapper.innerHTML = html;
+
+      shadow.appendChild(styles);
+      shadow.appendChild(wrapper);
+
+      const onClick = (e: MouseEvent) => {
+        const a = (e.target as HTMLElement).closest("a") as
+          | HTMLAnchorElement
+          | null;
+        if (!a) return;
+        const href = a.getAttribute("href") || "";
+        if (!href) return;
+        if (href.startsWith("http") || href.startsWith("mailto:")) return;
+        if (href.startsWith("#")) return;
+        e.preventDefault();
+        onNavigate(href);
+      };
+
+      shadow.addEventListener("click", onClick as EventListener);
+      // Keep cleanup that revokes current blob URLs;
+      // also remove our click handler when we replace/unmount.
+      lastCleanupRef.current = () => {
+        shadow!.removeEventListener("click", onClick as EventListener);
+        cleanup?.();
+      };
+    })();
+
+    // Don’t revoke here; StrictMode would kill the fresh URLs immediately.
     return () => {
-      shadow.removeEventListener("click", onClick as EventListener);
-      // Call cleanup to revoke blob URLs if provided
-      cleanup?.();
+      cancelled = true;
     };
-  }, [html, onNavigate, cleanup]);
+  }, [epub, chapter, onNavigate]); // intentionally not dependent on cleanup
 
-  // Keep the same container classes so ReadingProgressStore and selection utils still work
+  // True-unmount cleanup
+  useEffect(() => {
+    return () => {
+      lastCleanupRef.current?.();
+      lastCleanupRef.current = null;
+    };
+  }, []);
+
   return (
     <div className="epub-chapter">
       <div className="chapter-content" ref={hostRef} />
