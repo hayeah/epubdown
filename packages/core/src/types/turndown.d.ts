@@ -1,4 +1,4 @@
-declare module "turndown/src/turndown.js" {
-  import TurndownService from "turndown";
-  export default TurndownService;
-}
+// declare module "turndown/turndown.js" {
+//   import TurndownService from "turndown";
+//   export default TurndownService;
+// }

@@ -1,11 +1,12 @@
-import { type PropsWithChildren, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useDropzone } from "react-dropzone";
 
-interface OpenOnDropProps extends PropsWithChildren {
+interface OpenOnDropProps {
   onDrop: (files: File[]) => void | Promise<void>;
   overlayText?: string;
   noClick?: boolean;
   noKeyboard?: boolean;
+  children?: ReactNode | ((helpers: { open: () => void }) => ReactNode);
 }
 
 export function OpenOnDrop({
@@ -17,7 +18,7 @@ export function OpenOnDrop({
 }: OpenOnDropProps) {
   const [isDragging, setIsDragging] = useState(false);
 
-  const { getRootProps, getInputProps } = useDropzone({
+  const { getRootProps, getInputProps, open } = useDropzone({
     onDrop: async (files) => {
       setIsDragging(false);
       if (!files || files.length === 0) return;
@@ -31,10 +32,13 @@ export function OpenOnDrop({
     noKeyboard,
   });
 
+  const content =
+    typeof children === "function" ? children({ open }) : children;
+
   return (
     <div {...getRootProps()} className="relative">
       <input {...getInputProps()} />
-      {children}
+      {content}
 
       {isDragging && (
         <div className="fixed inset-0 z-50 bg-blue-50/95 flex items-center justify-center">

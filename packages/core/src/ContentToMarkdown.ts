@@ -1,4 +1,4 @@
-import TurndownService from "turndown/src/turndown.js";
+import TurndownService from "turndown";
 import type { DOMFile } from "./DOMFile";
 import { normalizePath } from "./utils/normalizePath";
 
