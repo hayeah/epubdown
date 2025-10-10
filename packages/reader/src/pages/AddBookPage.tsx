@@ -1,3 +1,4 @@
+import { Loader } from "lucide-react";
 import { makeAutoObservable, runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
@@ -114,6 +115,14 @@ export class AddBookPageStore {
   get progressPercent(): string | null {
     return formatPercent(this.received, this.total);
   }
+
+  get isWaitingForFileInfo(): boolean {
+    return (
+      this.phase === "downloading" &&
+      this.received === 0 &&
+      this.total === undefined
+    );
+  }
 }
 
 export const AddBookPage = observer(() => {
@@ -186,27 +195,36 @@ export const AddBookPage = observer(() => {
           <>
             <h2 className="text-lg font-medium">Downloading…</h2>
             <div className="bg-blue-50/80 rounded p-3 space-y-2">
-              <div className="h-2 bg-blue-200 rounded overflow-hidden">
-                {store.progressPercent ? (
-                  <div
-                    className="h-full bg-blue-600 transition-all"
-                    style={{ width: store.progressPercent }}
-                  />
-                ) : (
-                  <div
-                    className="h-full bg-blue-600 animate-pulse"
-                    style={{ width: "40%" }}
-                  />
-                )}
-              </div>
-              <ul className="text-sm text-blue-800 flex flex-wrap gap-4">
-                <li>
-                  bytes: {formatBytes(store.received)}
-                  {store.total ? ` / ${formatBytes(store.total)}` : ""}
-                </li>
-                <li>speed: {formatSpeed(store.speedBps)}</li>
-                <li>progress: {store.progressPercent ?? "—"}</li>
-              </ul>
+              {store.isWaitingForFileInfo ? (
+                <div className="flex items-center gap-3 text-blue-800 text-sm">
+                  <Loader className="h-5 w-5 animate-spin" aria-hidden="true" />
+                  <span>Requesting file information…</span>
+                </div>
+              ) : (
+                <>
+                  <div className="h-2 bg-blue-200 rounded overflow-hidden">
+                    {store.progressPercent ? (
+                      <div
+                        className="h-full bg-blue-600 transition-all"
+                        style={{ width: store.progressPercent }}
+                      />
+                    ) : (
+                      <div
+                        className="h-full bg-blue-600 animate-pulse"
+                        style={{ width: "40%" }}
+                      />
+                    )}
+                  </div>
+                  <ul className="text-sm text-blue-800 flex flex-wrap gap-4">
+                    <li>
+                      bytes: {formatBytes(store.received)}
+                      {store.total ? ` / ${formatBytes(store.total)}` : ""}
+                    </li>
+                    <li>speed: {formatSpeed(store.speedBps)}</li>
+                    <li>progress: {store.progressPercent ?? "—"}</li>
+                  </ul>
+                </>
+              )}
             </div>
           </>
         )}
