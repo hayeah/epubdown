@@ -142,3 +142,6 @@ tmp
 
 .forks
 __screenshots__
+
+# SSL certificates for local dev
+*.pem

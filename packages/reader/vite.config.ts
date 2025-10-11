@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 
 import tailwindcss from "@tailwindcss/vite";
@@ -10,6 +11,13 @@ import { downloadProxyPlugin } from "./vite.download-proxy";
 export default defineConfig({
   // assetsInclude: ["**/*.wasm"],
   // optimizeDeps: { exclude: ["@electric-sql/pglite", "wa-sqlite"] },
+  server: {
+    host: "0.0.0.0",
+    https: {
+      key: fs.readFileSync(path.resolve(__dirname, "localhost+3-key.pem")),
+      cert: fs.readFileSync(path.resolve(__dirname, "localhost+3.pem")),
+    },
+  },
   build: {
     rollupOptions: {
       input: {
@@ -28,7 +36,7 @@ export default defineConfig({
     // only polyfill what you need to keep the bundle small
     nodePolyfills({
       include: ["path"],
-      protocolImports: true, // lets “node:path” resolve cleanly
+      protocolImports: true, // lets "node:path" resolve cleanly
     }),
     visualizer(),
   ],
