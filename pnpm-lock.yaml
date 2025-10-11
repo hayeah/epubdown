@@ -11,7 +11,7 @@ catalogs:
       version: 1.9.4
     '@types/bun':
       specifier: latest
-      version: 1.2.23
+      version: 1.3.0
     '@types/node':
       specifier: ^22.10.2
       version: 22.18.9
@@ -150,7 +150,7 @@ importers:
         version: 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@types/bun':
         specifier: 'catalog:'
-        version: 1.2.23(@types/react@19.2.2)
+        version: 1.3.0(@types/react@19.2.2)
       '@types/lodash':
         specifier: ^4.17.20
         version: 4.17.20
@@ -166,6 +166,9 @@ importers:
       '@types/yargs':
         specifier: ^17.0.33
         version: 17.0.33
+      '@vitejs/plugin-basic-ssl':
+        specifier: ^2.1.0
+        version: 2.1.0(vite@6.3.6(@types/node@22.18.9)(jiti@2.6.1)(lightningcss@1.30.1))
       '@vitejs/plugin-react':
         specifier: ^4
         version: 4.7.0(vite@6.3.6(@types/node@22.18.9)(jiti@2.6.1)(lightningcss@1.30.1))
@@ -841,8 +844,8 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
-  '@types/bun@1.2.23':
-    resolution: {integrity: sha512-le8ueOY5b6VKYf19xT3McVbXqLqmxzPXHsQT/q9JHgikJ2X22wyTW3g3ohz2ZMnp7dod6aduIiq8A14Xyimm0A==}
+  '@types/bun@1.3.0':
+    resolution: {integrity: sha512-+lAGCYjXjip2qY375xX/scJeVRmZ5cY0wyHYyCYxNcdEXrQ4AOe3gACgd4iQ8ksOslJtW4VNxBJ8llUwc3a6AA==}
 
   '@types/chai@5.2.2':
     resolution: {integrity: sha512-8kB30R7Hwqf40JPiKhVzodJs2Qc1ZJ5zuT3uzw5Hq/dhNCl3G3l83jfpdI1e20BP348+fV7VIL/+FxaXkqBmWg==}
@@ -908,6 +911,12 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+
+  '@vitejs/plugin-basic-ssl@2.1.0':
+    resolution: {integrity: sha512-dOxxrhgyDIEUADhb/8OlV9JIqYLgos03YorAueTIeOUskLJSEsfwCByjbu98ctXitUN3znXKp0bYD/WHSudCeA==}
+    engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
+    peerDependencies:
+      vite: ^6.0.0 || ^7.0.0
 
   '@vitejs/plugin-react@4.7.0':
     resolution: {integrity: sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA==}
@@ -1047,8 +1056,8 @@ packages:
   builtin-status-codes@3.0.0:
     resolution: {integrity: sha512-HpGFw18DgFWlncDfjTa2rcQ4W88O1mC8e8yZ2AvQY5KDaktSTwo+KRf6nHK6FRI5FyRyb/5T6+TSxfP7QyGsmQ==}
 
-  bun-types@1.2.23:
-    resolution: {integrity: sha512-R9f0hKAZXgFU3mlrA0YpE/fiDvwV0FT9rORApt2aQVWSuJDzZOyB5QLc0N/4HF57CS8IXJ6+L5E4W1bW6NS2Aw==}
+  bun-types@1.3.0:
+    resolution: {integrity: sha512-u8X0thhx+yJ0KmkxuEo9HAtdfgCBaM/aI9K90VQcQioAmkVp3SG3FkwWGibUFz3WdXAdcsqOcbU40lK7tbHdkQ==}
     peerDependencies:
       '@types/react': ^19
 
@@ -3082,9 +3091,9 @@ snapshots:
     dependencies:
       '@babel/types': 7.28.4
 
-  '@types/bun@1.2.23(@types/react@19.2.2)':
+  '@types/bun@1.3.0(@types/react@19.2.2)':
     dependencies:
-      bun-types: 1.2.23(@types/react@19.2.2)
+      bun-types: 1.3.0(@types/react@19.2.2)
     transitivePeerDependencies:
       - '@types/react'
 
@@ -3153,6 +3162,10 @@ snapshots:
       '@types/yargs-parser': 21.0.3
 
   '@ungap/structured-clone@1.3.0': {}
+
+  '@vitejs/plugin-basic-ssl@2.1.0(vite@6.3.6(@types/node@22.18.9)(jiti@2.6.1)(lightningcss@1.30.1))':
+    dependencies:
+      vite: 6.3.6(@types/node@22.18.9)(jiti@2.6.1)(lightningcss@1.30.1)
 
   '@vitejs/plugin-react@4.7.0(vite@6.3.6(@types/node@22.18.9)(jiti@2.6.1)(lightningcss@1.30.1))':
     dependencies:
@@ -3337,9 +3350,9 @@ snapshots:
 
   builtin-status-codes@3.0.0: {}
 
-  bun-types@1.2.23(@types/react@19.2.2):
+  bun-types@1.3.0(@types/react@19.2.2):
     dependencies:
-      '@types/node': 22.18.9
+      '@types/node': 24.7.1
       '@types/react': 19.2.2
 
   cac@6.7.14: {}
