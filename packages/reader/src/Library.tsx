@@ -74,126 +74,128 @@ export const Library = observer(() => {
   }
 
   return (
-    <OpenOnDrop onDrop={handleDrop} overlayText="Drop files to upload">
-      {({ open }) => (
-        <div className="min-h-screen bg-gray-50">
-          {/* Header */}
-          <header className="sticky top-0 z-10">
-            <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
-              <h1 className="text-xl font-semibold text-gray-900 whitespace-nowrap">
-                My Library
-              </h1>
+    <>
+      <OpenOnDrop onDrop={handleDrop} overlayText="Drop files to upload">
+        {({ open }) => (
+          <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <header className="sticky top-0 z-10">
+              <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
+                <h1 className="text-xl font-semibold text-gray-900 whitespace-nowrap">
+                  My Library
+                </h1>
 
-              <div className="flex-1">
-                <SearchBar
-                  value={store.searchQuery}
-                  onChange={(query: string) => store.searchBooks(query)}
-                />
+                <div className="flex-1">
+                  <SearchBar
+                    value={store.searchQuery}
+                    onChange={(query: string) => store.searchBooks(query)}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddFromUrl}
+                  className="px-4 py-2 text-sm font-medium bg-white text-gray-700 border border-gray-300 rounded-lg
+                         hover:bg-gray-50 transition-colors duration-150 shadow-sm whitespace-nowrap"
+                >
+                  Add from URL
+                </button>
+
+                <button
+                  type="button"
+                  onClick={open}
+                  className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg
+                         hover:bg-blue-700 transition-colors duration-150 shadow-sm whitespace-nowrap"
+                >
+                  Upload File
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={handleAddFromUrl}
-                className="px-4 py-2 text-sm font-medium bg-white text-gray-700 border border-gray-300 rounded-lg
-                       hover:bg-gray-50 transition-colors duration-150 shadow-sm whitespace-nowrap"
-              >
-                Add from URL
-              </button>
-
-              <button
-                type="button"
-                onClick={open}
-                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg
-                       hover:bg-blue-700 transition-colors duration-150 shadow-sm whitespace-nowrap"
-              >
-                Upload File
-              </button>
-            </div>
-
-            {/* Upload progress */}
-            {store.uploadProgress !== null && (
-              <div className="bg-blue-50/80 backdrop-blur-sm">
-                <div className="max-w-4xl mx-auto px-6 py-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-blue-700">
-                      Uploading...
-                    </span>
-                    <div className="flex-1 bg-blue-200 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                        style={{ width: `${store.uploadProgress}%` }}
-                      />
+              {/* Upload progress */}
+              {store.uploadProgress !== null && (
+                <div className="bg-blue-50/80 backdrop-blur-sm">
+                  <div className="max-w-4xl mx-auto px-6 py-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-blue-700">
+                        Uploading...
+                      </span>
+                      <div className="flex-1 bg-blue-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                          style={{ width: `${store.uploadProgress}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-blue-700 tabular-nums">
+                        {store.uploadProgress}%
+                      </span>
                     </div>
-                    <span className="text-sm font-medium text-blue-700 tabular-nums">
-                      {store.uploadProgress}%
-                    </span>
                   </div>
                 </div>
-              </div>
-            )}
-          </header>
+              )}
+            </header>
 
-          {/* Content */}
-          <div className="max-w-4xl mx-auto mt-2 mb-8 relative">
-            <BookList />
-          </div>
-
-          {/* Error Flash */}
-          {store.uploadErrors.length > 0 && (
-            <ErrorFlash
-              errors={store.uploadErrors}
-              onDismiss={() => store.dismissAllUploadErrors()}
-              onDismissError={(id) => store.dismissUploadError(id)}
-            />
-          )}
-
-          {/* URL Prompt Modal */}
-          {showUrlPrompt && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Add book from URL
-                </h2>
-                <form onSubmit={handleUrlSubmit} className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="url-input"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      EPUB URL
-                    </label>
-                    <input
-                      id="url-input"
-                      type="url"
-                      value={urlInput}
-                      onChange={(e) => setUrlInput(e.target.value)}
-                      placeholder="https://example.com/book.epub"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="flex gap-3 justify-end">
-                    <button
-                      type="button"
-                      onClick={handleCancelUrl}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-150"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={!urlInput.trim()}
-                      className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Download
-                    </button>
-                  </div>
-                </form>
-              </div>
+            {/* Content */}
+            <div className="max-w-4xl mx-auto mt-2 mb-8 relative">
+              <BookList />
             </div>
-          )}
+
+            {/* Error Flash */}
+            {store.uploadErrors.length > 0 && (
+              <ErrorFlash
+                errors={store.uploadErrors}
+                onDismiss={() => store.dismissAllUploadErrors()}
+                onDismissError={(id) => store.dismissUploadError(id)}
+              />
+            )}
+          </div>
+        )}
+      </OpenOnDrop>
+
+      {/* URL Prompt Modal */}
+      {showUrlPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Add book from URL
+            </h2>
+            <form onSubmit={handleUrlSubmit} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="url-input"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  EPUB URL
+                </label>
+                <input
+                  id="url-input"
+                  type="url"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="https://example.com/book.epub"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={handleCancelUrl}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-150"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!urlInput.trim()}
+                  className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Download
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
-    </OpenOnDrop>
+    </>
   );
 });
