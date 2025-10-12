@@ -34,6 +34,51 @@ export const Library = observer(() => {
     setUrlInput("");
   };
 
+  const urlPrompt = showUrlPrompt ? (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Add book from URL
+        </h2>
+        <form onSubmit={handleUrlSubmit} className="space-y-4">
+          <div>
+            <label
+              htmlFor="url-input"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              EPUB URL
+            </label>
+            <input
+              id="url-input"
+              type="url"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              placeholder="https://example.com/book.epub"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-3 justify-end">
+            <button
+              type="button"
+              onClick={handleCancelUrl}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-150"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!urlInput.trim()}
+              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Download
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  ) : null;
+
   // Setup event bindings for library view
   useEffect(() => {
     const dispose = store.setupBindings();
@@ -43,33 +88,36 @@ export const Library = observer(() => {
   // Empty state
   if (store.books.length === 0 && !store.searchQuery && !store.isLoading) {
     return (
-      <OpenOnDrop onDrop={handleDrop} overlayText="Drop files to upload">
-        {({ open }) => (
-          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <p className="text-gray-500 text-lg">
-                Drop EPUB files here or add a book
-              </p>
-              <div className="flex gap-3 justify-center">
-                <button
-                  type="button"
-                  onClick={open}
-                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm"
-                >
-                  Upload File
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddFromUrl}
-                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-150 shadow-sm"
-                >
-                  Add from URL
-                </button>
+      <>
+        <OpenOnDrop onDrop={handleDrop} overlayText="Drop files to upload">
+          {({ open }) => (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <p className="text-gray-500 text-lg">
+                  Drop EPUB files here or add a book
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    type="button"
+                    onClick={open}
+                    className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm"
+                  >
+                    Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddFromUrl}
+                    className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-150 shadow-sm"
+                  >
+                    Add from URL
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </OpenOnDrop>
+          )}
+        </OpenOnDrop>
+        {urlPrompt}
+      </>
     );
   }
 
@@ -152,50 +200,7 @@ export const Library = observer(() => {
       </OpenOnDrop>
 
       {/* URL Prompt Modal */}
-      {showUrlPrompt && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Add book from URL
-            </h2>
-            <form onSubmit={handleUrlSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="url-input"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  EPUB URL
-                </label>
-                <input
-                  id="url-input"
-                  type="url"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  placeholder="https://example.com/book.epub"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  autoFocus
-                />
-              </div>
-              <div className="flex gap-3 justify-end">
-                <button
-                  type="button"
-                  onClick={handleCancelUrl}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-150"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!urlInput.trim()}
-                  className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Download
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {urlPrompt}
     </>
   );
 });
