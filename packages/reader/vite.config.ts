@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import path from "node:path";
 
 import tailwindcss from "@tailwindcss/vite";
@@ -13,10 +12,6 @@ export default defineConfig({
   // optimizeDeps: { exclude: ["@electric-sql/pglite", "wa-sqlite"] },
   server: {
     host: "0.0.0.0",
-    https: {
-      key: fs.readFileSync(path.resolve(__dirname, "localhost+3-key.pem")),
-      cert: fs.readFileSync(path.resolve(__dirname, "localhost+3.pem")),
-    },
   },
   build: {
     rollupOptions: {
