@@ -100,10 +100,10 @@ export const ReaderPage = observer(() => {
                   </Sidebar>
                 </div>
 
-                <div className="p-8">
+                <div className="p-4 sm:p-6 lg:p-8">
                   {/* Mobile menu button */}
                   {isMobile && (
-                    <div className="fixed top-4 left-4 z-30">
+                    <div className="fixed top-4 left-4 z-50">
                       <button
                         type="button"
                         onClick={() => readerStore.setSidebarOpen(true)}

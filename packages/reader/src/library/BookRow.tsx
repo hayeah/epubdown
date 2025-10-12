@@ -42,44 +42,46 @@ export const BookRow: React.FC<BookRowProps> = ({
   return (
     <Link
       href={`/book/${book.id}`}
-      className="flex items-center px-6 h-10 text-sm hover:bg-gray-50 border-b border-gray-100 cursor-pointer transition-colors duration-100 no-underline text-inherit group"
+      className="flex flex-col gap-2 sm:flex-row sm:items-center px-4 sm:px-6 py-3 text-sm hover:bg-gray-50 border-b border-gray-100 cursor-pointer transition-colors duration-100 no-underline text-inherit group"
     >
       {/* Title and Author */}
-      <div className="flex-1 min-w-0 pr-4">
-        <div className="flex items-baseline gap-2">
-          {!book.lastOpenedAt && (
-            <span
-              className="inline-block w-2 h-2 rounded-full bg-blue-300 shrink-0"
-              aria-label="Unread"
-            />
-          )}
-          <span className="font-medium text-gray-900 truncate flex-shrink">
-            {highlightText(book.title)}
+      <div className="flex min-w-0 items-baseline gap-2">
+        {!book.lastOpenedAt && (
+          <span
+            className="inline-block w-2 h-2 rounded-full bg-blue-300 shrink-0"
+            aria-label="Unread"
+          />
+        )}
+        <span className="font-medium text-gray-900 truncate">
+          {highlightText(book.title)}
+        </span>
+        {book.author && (
+          <span className="text-gray-500 text-xs truncate">
+            {highlightText(book.author)}
           </span>
-          <span className="text-gray-500 text-xs flex-shrink-0">
-            {highlightText(book.author ?? "")}
-          </span>
-        </div>
+        )}
       </div>
 
       {/* Last opened */}
-      <div className="text-xs text-gray-500">
-        <span>{formatOpened(book.lastOpenedAt, book.createdAt)}</span>
-      </div>
+      <div className="flex items-center justify-between w-full gap-3 sm:w-auto sm:gap-2 sm:ml-auto sm:justify-end">
+        <span className="text-xs text-gray-500">
+          {formatOpened(book.lastOpenedAt, book.createdAt)}
+        </span>
 
-      {/* Delete action - only visible on hover */}
-      <div className="flex items-center ml-3 transition-opacity duration-150 opacity-0 group-hover:opacity-100">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            onDelete(e);
-          }}
-          className="p-1 hover:bg-gray-200 rounded transition-colors"
-          aria-label="Delete book"
-        >
-          <Trash2 className="w-3.5 h-3.5 text-gray-400 hover:text-red-500" />
-        </button>
+        {/* Delete action - hover on desktop, always visible on touch */}
+        <div className="flex items-center transition-opacity duration-150 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onDelete(e);
+            }}
+            className="p-1 hover:bg-gray-200 rounded transition-colors"
+            aria-label="Delete book"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-gray-400 hover:text-red-500" />
+          </button>
+        </div>
       </div>
     </Link>
   );

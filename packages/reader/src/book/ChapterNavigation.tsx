@@ -62,7 +62,7 @@ export const ChapterNavigation: React.FC = observer(() => {
   return (
     <div ref={navRef} className="sticky top-2 z-40 w-full mb-4">
       <div
-        className={`flex items-center justify-between py-2 px-2 transition-all duration-300 ${
+        className={`flex items-center justify-between py-2 px-8 lg:px-2 transition-all duration-300 ${
           isSticky
             ? "bg-white/80 hover:bg-white/95 border border-gray-200 rounded-lg shadow-sm backdrop-blur-sm mx-8"
             : "border border-transparent"

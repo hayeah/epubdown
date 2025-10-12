@@ -392,7 +392,7 @@ export default function LibraryPrototype() {
       >
         <div className="text-center">
           <p className="text-gray-500 text-lg">
-            Drop EPUB files here or click Upload 2
+            Drop EPUB files here or click Upload
           </p>
         </div>
 
