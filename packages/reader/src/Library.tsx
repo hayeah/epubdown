@@ -79,43 +79,43 @@ export const Library = observer(() => {
         {({ open }) => (
           <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <header className="sticky top-0 z-10">
-              <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
-                <h1 className="text-xl font-semibold text-gray-900 whitespace-nowrap">
+            <header className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/80">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
+                <h1 className="text-xl font-semibold text-gray-900">
                   My Library
                 </h1>
 
-                <div className="flex-1">
+                <div className="w-full lg:flex-1">
                   <SearchBar
                     value={store.searchQuery}
                     onChange={(query: string) => store.searchBooks(query)}
                   />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleAddFromUrl}
-                  className="px-4 py-2 text-sm font-medium bg-white text-gray-700 border border-gray-300 rounded-lg
-                         hover:bg-gray-50 transition-colors duration-150 shadow-sm whitespace-nowrap"
-                >
-                  Add from URL
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2 lg:gap-3 w-full lg:w-auto lg:justify-end">
+                  <button
+                    type="button"
+                    onClick={handleAddFromUrl}
+                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-150 shadow-sm text-center"
+                  >
+                    Add from URL
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={open}
-                  className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg
-                         hover:bg-blue-700 transition-colors duration-150 shadow-sm whitespace-nowrap"
-                >
-                  Upload File
-                </button>
+                  <button
+                    type="button"
+                    onClick={open}
+                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm text-center"
+                  >
+                    Upload File
+                  </button>
+                </div>
               </div>
 
               {/* Upload progress */}
               {store.uploadProgress !== null && (
                 <div className="bg-blue-50/80 backdrop-blur-sm">
-                  <div className="max-w-4xl mx-auto px-6 py-2">
-                    <div className="flex items-center gap-3">
+                  <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                       <span className="text-sm font-medium text-blue-700">
                         Uploading...
                       </span>
@@ -135,7 +135,7 @@ export const Library = observer(() => {
             </header>
 
             {/* Content */}
-            <div className="max-w-4xl mx-auto mt-2 mb-8 relative">
+            <div className="max-w-4xl mx-auto mt-3 mb-8 relative px-4 sm:px-6">
               <BookList />
             </div>
 

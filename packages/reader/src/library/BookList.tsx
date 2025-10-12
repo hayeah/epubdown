@@ -16,7 +16,7 @@ export const BookList = observer(() => {
 
   return (
     <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-      <div className="px-6 py-2 bg-gray-50 border-b border-gray-200">
+      <div className="px-4 sm:px-6 py-2 bg-gray-50 border-b border-gray-200">
         <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
           {title} ({store.books.length})
         </span>
@@ -31,11 +31,11 @@ export const BookList = observer(() => {
           />
         ))
       ) : store.searchQuery ? (
-        <div className="px-6 py-16 text-center">
+        <div className="px-4 sm:px-6 py-16 text-center">
           <p className="text-gray-500">No books match '{store.searchQuery}'</p>
         </div>
       ) : (
-        <div className="px-6 py-16 text-center">
+        <div className="px-4 sm:px-6 py-16 text-center">
           <p className="text-gray-500">No books in your library</p>
         </div>
       )}
