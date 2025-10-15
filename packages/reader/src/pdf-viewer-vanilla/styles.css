@@ -1,0 +1,140 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  background-color: #2c3e50;
+  color: #333;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.pdf-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.pdf-header {
+  background-color: #34495e;
+  color: white;
+  padding: 1rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.pdf-header h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.pdf-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.btn:hover {
+  background-color: #2980b9;
+}
+
+.btn:disabled {
+  background-color: #7f8c8d;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #ecf0f1;
+  font-size: 0.9rem;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.zoom-controls .btn {
+  padding: 0.3rem 0.7rem;
+  min-width: 35px;
+}
+
+#zoom-level {
+  color: #ecf0f1;
+  min-width: 50px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.pdf-viewer {
+  flex: 1;
+  overflow: auto;
+  background-color: #95a5a6;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem;
+  position: relative;
+}
+
+#pdf-canvas {
+  background-color: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  display: block;
+  margin: 0 auto;
+}
+
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
+  color: white;
+  background-color: rgba(52, 73, 94, 0.9);
+  padding: 1rem 2rem;
+  border-radius: 8px;
+}
+
+.error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #e74c3c;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .pdf-controls {
+    justify-content: center;
+  }
+
+  .zoom-controls {
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+
+  .pdf-viewer {
+    padding: 1rem;
+  }
+}
