@@ -1,10 +1,33 @@
 import path from "node:path";
+import { createRequire } from "node:module";
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 // import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+
+const require = createRequire(import.meta.url);
+
+// Try to find turndown - handle GitHub source version and prebuilt versions
+let turndownPath;
+
+// First check if there's a lib folder (prebuilt version)
+const possiblePaths = [
+  // Prebuilt versions
+  "turndown/lib/turndown.browser.es.js",
+  // Source version for GitHub install
+  "turndown/src/turndown.js",
+];
+
+for (const testPath of possiblePaths) {
+  try {
+    turndownPath = require.resolve(testPath);
+    break;
+  } catch {
+    // Try next path
+  }
+}
 
 export default defineConfig({
   // assetsInclude: ["**/*.wasm"],
@@ -35,8 +58,8 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       // Stub out fs/promises for browser
       "fs/promises": path.resolve(__dirname, "./src/lib/fs-stub.ts"),
-      // Use the built turndown version that has proper lib files
-      "turndown": path.resolve(__dirname, "../../node_modules/.pnpm/turndown@7.2.0/node_modules/turndown/lib/turndown.browser.es.js"),
+      // Only set turndown alias if we found it
+      ...(turndownPath ? { "turndown": turndownPath } : {}),
     },
   },
 });
