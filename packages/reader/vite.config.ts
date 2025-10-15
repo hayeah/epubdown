@@ -8,12 +8,6 @@ import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
   // assetsInclude: ["**/*.wasm"],
-  optimizeDeps: {
-    include: ["turndown"],
-    esbuildOptions: {
-      mainFields: ["module", "main"],
-    },
-  },
   build: {
     target: "es2022", // Support top-level await
     rollupOptions: {
@@ -39,14 +33,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // "wa-sqlite/dist": path.resolve(__dirname, "./node_modules/wa-sqlite/dist"),
       // Stub out fs/promises for browser
       "fs/promises": path.resolve(__dirname, "./src/lib/fs-stub.ts"),
-      // Explicitly resolve turndown to its browser ES module
-      turndown: path.resolve(
-        __dirname,
-        "../../node_modules/.pnpm/turndown@7.2.0/node_modules/turndown/lib/turndown.browser.es.js",
-      ),
+      // Use the built turndown version that has proper lib files
+      "turndown": path.resolve(__dirname, "../../node_modules/.pnpm/turndown@7.2.0/node_modules/turndown/lib/turndown.browser.es.js"),
     },
   },
 });
