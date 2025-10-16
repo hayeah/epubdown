@@ -21,7 +21,15 @@ class PDFScrollViewer {
 
   // Performance settings
   maxPagesInMemory = 10;
+  baseMaxPagesInMemory = 10; // Base value for zoom adjustments
   preloadDistance = "200px";
+
+  // Zoom optimization
+  zoomTimeout: number | null = null;
+  isZooming = false;
+  pendingZoom: number | null = null;
+  lowResPages = new Map<number, any>(); // Store low-res versions during zoom
+  maxDevicePixelRatio = 2; // Cap DPR for performance
 
   // DOM elements
   container: HTMLElement | null = null;
@@ -54,6 +62,30 @@ class PDFScrollViewer {
 
   constructor(store: PdfReaderStore) {
     this.store = store;
+    this.updateMemoryLimitForZoom(store.zoom);
+  }
+
+  // Dynamically adjust memory limits based on zoom
+  updateMemoryLimitForZoom(zoom: number) {
+    // At higher zoom levels, reduce pages in memory since each page uses more memory
+    if (zoom <= 1.0) {
+      this.maxPagesInMemory = this.baseMaxPagesInMemory;
+    } else if (zoom <= 1.5) {
+      this.maxPagesInMemory = Math.max(
+        6,
+        Math.floor(this.baseMaxPagesInMemory / 1.5),
+      );
+    } else if (zoom <= 2.0) {
+      this.maxPagesInMemory = Math.max(
+        4,
+        Math.floor(this.baseMaxPagesInMemory / 2),
+      );
+    } else {
+      this.maxPagesInMemory = Math.max(
+        3,
+        Math.floor(this.baseMaxPagesInMemory / 3),
+      );
+    }
   }
 
   async init(container: HTMLElement, pagesContainer: HTMLElement) {
@@ -200,10 +232,18 @@ class PDFScrollViewer {
       }
 
       // Get page dimensions to set correct placeholder height
-      const page = await this.pdfDoc.getPage(pageNum);
-      const viewport = page.getViewport({ scale: this.scale });
-      pageContainer.style.height = `${viewport.height}px`;
-      pageContainer.style.width = `${viewport.width}px`;
+      if (this.pdfDoc && !this.isDisposing) {
+        try {
+          const page = await this.pdfDoc.getPage(pageNum);
+          const viewport = page.getViewport({ scale: this.scale });
+          pageContainer.style.height = `${viewport.height}px`;
+          pageContainer.style.width = `${viewport.width}px`;
+        } catch (error) {
+          // Set default size if page fetch fails
+          pageContainer.style.height = "800px";
+          pageContainer.style.width = "600px";
+        }
+      }
 
       this.pagesContainer.appendChild(pageContainer);
     }
@@ -221,10 +261,10 @@ class PDFScrollViewer {
     this.observer = new IntersectionObserver((entries) => {
       if (this.isDisposing) return;
 
-      // Skip processing during jumps to avoid queuing intermediate pages
-      if (this.isJumping) return;
+      // Skip processing during jumps or zooming to avoid queuing intermediate pages
+      if (this.isJumping || this.isZooming) return;
 
-      entries.forEach((entry) => {
+      for (const entry of entries) {
         const pageNum = Number.parseInt(
           entry.target.getAttribute("data-page-num") || "0",
         );
@@ -234,13 +274,14 @@ class PDFScrollViewer {
         } else {
           this.considerPageUnload(pageNum);
         }
-      });
+      }
     }, options);
 
     // Start observing all page containers
-    document.querySelectorAll(".pdf-page-container").forEach((container) => {
+    const containers = document.querySelectorAll(".pdf-page-container");
+    for (const container of containers) {
       this.observer?.observe(container);
-    });
+    }
   }
 
   createLoadingIndicator() {
@@ -317,7 +358,7 @@ class PDFScrollViewer {
     // Check if already rendered
     if (this.renderedPages.has(pageNum)) {
       const pageInfo = this.renderedPages.get(pageNum);
-      if (pageInfo && pageInfo.rendered) {
+      if (pageInfo?.rendered) {
         return;
       }
     }
@@ -353,7 +394,8 @@ class PDFScrollViewer {
     }
 
     this.isRendering = true;
-    const pageNum = this.renderQueue.shift()!;
+    const pageNum = this.renderQueue.shift();
+    if (!pageNum) return;
 
     try {
       await this.renderPage(pageNum);
@@ -370,7 +412,7 @@ class PDFScrollViewer {
   }
 
   async renderPage(pageNum: number) {
-    if (this.isDisposing) return;
+    if (this.isDisposing || !this.pdfDoc) return;
 
     // Cancel any existing render task for this page
     const existingTask = this.renderTasks.get(pageNum);
@@ -402,9 +444,31 @@ class PDFScrollViewer {
       canvas.dataset.rendering = "true";
 
       const page = await this.pdfDoc.getPage(pageNum);
-      const devicePixelRatio = window.devicePixelRatio || 1;
+      // Check again after async operation
+      if (this.isDisposing || !this.pdfDoc) {
+        canvas.dataset.rendering = "false";
+        return;
+      }
+
+      // Optimize DPR for higher zoom levels to reduce memory usage
+      let effectivePixelRatio = window.devicePixelRatio || 1;
+      if (this.scale > 1.5) {
+        // Cap pixel ratio at higher zoom levels
+        effectivePixelRatio = Math.min(
+          effectivePixelRatio,
+          this.maxDevicePixelRatio,
+        );
+      }
+
+      // For pages outside immediate viewport, use lower resolution
+      const visiblePages = this.getVisiblePageNumbers();
+      const isImmediatelyVisible = visiblePages.includes(pageNum);
+      if (!isImmediatelyVisible && this.scale > 1.0) {
+        effectivePixelRatio = Math.min(1.5, effectivePixelRatio);
+      }
+
       const viewport = page.getViewport({
-        scale: this.scale * devicePixelRatio,
+        scale: this.scale * effectivePixelRatio,
       });
 
       const context = canvas.getContext("2d");
@@ -438,13 +502,14 @@ class PDFScrollViewer {
 
       console.log(`Page ${pageNum} render completed successfully`);
 
-      // Store render info
+      // Store render info with scale information
       this.renderedPages.set(pageNum, {
         canvas: canvas,
         context: context,
         rendered: true,
         page: page,
         timestamp: Date.now(),
+        scale: this.scale,
       });
 
       this.renderTasks.delete(pageNum);
@@ -598,7 +663,7 @@ class PDFScrollViewer {
       containerScrollTop: this.container.scrollTop,
     });
 
-    containers.forEach((container) => {
+    for (const container of containers) {
       const rect = container.getBoundingClientRect();
       const pageNum = Number.parseInt(
         container.getAttribute("data-page-num") || "0",
@@ -619,7 +684,7 @@ class PDFScrollViewer {
       if (isVisible) {
         visiblePages.push(pageNum);
       }
-    });
+    }
 
     console.log("Visible pages:", visiblePages);
     return visiblePages;
@@ -675,7 +740,7 @@ class PDFScrollViewer {
     }
 
     // Only cancel renders for pages far from visible area
-    this.renderTasks.forEach((task, pageNum) => {
+    for (const [pageNum, task] of this.renderTasks) {
       if (!pagesToKeep.has(pageNum)) {
         try {
           task.cancel();
@@ -684,17 +749,17 @@ class PDFScrollViewer {
         }
         this.renderTasks.delete(pageNum);
       }
-    });
+    }
 
     // Clear the render queue and rebuild with priority
     this.renderQueue = [];
 
     // Remove far pages from active loading
-    this.activeLoadingPages.forEach((pageNum) => {
+    for (const pageNum of this.activeLoadingPages) {
       if (!pagesToKeep.has(pageNum)) {
         this.activeLoadingPages.delete(pageNum);
       }
-    });
+    }
     this.updateLoadingIndicator();
 
     // Get the middle visible page
@@ -705,11 +770,11 @@ class PDFScrollViewer {
       this.queuePageRender(middlePage, true);
 
       // Priority 2: Render other visible pages
-      visibleArray.forEach((pageNum) => {
+      for (const pageNum of visibleArray) {
         if (pageNum !== middlePage) {
           this.queuePageRender(pageNum, true);
         }
-      });
+      }
 
       // Priority 3: Render adjacent pages (2 before and 2 after the visible range)
       const minVisible = Math.min(...visibleArray);
@@ -779,14 +844,14 @@ class PDFScrollViewer {
 
         // After a jump/drag, ensure visible pages are queued for rendering
         const visiblePages = this.getVisiblePageNumbers();
-        visiblePages.forEach((pageNum) => {
+        for (const pageNum of visiblePages) {
           if (
             !this.renderedPages.has(pageNum) ||
             !this.renderedPages.get(pageNum)?.rendered
           ) {
             this.queuePageRender(pageNum, true);
           }
-        });
+        }
       }, 100);
     };
 
@@ -794,31 +859,119 @@ class PDFScrollViewer {
   }
 
   async applyZoom() {
-    if (this.isDisposing) return;
+    if (this.isDisposing || !this.pdfDoc) return;
 
-    // Cancel all active renders
-    this.renderTasks.forEach((task) => {
-      try {
-        task.cancel();
-      } catch (e) {
-        // Ignore cancellation errors
+    // Progressive zoom rendering - don't clear everything immediately
+    this.isZooming = true;
+
+    // Update memory limits for new zoom level
+    this.updateMemoryLimitForZoom(this.scale);
+
+    // Cancel only non-visible page renders
+    const visiblePages = new Set(this.getVisiblePageNumbers());
+    for (const [pageNum, task] of this.renderTasks) {
+      if (!visiblePages.has(pageNum)) {
+        try {
+          task.cancel();
+        } catch (e) {
+          // Ignore cancellation errors
+        }
+        this.renderTasks.delete(pageNum);
       }
-    });
-    this.renderTasks.clear();
+    }
 
-    // Clear all rendered pages
-    this.renderedPages.forEach((_, pageNum) => this.unloadPage(pageNum));
+    // Store current rendered pages as low-res while we re-render
+    for (const [pageNum, pageInfo] of this.renderedPages) {
+      if (visiblePages.has(pageNum)) {
+        this.lowResPages.set(pageNum, pageInfo);
+      }
+    }
+
+    // Clear render queue but keep visible pages
     this.renderQueue = [];
-    this.isRendering = false;
-
-    // Clear active loading pages
     this.activeLoadingPages.clear();
     this.updateLoadingIndicator();
 
-    // Update all page container sizes
-    for (let pageNum = 1; pageNum <= this.totalPages; pageNum++) {
-      if (this.isDisposing) break;
+    // First, apply CSS transform for immediate visual feedback
+    const containers = document.querySelectorAll(".pdf-page-container");
+    for (const container of containers) {
+      const pageNum = Number.parseInt(
+        container.getAttribute("data-page-num") || "0",
+      );
+      if (this.lowResPages.has(pageNum)) {
+        const htmlContainer = container as HTMLElement;
+        htmlContainer.style.transition = "transform 0.2s ease";
+        // Temporarily scale existing content while re-rendering
+        const scaleRatio =
+          this.scale / (this.lowResPages.get(pageNum).scale || 1);
+        if (Math.abs(scaleRatio - 1) > 0.1) {
+          htmlContainer.style.transform = `scale(${scaleRatio})`;
+          htmlContainer.style.transformOrigin = "top left";
+        }
+      }
+    }
 
+    // Update page container sizes progressively
+    const updateContainerSizes = async () => {
+      const visiblePagesArray = Array.from(visiblePages).sort((a, b) => a - b);
+
+      // Update visible pages first
+      for (const pageNum of visiblePagesArray) {
+        if (this.isDisposing) break;
+        await this.updatePageContainerSize(pageNum);
+      }
+
+      // Then update remaining pages in background
+      for (let pageNum = 1; pageNum <= this.totalPages; pageNum++) {
+        if (this.isDisposing || visiblePages.has(pageNum)) continue;
+        await this.updatePageContainerSize(pageNum);
+
+        // Yield to browser every 10 pages
+        if (pageNum % 10 === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+      }
+    };
+
+    // Start updating container sizes
+    updateContainerSizes().then(() => {
+      // Reset transforms after containers are sized
+      for (const container of containers) {
+        const htmlContainer = container as HTMLElement;
+        htmlContainer.style.transform = "";
+        htmlContainer.style.transition = "";
+      }
+    });
+
+    // Re-render visible pages with priority
+    this.updateVisiblePages();
+    const visiblePagesList = this.getVisiblePageNumbers();
+
+    // Render center page first for immediate feedback
+    const centerPage =
+      visiblePagesList[Math.floor(visiblePagesList.length / 2)];
+    if (centerPage) {
+      this.queuePageRender(centerPage);
+    }
+
+    // Then render other visible pages
+    for (const pageNum of visiblePagesList) {
+      if (pageNum !== centerPage) {
+        this.queuePageRender(pageNum);
+      }
+    }
+
+    // Clear low-res cache after a delay
+    setTimeout(() => {
+      this.lowResPages.clear();
+      this.isZooming = false;
+    }, 1000);
+  }
+
+  async updatePageContainerSize(pageNum: number) {
+    if (!this.pdfDoc || this.isDisposing) return;
+
+    try {
       const page = await this.pdfDoc.getPage(pageNum);
       const viewport = page.getViewport({ scale: this.scale });
 
@@ -829,13 +982,12 @@ class PDFScrollViewer {
         pageContainer.style.height = `${viewport.height}px`;
         pageContainer.style.width = `${viewport.width}px`;
       }
+    } catch (error) {
+      // Ignore errors if PDF is being disposed
+      if (!this.isDisposing) {
+        console.error(`Error updating page ${pageNum} container size:`, error);
+      }
     }
-
-    // Re-render visible pages
-    this.updateVisiblePages();
-    this.getVisiblePageNumbers().forEach((pageNum) => {
-      this.queuePageRender(pageNum);
-    });
   }
 
   goToPage(pageNum: number) {
@@ -866,13 +1018,13 @@ class PDFScrollViewer {
     this.isInitialized = false;
 
     // Cancel all active render tasks
-    this.renderTasks.forEach((task) => {
+    for (const task of this.renderTasks.values()) {
       try {
         task.cancel();
       } catch (e) {
         // Ignore cancellation errors
       }
-    });
+    }
     this.renderTasks.clear();
 
     // Clear render queue
@@ -891,11 +1043,11 @@ class PDFScrollViewer {
     }
 
     // Cleanup rendered pages
-    this.renderedPages.forEach((pageInfo) => {
+    for (const pageInfo of this.renderedPages.values()) {
       if (pageInfo.page?.cleanup) {
         pageInfo.page.cleanup();
       }
-    });
+    }
     this.renderedPages.clear();
 
     // Clear DOM
@@ -1022,7 +1174,7 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
     store.updateFromUrl(new URL(window.location.href));
   }, [store]);
 
-  // Handle zoom changes
+  // Handle zoom changes with debouncing
   useEffect(() => {
     if (
       viewerInstance &&
@@ -1030,7 +1182,22 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       viewerInstance.scale !== store.zoom
     ) {
       viewerInstance.scale = store.zoom;
-      viewerInstance.applyZoom();
+
+      // Debounce zoom to prevent rapid re-renders
+      if (viewerInstance.zoomTimeout) {
+        clearTimeout(viewerInstance.zoomTimeout);
+      }
+
+      // Apply immediate CSS transform for feedback
+      viewerInstance.pendingZoom = store.zoom;
+
+      viewerInstance.zoomTimeout = window.setTimeout(() => {
+        if (viewerInstance) {
+          viewerInstance.applyZoom();
+          viewerInstance.zoomTimeout = null;
+          viewerInstance.pendingZoom = null;
+        }
+      }, 150); // 150ms debounce
     }
   }, [store.zoom]);
 
@@ -1073,26 +1240,23 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
 
   const handleZoomIn = () => {
     if (viewerInstance) {
-      viewerInstance.scale = Math.min(viewerInstance.scale * 1.2, 5);
-      store.setZoom(viewerInstance.scale);
-      viewerInstance.applyZoom();
+      const newZoom = Math.min(viewerInstance.scale * 1.2, 5);
+      store.setZoom(newZoom);
+      // The useEffect will handle the debounced applyZoom
     }
   };
 
   const handleZoomOut = () => {
     if (viewerInstance) {
-      viewerInstance.scale = Math.max(viewerInstance.scale / 1.2, 0.25);
-      store.setZoom(viewerInstance.scale);
-      viewerInstance.applyZoom();
+      const newZoom = Math.max(viewerInstance.scale / 1.2, 0.25);
+      store.setZoom(newZoom);
+      // The useEffect will handle the debounced applyZoom
     }
   };
 
   const handleZoomReset = async () => {
     await store.computeInitialZoom();
-    if (viewerInstance) {
-      viewerInstance.scale = store.zoom;
-      viewerInstance.applyZoom();
-    }
+    // The useEffect will handle the debounced applyZoom
   };
 
   const handlePageInput = (e: React.KeyboardEvent<HTMLInputElement>) => {

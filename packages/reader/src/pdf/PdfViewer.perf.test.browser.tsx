@@ -400,7 +400,7 @@ describe("PdfViewer Performance Tests", () => {
     const zoomLevels = [0.5, 1.0, 1.5, 2.0];
 
     for (const zoom of zoomLevels) {
-      it(`should measure performance at ${Math.round(zoom * 100)}% zoom`, async () => {
+      it(`should measure performance at ${Math.round(zoom * 100)}% zoom with scrolling`, async () => {
         const metrics: PerformanceMetrics[] = [];
 
         // Set the zoom level
@@ -427,6 +427,9 @@ describe("PdfViewer Performance Tests", () => {
           zoom,
         });
 
+        // Wait for render after jump
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         // Test render time at this zoom level
         const renderTime = await measurePageRenderTime(testPage);
         metrics.push({
@@ -436,17 +439,34 @@ describe("PdfViewer Performance Tests", () => {
           zoom,
         });
 
-        // Test scroll down at this zoom level
-        const scrollMetrics = await smoothScrollPages("down", 2);
+        // IMPORTANT: Test scrolling 5-10 pages after zoom to measure real performance
+        console.log(`\nTesting scroll performance after zoom to ${Math.round(zoom * 100)}%...`);
+
+        // Scroll down 7 pages to test performance
+        const scrollDownMetrics = await smoothScrollPages("down", 7);
         metrics.push(
-          ...scrollMetrics.map((m) => ({
+          ...scrollDownMetrics.map((m, i) => ({
             ...m,
-            operation: `${m.operation}_zoom_${Math.round(zoom * 100)}`,
+            operation: `scroll_down_page_${i + 1}_zoom_${Math.round(zoom * 100)}`,
+            zoom,
+          })),
+        );
+
+        // Wait a bit for renders to settle
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        // Scroll up 5 pages
+        const scrollUpMetrics = await smoothScrollPages("up", 5);
+        metrics.push(
+          ...scrollUpMetrics.map((m, i) => ({
+            ...m,
+            operation: `scroll_up_page_${i + 1}_zoom_${Math.round(zoom * 100)}`,
             zoom,
           })),
         );
 
         // Log and validate
+        console.log(`\nZoom ${Math.round(zoom * 100)}% Performance Summary:`);
         logPerformanceMetrics(metrics, PERF_THRESHOLDS.scrollSmooth);
 
         allMetrics.push(...metrics);
@@ -457,8 +477,96 @@ describe("PdfViewer Performance Tests", () => {
         expect(jumpTime).toBeLessThan(
           PERF_THRESHOLDS.jumpScroll * zoomMultiplier,
         );
-      }, 20000);
+
+        // Check average scroll performance
+        const scrollTimes = [...scrollDownMetrics, ...scrollUpMetrics].map(m => m.duration);
+        const avgScrollTime = scrollTimes.reduce((a, b) => a + b, 0) / scrollTimes.length;
+        console.log(`Average scroll time at ${Math.round(zoom * 100)}%: ${Math.round(avgScrollTime)}ms`);
+
+        // Allow slower scrolling at higher zoom but not excessively
+        expect(avgScrollTime).toBeLessThan(
+          PERF_THRESHOLDS.scrollSmooth * zoomMultiplier * 1.5
+        );
+      }, 30000);
     }
+  });
+
+  describe("Critical Zoom Performance Test", () => {
+    it("should maintain good performance at 1.5x zoom with heavy scrolling", async () => {
+      const metrics: PerformanceMetrics[] = [];
+      const targetZoom = 1.5;
+
+      console.log("\n🎯 Testing critical 1.5x zoom performance...\n");
+
+      // Set zoom to 1.5x
+      pdfStore.setZoom(targetZoom);
+
+      render(
+        <StoreProvider value={rootStore}>
+          <PdfViewer store={pdfStore} />
+        </StoreProvider>,
+      );
+
+      // Wait for initial render
+      await waitForPagesRendered(1);
+
+      // Jump to middle of document
+      const middlePage = Math.floor(pdfStore.pageCount / 2);
+      console.log(`Jumping to page ${middlePage} at 1.5x zoom...`);
+
+      const jumpTime = await scrollToPage(middlePage);
+      metrics.push({
+        operation: "1.5x_zoom_jump_to_middle",
+        duration: jumpTime,
+        timestamp: Date.now(),
+        zoom: targetZoom,
+      });
+
+      // Wait for renders to complete
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Heavy scroll test - 10 pages down
+      console.log("Heavy scrolling test: 10 pages down at 1.5x zoom...");
+      const heavyScrollDown = await smoothScrollPages("down", 10);
+      metrics.push(...heavyScrollDown.map((m, i) => ({
+        ...m,
+        operation: `1.5x_heavy_scroll_down_${i + 1}`,
+        zoom: targetZoom,
+      })));
+
+      // Wait briefly
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Rapid scroll up test - 8 pages
+      console.log("Rapid scroll test: 8 pages up at 1.5x zoom...");
+      const rapidScrollUp = await smoothScrollPages("up", 8);
+      metrics.push(...rapidScrollUp.map((m, i) => ({
+        ...m,
+        operation: `1.5x_rapid_scroll_up_${i + 1}`,
+        zoom: targetZoom,
+      })));
+
+      // Calculate statistics
+      const allScrollTimes = [...heavyScrollDown, ...rapidScrollUp].map(m => m.duration);
+      const avgTime = allScrollTimes.reduce((a, b) => a + b, 0) / allScrollTimes.length;
+      const maxTime = Math.max(...allScrollTimes);
+      const minTime = Math.min(...allScrollTimes);
+
+      console.log("\n📊 1.5x Zoom Performance Results:");
+      console.log(`Average scroll time: ${Math.round(avgTime)}ms`);
+      console.log(`Min scroll time: ${Math.round(minTime)}ms`);
+      console.log(`Max scroll time: ${Math.round(maxTime)}ms`);
+      console.log(`Jump time: ${Math.round(jumpTime)}ms`);
+
+      logPerformanceMetrics(metrics, PERF_THRESHOLDS.scrollSmooth);
+
+      // Assertions - 1.5x zoom should not be more than 50% slower than baseline
+      expect(avgTime).toBeLessThan(PERF_THRESHOLDS.scrollSmooth * 1.5);
+      expect(maxTime).toBeLessThan(PERF_THRESHOLDS.scrollSmooth * 2);
+      expect(jumpTime).toBeLessThan(PERF_THRESHOLDS.jumpScroll * 1.3);
+
+      console.log("\n✅ 1.5x zoom performance test completed");
+    }, 45000);
   });
 
   describe("Full Performance Suite", () => {
