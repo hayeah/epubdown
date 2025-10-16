@@ -1098,49 +1098,55 @@ interface PdfContainerProps {
   onContainerReady: (container: HTMLDivElement, host: HTMLDivElement) => void;
 }
 
-const PdfContainer = memo(({ onContainerReady }: PdfContainerProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const hostRef = useRef<HTMLDivElement>(null);
+const PdfContainer = memo(
+  ({ onContainerReady, zoom }: PdfContainerProps & { zoom?: number }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const hostRef = useRef<HTMLDivElement>(null);
 
-  console.log("PdfContainer render (should be minimal)");
+    console.log("PdfContainer render (should be minimal)");
 
-  useEffect(() => {
-    console.log("PdfContainer useEffect", {
-      hasContainerRef: !!containerRef.current,
-      hasHostRef: !!hostRef.current,
-      hasCallback: !!onContainerReady,
-    });
-    if (containerRef.current && hostRef.current) {
-      console.log("Calling onContainerReady callback");
-      onContainerReady(containerRef.current, hostRef.current);
-    }
-  }, [onContainerReady]);
+    useEffect(() => {
+      console.log("PdfContainer useEffect", {
+        hasContainerRef: !!containerRef.current,
+        hasHostRef: !!hostRef.current,
+        hasCallback: !!onContainerReady,
+      });
+      if (containerRef.current && hostRef.current) {
+        console.log("Calling onContainerReady callback");
+        onContainerReady(containerRef.current, hostRef.current);
+      }
+    }, [onContainerReady]);
 
-  return (
-    <div
-      ref={containerRef}
-      className="pdf-scroll-container"
-      style={{
-        height: "100vh",
-        overflowY: "auto",
-        backgroundColor: "#f3f4f6",
-      }}
-    >
+    // Remove maxWidth constraint at higher zoom levels
+    const currentZoom = zoom || 1.0;
+    const shouldConstrainWidth = currentZoom < 1.4;
+
+    return (
       <div
-        ref={hostRef}
-        className="pdf-pages-container"
+        ref={containerRef}
+        className="pdf-scroll-container"
         style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
-          padding: "32px 16px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
+          height: "100vh",
+          overflowY: "auto",
+          backgroundColor: "#f3f4f6",
         }}
-      />
-    </div>
-  );
-});
+      >
+        <div
+          ref={hostRef}
+          className="pdf-pages-container"
+          style={{
+            maxWidth: shouldConstrainWidth ? "1200px" : "none",
+            margin: "0 auto",
+            padding: "32px 16px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        />
+      </div>
+    );
+  },
+);
 
 PdfContainer.displayName = "PdfContainer";
 
@@ -1179,6 +1185,8 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       if (store.pdf && !initRef.current) {
         initRef.current = true;
         console.log("Initializing PDF viewer with", store.pageCount, "pages");
+        // Set container width in the store
+        store.setContainerWidth(container.clientWidth);
         viewerInstance.init(container, host);
       }
     },
@@ -1276,7 +1284,12 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   };
 
   const handleZoomReset = async () => {
-    await store.computeInitialZoom();
+    // Update container width before computing zoom
+    if (viewerInstance && viewerInstance.container) {
+      store.setContainerWidth(viewerInstance.container.clientWidth);
+    }
+    // Use current page for fit calculation
+    await store.computeInitialZoom(store.currentPage);
     // The useEffect will handle the debounced applyZoom
   };
 
@@ -1344,7 +1357,7 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       )}
 
       {/* PDF container - non-observable component */}
-      <PdfContainer onContainerReady={containerCallback} />
+      <PdfContainer onContainerReady={containerCallback} zoom={store.zoom} />
     </div>
   );
 });

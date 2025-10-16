@@ -81,27 +81,36 @@ export class PdfReaderStore {
     }
   }
 
-  async computeInitialZoom() {
+  async computeInitialZoom(pageNum?: number) {
+    await this.computeFitZoom(pageNum);
+  }
+
+  async computeFitZoom(pageNum?: number) {
     if (!this.pdf || this.containerWidth === 0) return;
 
     try {
-      const page = await this.pdf.getPage(1);
+      // Use current page if not specified, fallback to page 1
+      const targetPage = pageNum || this.currentPage || 1;
+      const page = await this.pdf.getPage(targetPage);
       const viewport = page.getViewport({ scale: 1 });
       // Use the actual container width for calculation
-      const availableWidth = Math.min(this.containerWidth, 1200) - 64; // padding and margins
+      // Don't limit to 1200px - let the container decide its own width
+      const availableWidth = this.containerWidth - 64; // padding and margins
       const scale = availableWidth / viewport.width;
 
       // Ensure scale is reasonable (between 0.5 and 3)
       const clampedScale = Math.max(0.5, Math.min(3, scale));
 
+      console.log(`Fit zoom for page ${targetPage}: ${clampedScale.toFixed(2)}`);
+
       runInAction(() => {
         this.zoom = clampedScale;
       });
     } catch (err) {
-      console.error("Failed to compute initial zoom:", err);
+      console.error("Failed to compute fit zoom:", err);
       // Fallback to a reasonable default
       runInAction(() => {
-        this.zoom = 1.5;
+        this.zoom = 1.1;
       });
     }
   }
