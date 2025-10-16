@@ -443,6 +443,12 @@ class PDFScrollViewer {
     try {
       canvas.dataset.rendering = "true";
 
+      // Clear any existing content on the canvas
+      const existingContext = canvas.getContext("2d");
+      if (existingContext) {
+        existingContext.clearRect(0, 0, canvas.width, canvas.height);
+      }
+
       const page = await this.pdfDoc.getPage(pageNum);
       // Check again after async operation
       if (this.isDisposing || !this.pdfDoc) {
@@ -881,13 +887,22 @@ class PDFScrollViewer {
     }
 
     // Store current rendered pages as low-res while we re-render
+    // But also clear non-visible pages completely
     for (const [pageNum, pageInfo] of this.renderedPages) {
       if (visiblePages.has(pageNum)) {
+        // Keep visible pages for visual continuity
         this.lowResPages.set(pageNum, pageInfo);
+      } else {
+        // Clear non-visible pages completely
+        this.unloadPage(pageNum);
       }
     }
 
-    // Clear render queue but keep visible pages
+    // IMPORTANT: Clear ALL rendered pages from the map so they will be re-rendered at new zoom
+    // We keep the visible page canvases displayed via lowResPages for visual continuity
+    this.renderedPages.clear();
+
+    // Clear render queue and active loading
     this.renderQueue = [];
     this.activeLoadingPages.clear();
     this.updateLoadingIndicator();
