@@ -41,31 +41,22 @@ class ProgressTracker {
 }
 
 export class Downloader {
-  constructor(private useCorsProxy = true) {}
+  constructor(
+    private targetUrl: string,
+    private useCorsProxy = true,
+  ) {}
+
+  private get downloadUrl(): string {
+    if (!this.useCorsProxy) {
+      return this.targetUrl;
+    }
+    return `${CORS_PROXY}?url=${encodeURIComponent(this.targetUrl)}`;
+  }
 
   async downloadWithProgress(
-    url: string,
     onProgress: (progress: DownloadProgress) => void,
   ): Promise<DownloadResult> {
-    const requestUrl = url.trim();
-    const fetchUrl = this.useCorsProxy
-      ? this.buildProxyUrl(requestUrl)
-      : requestUrl;
-    const originalUrl = this.useCorsProxy ? requestUrl : undefined;
-
-    return this.fetchDownload(fetchUrl, onProgress, originalUrl);
-  }
-
-  private buildProxyUrl(url: string): string {
-    return `${CORS_PROXY}?url=${encodeURIComponent(url)}`;
-  }
-
-  private async fetchDownload(
-    requestUrl: string,
-    onProgress: (progress: DownloadProgress) => void,
-    originalUrl?: string,
-  ): Promise<DownloadResult> {
-    const response = await fetch(requestUrl, { mode: "cors" });
+    const response = await fetch(this.downloadUrl, { mode: "cors" });
     if (!response.ok) {
       throw new Error(
         `Download failed: HTTP ${response.status} ${response.statusText}`,
@@ -82,7 +73,7 @@ export class Downloader {
     );
     const filename = this.deriveFilename(
       response.headers.get("Content-Disposition"),
-      originalUrl ?? requestUrl,
+      this.targetUrl,
     );
 
     const chunks = await this.readStream(response.body, total, onProgress);
@@ -136,8 +127,8 @@ export async function downloadWithProgress(
   url: string,
   onProgress: (progress: DownloadProgress) => void,
 ): Promise<DownloadResult> {
-  const downloader = new Downloader(true);
-  return downloader.downloadWithProgress(url, onProgress);
+  const downloader = new Downloader(url.trim(), true);
+  return downloader.downloadWithProgress(onProgress);
 }
 
 function parseFilename(header: string | null): string | null {
