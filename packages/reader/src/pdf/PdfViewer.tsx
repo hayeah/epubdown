@@ -179,6 +179,7 @@ class PDFScrollViewer {
       pageContainer.style.backgroundColor = "white";
       pageContainer.style.boxShadow = "0 1px 2px 0 rgba(0, 0, 0, 0.05)";
       pageContainer.style.position = "relative";
+      pageContainer.style.margin = "0 auto 16px auto"; // Center horizontally
 
       // Create canvas element
       const canvas = document.createElement("canvas");
@@ -443,11 +444,15 @@ class PDFScrollViewer {
     try {
       canvas.dataset.rendering = "true";
 
-      // Clear any existing content on the canvas
+      // Reset canvas to ensure clean slate
       const existingContext = canvas.getContext("2d");
       if (existingContext) {
         existingContext.clearRect(0, 0, canvas.width, canvas.height);
       }
+
+      // Clear style dimensions to prevent stale values
+      canvas.style.width = "";
+      canvas.style.height = "";
 
       const page = await this.pdfDoc.getPage(pageNum);
       // Check again after async operation
@@ -483,8 +488,9 @@ class PDFScrollViewer {
       // Set canvas dimensions
       canvas.height = viewport.height;
       canvas.width = viewport.width;
-      canvas.style.width = `${viewport.width / devicePixelRatio}px`;
-      canvas.style.height = `${viewport.height / devicePixelRatio}px`;
+      // Use effectivePixelRatio to match the viewport scale
+      canvas.style.width = `${viewport.width / effectivePixelRatio}px`;
+      canvas.style.height = `${viewport.height / effectivePixelRatio}px`;
 
       // Hide placeholder
       const placeholder = pageContainer.querySelector(
