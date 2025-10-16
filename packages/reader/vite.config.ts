@@ -5,14 +5,10 @@ import react from "@vitejs/plugin-react";
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
-import { downloadProxyPlugin } from "./vite.download-proxy";
 
 export default defineConfig({
   // assetsInclude: ["**/*.wasm"],
   // optimizeDeps: { exclude: ["@electric-sql/pglite", "wa-sqlite"] },
-  server: {
-    host: "0.0.0.0",
-  },
   build: {
     rollupOptions: {
       input: {
@@ -25,7 +21,6 @@ export default defineConfig({
     },
   },
   plugins: [
-    downloadProxyPlugin(),
     react(),
     tailwindcss(),
     // only polyfill what you need to keep the bundle small

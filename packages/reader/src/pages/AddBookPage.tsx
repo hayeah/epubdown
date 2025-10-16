@@ -130,6 +130,7 @@ export const AddBookPage = observer(() => {
   const [store] = useState(() => new AddBookPageStore());
   const bookLibraryStore = useBookLibraryStore();
 
+  // Parse URL and auto-start download
   useEffect(() => {
     const searchIndex = location.indexOf("?");
     const search =
@@ -137,17 +138,19 @@ export const AddBookPage = observer(() => {
     const params = new URLSearchParams(search);
     const url = params.get("url") ?? "";
     store.setDownloadUrl(url);
-  }, [location, store]);
 
-  const handleStart = () => {
-    void store.startDownload(bookLibraryStore, navigate);
-  };
+    // Auto-start download if URL is valid
+    if (url && store.hasValidUrl) {
+      void store.startDownload(bookLibraryStore, navigate);
+    }
+  }, [location, store, bookLibraryStore, navigate]);
 
   const handleTryAgain = () => {
     store.reset();
+    void store.startDownload(bookLibraryStore, navigate);
   };
 
-  if (store.phase === "confirm" && store.urlValidationError) {
+  if (store.urlValidationError) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-xl mx-auto p-8">
@@ -167,30 +170,6 @@ export const AddBookPage = observer(() => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-xl mx-auto p-8 space-y-6">
-        {store.phase === "confirm" && (
-          <>
-            <h1 className="text-xl font-semibold">Add book from URL</h1>
-            <p className="text-sm text-gray-600 break-all">
-              {store.downloadUrl}
-            </p>
-            <div className="flex gap-3">
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-                onClick={handleStart}
-                disabled={!store.hasValidUrl}
-              >
-                Download book
-              </button>
-              <button
-                className="px-4 py-2 bg-gray-200 rounded"
-                onClick={() => navigate("/")}
-              >
-                Back to library
-              </button>
-            </div>
-          </>
-        )}
-
         {store.phase === "downloading" && (
           <>
             <h2 className="text-lg font-medium">Downloading…</h2>
