@@ -6,7 +6,7 @@ export class PdfReaderStore {
   pdf: any = null;
   pageCount = 0;
   currentBookId: number | null = null;
-  zoom = 1.5; // Default zoom for reasonable page width
+  zoom = 1.1; // Default zoom for reasonable page width
   currentPage = 1;
   containerWidth = 0;
   isLoading = false;

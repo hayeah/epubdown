@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 import type React from "react";
-import { useEffect, useRef, memo } from "react";
+import { useEffect, useRef, memo, useCallback } from "react";
 import type { PdfReaderStore } from "../stores/PdfReaderStore";
 
 interface PdfViewerProps {
@@ -20,7 +20,7 @@ class PDFScrollViewer {
   renderTasks = new Map<number, any>(); // Track active render tasks
 
   // Performance settings
-  maxPagesInMemory = 5;
+  maxPagesInMemory = 10;
   preloadDistance = "200px";
 
   // DOM elements
@@ -49,11 +49,21 @@ class PDFScrollViewer {
   lastScrollTime = 0;
   isJumping = false;
 
+  // Debug mode
+  debugMode = false;
+
   constructor(store: PdfReaderStore) {
     this.store = store;
   }
 
   async init(container: HTMLElement, pagesContainer: HTMLElement) {
+    console.log("PDFScrollViewer.init called", {
+      hasContainer: !!container,
+      hasPagesContainer: !!pagesContainer,
+      isInitialized: this.isInitialized,
+      isDisposing: this.isDisposing,
+    });
+
     // Prevent multiple initializations
     if (this.isInitialized || this.isDisposing) {
       console.log("Skipping init - already initialized or disposing", {
@@ -87,7 +97,9 @@ class PDFScrollViewer {
       this.createLoadingIndicator();
 
       // Create placeholder elements for all pages
+      console.log("Creating page placeholders...");
       await this.createPagePlaceholders();
+      console.log("Page placeholders created");
 
       // Setup Intersection Observer
       this.setupIntersectionObserver();
@@ -96,7 +108,16 @@ class PDFScrollViewer {
       this.setupEventListeners();
 
       // Initial render of visible pages
+      console.log("Calling updateVisiblePages from init");
       this.updateVisiblePages();
+
+      // Force render first page if nothing visible
+      const visiblePages = this.getVisiblePageNumbers();
+      console.log("Initial visible pages:", visiblePages);
+      if (visiblePages.length === 0) {
+        console.log("No visible pages detected, force rendering page 1");
+        this.queuePageRender(1);
+      }
 
       // Handle initial page from URL
       const urlParams = new URLSearchParams(window.location.search);
@@ -152,29 +173,31 @@ class PDFScrollViewer {
       pageContainer.appendChild(placeholder);
       pageContainer.appendChild(canvas);
 
-      // Create debug overlay with page number
-      const debugOverlay = document.createElement("div");
-      debugOverlay.className = "pdf-page-debug-overlay";
-      debugOverlay.dataset.pageNum = String(pageNum);
-      debugOverlay.innerHTML = `
-        <div>Page ${pageNum}</div>
-        <div style="font-size: 10px; font-weight: normal; margin-top: 2px;">Not rendered</div>
-      `;
-      debugOverlay.style.cssText = `
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
-        z-index: 100;
-        pointer-events: none;
-        user-select: none;
-      `;
-      pageContainer.appendChild(debugOverlay);
+      // Create debug overlay with page number (only in debug mode)
+      if (this.debugMode) {
+        const debugOverlay = document.createElement("div");
+        debugOverlay.className = "pdf-page-debug-overlay";
+        debugOverlay.dataset.pageNum = String(pageNum);
+        debugOverlay.innerHTML = `
+          <div>Page ${pageNum}</div>
+          <div style="font-size: 10px; font-weight: normal; margin-top: 2px;">Not rendered</div>
+        `;
+        debugOverlay.style.cssText = `
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: bold;
+          z-index: 100;
+          pointer-events: none;
+          user-select: none;
+        `;
+        pageContainer.appendChild(debugOverlay);
+      }
 
       // Get page dimensions to set correct placeholder height
       const page = await this.pdfDoc.getPage(pageNum);
@@ -305,15 +328,17 @@ class PDFScrollViewer {
       this.activeLoadingPages.add(pageNum);
       this.updateLoadingIndicator();
 
-      // Update debug overlay to show loading
-      const debugOverlay = document.querySelector(
-        `.pdf-page-debug-overlay[data-page-num="${pageNum}"]`,
-      ) as HTMLElement;
-      if (debugOverlay) {
-        debugOverlay.innerHTML = `
-          <div>Page ${pageNum}</div>
-          <div style="font-size: 10px; font-weight: normal; margin-top: 2px; color: #fbbf24;">Loading...</div>
-        `;
+      // Update debug overlay to show loading (only in debug mode)
+      if (this.debugMode) {
+        const debugOverlay = document.querySelector(
+          `.pdf-page-debug-overlay[data-page-num="${pageNum}"]`,
+        ) as HTMLElement;
+        if (debugOverlay) {
+          debugOverlay.innerHTML = `
+            <div>Page ${pageNum}</div>
+            <div style="font-size: 10px; font-weight: normal; margin-top: 2px; color: #fbbf24;">Loading...</div>
+          `;
+        }
       }
 
       this.renderQueue.push(pageNum);
@@ -411,6 +436,8 @@ class PDFScrollViewer {
 
       await renderTask.promise;
 
+      console.log(`Page ${pageNum} render completed successfully`);
+
       // Store render info
       this.renderedPages.set(pageNum, {
         canvas: canvas,
@@ -427,15 +454,17 @@ class PDFScrollViewer {
       this.activeLoadingPages.delete(pageNum);
       this.updateLoadingIndicator();
 
-      // Update debug overlay
-      const debugOverlay = document.querySelector(
-        `.pdf-page-debug-overlay[data-page-num="${pageNum}"]`,
-      ) as HTMLElement;
-      if (debugOverlay) {
-        debugOverlay.innerHTML = `
-          <div>Page ${pageNum}</div>
-          <div style="font-size: 10px; font-weight: normal; margin-top: 2px; color: #4ade80;">Rendered</div>
-        `;
+      // Update debug overlay (only in debug mode)
+      if (this.debugMode) {
+        const debugOverlay = document.querySelector(
+          `.pdf-page-debug-overlay[data-page-num="${pageNum}"]`,
+        ) as HTMLElement;
+        if (debugOverlay) {
+          debugOverlay.innerHTML = `
+            <div>Page ${pageNum}</div>
+            <div style="font-size: 10px; font-weight: normal; margin-top: 2px; color: #4ade80;">Rendered</div>
+          `;
+        }
       }
     } catch (error: any) {
       // Ignore render cancelled errors
@@ -521,15 +550,17 @@ class PDFScrollViewer {
 
     this.renderedPages.delete(pageNum);
 
-    // Update debug overlay
-    const debugOverlay = document.querySelector(
-      `.pdf-page-debug-overlay[data-page-num="${pageNum}"]`,
-    ) as HTMLElement;
-    if (debugOverlay) {
-      debugOverlay.innerHTML = `
-        <div>Page ${pageNum}</div>
-        <div style="font-size: 10px; font-weight: normal; margin-top: 2px;">Not rendered</div>
-      `;
+    // Update debug overlay (only in debug mode)
+    if (this.debugMode) {
+      const debugOverlay = document.querySelector(
+        `.pdf-page-debug-overlay[data-page-num="${pageNum}"]`,
+      ) as HTMLElement;
+      if (debugOverlay) {
+        debugOverlay.innerHTML = `
+          <div>Page ${pageNum}</div>
+          <div style="font-size: 10px; font-weight: normal; margin-top: 2px;">Not rendered</div>
+        `;
+      }
     }
   }
 
@@ -561,18 +592,36 @@ class PDFScrollViewer {
     const containers = document.querySelectorAll(".pdf-page-container");
     const containerRect = this.container.getBoundingClientRect();
 
+    console.log("getVisiblePageNumbers", {
+      containersCount: containers.length,
+      containerRect,
+      containerScrollTop: this.container.scrollTop,
+    });
+
     containers.forEach((container) => {
       const rect = container.getBoundingClientRect();
-      if (
-        rect.bottom >= containerRect.top &&
-        rect.top <= containerRect.bottom
-      ) {
-        visiblePages.push(
-          Number.parseInt(container.getAttribute("data-page-num") || "0"),
-        );
+      const pageNum = Number.parseInt(
+        container.getAttribute("data-page-num") || "0",
+      );
+      const isVisible =
+        rect.bottom >= containerRect.top && rect.top <= containerRect.bottom;
+
+      if (pageNum <= 3) {
+        // Log first 3 pages for debugging
+        console.log(`Page ${pageNum} visibility:`, {
+          rect,
+          isVisible,
+          containerTop: containerRect.top,
+          containerBottom: containerRect.bottom,
+        });
+      }
+
+      if (isVisible) {
+        visiblePages.push(pageNum);
       }
     });
 
+    console.log("Visible pages:", visiblePages);
     return visiblePages;
   }
 
@@ -698,10 +747,11 @@ class PDFScrollViewer {
       const scrollDelta = Math.abs(currentScroll - this.lastScrollPosition);
       const timeDelta = now - this.lastScrollTime;
 
-      // Detect jump: large scroll distance in short time or very large distance
-      // Be more conservative to avoid blocking normal scrollbar dragging
+      // Detect jump: very large scroll distance or large distance in extremely short time
+      // Use conservative thresholds to avoid triggering on fast scrolling or smooth mice
+      // Only trigger on actual jumps (page input, ToC clicks, etc.)
       const isJump =
-        scrollDelta > 3000 || (scrollDelta > 1000 && timeDelta < 30);
+        scrollDelta > 5000 || (scrollDelta > 2000 && timeDelta < 16);
 
       if (isJump && !this.isJumping) {
         this.isJumping = true;
@@ -882,7 +932,13 @@ const PdfContainer = memo(({ onContainerReady }: PdfContainerProps) => {
   console.log("PdfContainer render (should be minimal)");
 
   useEffect(() => {
+    console.log("PdfContainer useEffect", {
+      hasContainerRef: !!containerRef.current,
+      hasHostRef: !!hostRef.current,
+      hasCallback: !!onContainerReady,
+    });
     if (containerRef.current && hostRef.current) {
+      console.log("Calling onContainerReady callback");
       onContainerReady(containerRef.current, hostRef.current);
     }
   }, [onContainerReady]);
@@ -919,18 +975,18 @@ PdfContainer.displayName = "PdfContainer";
 export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   const initRef = useRef(false);
   const pageInputRef = useRef<HTMLInputElement>(null);
-  const containerCallback = useRef<
-    (container: HTMLDivElement, host: HTMLDivElement) => void
-  >(null!);
-
   console.log("PdfViewer render (observer) - currentPage:", store.currentPage);
 
   // Setup container callback
-  useEffect(() => {
-    containerCallback.current = (
-      container: HTMLDivElement,
-      host: HTMLDivElement,
-    ) => {
+  const containerCallback = useCallback(
+    (container: HTMLDivElement, host: HTMLDivElement) => {
+      console.log("Container callback function executing", {
+        hasContainer: !!container,
+        hasHost: !!host,
+        hasStore: !!store,
+        hasPDF: !!store.pdf,
+      });
+
       // Create viewer instance if needed
       if (!viewerInstance || viewerInstance.store !== store) {
         if (viewerInstance) {
@@ -942,13 +998,19 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       }
 
       // Initialize when PDF is ready
+      console.log("Container callback - checking PDF", {
+        hasPDF: !!store.pdf,
+        initRef: initRef.current,
+        pageCount: store.pageCount,
+      });
       if (store.pdf && !initRef.current) {
         initRef.current = true;
         console.log("Initializing PDF viewer with", store.pageCount, "pages");
         viewerInstance.init(container, host);
       }
-    };
-  }, [store]);
+    },
+    [store, store.pdf],
+  );
 
   // Reset init flag when PDF changes
   useEffect(() => {
@@ -1097,9 +1159,7 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       )}
 
       {/* PDF container - non-observable component */}
-      <PdfContainer
-        onContainerReady={containerCallback.current || (() => {})}
-      />
+      <PdfContainer onContainerReady={containerCallback} />
     </div>
   );
 });

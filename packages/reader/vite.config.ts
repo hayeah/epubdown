@@ -59,7 +59,7 @@ export default defineConfig({
       // Stub out fs/promises for browser
       "fs/promises": path.resolve(__dirname, "./src/lib/fs-stub.ts"),
       // Only set turndown alias if we found it
-      ...(turndownPath ? { "turndown": turndownPath } : {}),
+      ...(turndownPath ? { turndown: turndownPath } : {}),
     },
   },
 });
