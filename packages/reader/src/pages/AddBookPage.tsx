@@ -50,11 +50,11 @@ export class AddBookPageStore {
       );
 
       runInAction(() => {
-        this.filename = filename;
+        this.filename = filename ?? "download.epub";
         this.phase = "adding";
       });
 
-      const file = new File([blob], filename, {
+      const file = new File([blob], filename ?? "download.epub", {
         type: blob.type || "application/epub+zip",
       });
 
