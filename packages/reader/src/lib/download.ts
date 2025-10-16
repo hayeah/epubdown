@@ -6,121 +6,138 @@ export interface DownloadProgress {
 
 export interface DownloadResult {
   blob: Blob;
-  filename: string;
+  filename?: string;
 }
 
-const DEFAULT_FILENAME = "download.epub";
-const DEFAULT_MIME = "application/epub+zip";
 const CORS_PROXY = "https://api.allorigins.win/raw";
 
+class ProgressTracker {
+  private received = 0;
+  private speedEMA = 0;
+  private lastSample = performance.now();
+
+  constructor(
+    private total: number | undefined,
+    private onProgress: (progress: DownloadProgress) => void,
+  ) {}
+
+  update(chunkSize: number) {
+    this.received += chunkSize;
+
+    const now = performance.now();
+    const deltaMs = Math.max(1, now - this.lastSample);
+    const instantaneous = (chunkSize * 1000) / deltaMs;
+    this.speedEMA = this.speedEMA
+      ? this.speedEMA * 0.85 + instantaneous * 0.15
+      : instantaneous;
+    this.lastSample = now;
+
+    this.onProgress({
+      received: this.received,
+      total: this.total,
+      speedBps: this.speedEMA,
+    });
+  }
+}
+
+export class Downloader {
+  constructor(private useCorsProxy = true) {}
+
+  async downloadWithProgress(
+    url: string,
+    onProgress: (progress: DownloadProgress) => void,
+  ): Promise<DownloadResult> {
+    const requestUrl = url.trim();
+    const fetchUrl = this.useCorsProxy
+      ? this.buildProxyUrl(requestUrl)
+      : requestUrl;
+    const originalUrl = this.useCorsProxy ? requestUrl : undefined;
+
+    return this.fetchDownload(fetchUrl, onProgress, originalUrl);
+  }
+
+  private buildProxyUrl(url: string): string {
+    return `${CORS_PROXY}?url=${encodeURIComponent(url)}`;
+  }
+
+  private async fetchDownload(
+    requestUrl: string,
+    onProgress: (progress: DownloadProgress) => void,
+    originalUrl?: string,
+  ): Promise<DownloadResult> {
+    const response = await fetch(requestUrl, { mode: "cors" });
+    if (!response.ok) {
+      throw new Error(
+        `Download failed: HTTP ${response.status} ${response.statusText}`,
+      );
+    }
+    if (!response.body) {
+      throw new Error(
+        "Download failed: response does not contain a readable body",
+      );
+    }
+
+    const total = this.parseContentLength(
+      response.headers.get("Content-Length"),
+    );
+    const filename = this.deriveFilename(
+      response.headers.get("Content-Disposition"),
+      originalUrl ?? requestUrl,
+    );
+
+    const chunks = await this.readStream(response.body, total, onProgress);
+    const contentType = response.headers.get("Content-Type");
+
+    return {
+      blob: new Blob(chunks, { type: contentType ?? undefined }),
+      filename,
+    };
+  }
+
+  private parseContentLength(header: string | null): number | undefined {
+    if (!header) return undefined;
+    const value = Number(header);
+    return Number.isFinite(value) && value > 0 ? value : undefined;
+  }
+
+  private async readStream(
+    body: ReadableStream<Uint8Array>,
+    total: number | undefined,
+    onProgress: (progress: DownloadProgress) => void,
+  ): Promise<Uint8Array[]> {
+    const reader = body.getReader();
+    const chunks: Uint8Array[] = [];
+    const tracker = new ProgressTracker(total, onProgress);
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      chunks.push(value);
+      tracker.update(value.length);
+    }
+
+    return chunks;
+  }
+
+  private deriveFilename(
+    contentDisposition: string | null,
+    url: string,
+  ): string | undefined {
+    const filename =
+      parseFilename(contentDisposition) ?? deriveFilenameFromUrl(url);
+    return filename ?? undefined;
+  }
+}
+
+// Convenience function using default downloader
 export async function downloadWithProgress(
   url: string,
   onProgress: (progress: DownloadProgress) => void,
 ): Promise<DownloadResult> {
-  const requestUrl = url.trim();
-
-  try {
-    return await fetchDownload(requestUrl, onProgress);
-  } catch (error) {
-    // If CORS error, retry with proxy
-    if (isCorsError(error)) {
-      console.warn(
-        `[download] Direct download blocked by CORS for ${requestUrl}, retrying via proxy`,
-        error,
-      );
-      try {
-        const proxyUrl = buildProxyUrl(requestUrl);
-        return await fetchDownload(proxyUrl, onProgress, requestUrl);
-      } catch (proxyError) {
-        throw normalizeDownloadError(proxyError, requestUrl, true);
-      }
-    }
-    throw normalizeDownloadError(error, requestUrl, false);
-  }
-}
-
-function isCorsError(error: unknown): boolean {
-  return error instanceof TypeError;
-}
-
-function buildProxyUrl(url: string): string {
-  return `${CORS_PROXY}?url=${encodeURIComponent(url)}`;
-}
-
-async function fetchDownload(
-  requestUrl: string,
-  onProgress: (progress: DownloadProgress) => void,
-  originalUrl?: string,
-): Promise<DownloadResult> {
-  const response = await fetch(requestUrl, { mode: "cors" });
-  if (!response.ok) {
-    throw new Error(
-      `Download failed: HTTP ${response.status} ${response.statusText}`,
-    );
-  }
-  if (!response.body) {
-    throw new Error(
-      "Download failed: response does not contain a readable body",
-    );
-  }
-
-  const totalHeader = response.headers.get("Content-Length");
-  const totalValue = totalHeader ? Number(totalHeader) : undefined;
-  const total =
-    totalValue !== undefined && Number.isFinite(totalValue) && totalValue > 0
-      ? totalValue
-      : undefined;
-
-  const contentDisposition = response.headers.get("Content-Disposition");
-  const urlForFilename = originalUrl ?? requestUrl;
-  const derivedFilename =
-    parseFilename(contentDisposition) ??
-    deriveFilenameFromUrl(urlForFilename) ??
-    DEFAULT_FILENAME;
-
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  let speedEMA = 0;
-  let lastSample = performance.now();
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    if (!value) continue;
-
-    chunks.push(value);
-    received += value.length;
-
-    const now = performance.now();
-    const deltaMs = Math.max(1, now - lastSample);
-    const instantaneous = (value.length * 1000) / deltaMs;
-    speedEMA = speedEMA
-      ? speedEMA * 0.85 + instantaneous * 0.15
-      : instantaneous;
-    lastSample = now;
-
-    onProgress({
-      received,
-      total,
-      speedBps: speedEMA,
-    });
-  }
-
-  const contentType = sanitizeMimeType(response.headers.get("Content-Type"));
-  return {
-    blob: new Blob(chunks, { type: contentType }),
-    filename: derivedFilename,
-  };
-}
-
-function sanitizeMimeType(contentType: string | null): string {
-  if (!contentType) return DEFAULT_MIME;
-  const value = contentType.trim().toLowerCase();
-  if (!value || value === "application/octet-stream") {
-    return DEFAULT_MIME;
-  }
-  return contentType;
+  const downloader = new Downloader(true);
+  return downloader.downloadWithProgress(url, onProgress);
 }
 
 function parseFilename(header: string | null): string | null {
@@ -176,34 +193,4 @@ function stripQuotes(value: string | undefined): string | null {
     return trimmed.slice(1, -1);
   }
   return trimmed;
-}
-
-function normalizeDownloadError(
-  error: unknown,
-  originalUrl: string,
-  triedProxy: boolean,
-): Error {
-  if (error instanceof TypeError) {
-    const origin = safeOrigin(originalUrl);
-    if (triedProxy) {
-      return new Error(
-        `Download blocked by CORS for ${origin}. Both direct download and proxy failed.`,
-      );
-    }
-    return new Error(
-      `Download blocked by CORS for ${origin}. The server must send proper CORS headers to allow downloads.`,
-    );
-  }
-  if (error instanceof Error) {
-    return error;
-  }
-  return new Error("Download failed for an unknown reason.");
-}
-
-function safeOrigin(value: string): string {
-  try {
-    return new URL(value).origin;
-  } catch {
-    return value;
-  }
 }
