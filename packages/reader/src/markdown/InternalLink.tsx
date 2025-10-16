@@ -41,12 +41,15 @@ export const InternalLink = observer(
     }
 
     return (
-      <Link
-        href={finalHref}
-        className={`text-gray-200 no-underline border-b border-dotted border-gray-200 cursor-pointer hover:text-gray-900 hover:border-gray-700 ${className || ""}`}
-      >
-        {children}
-      </Link>
+      <>
+        {" "}
+        <Link
+          href={finalHref}
+          className={`text-gray-500 no-underline border-b border-dotted border-gray-500 cursor-pointer hover:text-gray-900 hover:border-gray-700 ${className || ""}`}
+        >
+          {children}
+        </Link>
+      </>
     );
   },
 );

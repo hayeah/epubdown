@@ -1,4 +1,4 @@
-import { normalizePath, type EPub, type DOMFile } from "@epubdown/core";
+import { type DOMFile, type EPub, normalizePath } from "@epubdown/core";
 
 // MIME type mapping for file extensions
 const MIME_TYPES: Record<string, string> = {
