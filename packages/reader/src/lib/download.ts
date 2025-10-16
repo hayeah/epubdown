@@ -9,7 +9,6 @@ export interface DownloadResult {
   filename: string;
 }
 
-const DOWNLOAD_PROXY_PATH = "/__epubdown__/download";
 const DEFAULT_FILENAME = "download.epub";
 const DEFAULT_MIME = "application/epub+zip";
 
@@ -18,33 +17,16 @@ export async function downloadWithProgress(
   onProgress: (progress: DownloadProgress) => void,
 ): Promise<DownloadResult> {
   const requestUrl = url.trim();
-  const sourceUrl = requestUrl;
 
   try {
-    return await fetchDownload(requestUrl, sourceUrl, onProgress);
+    return await fetchDownload(requestUrl, onProgress);
   } catch (error) {
-    if (
-      shouldRetryWithProxy(error, requestUrl) &&
-      typeof window !== "undefined"
-    ) {
-      const proxyUrl = buildProxyUrl(requestUrl);
-      console.warn(
-        `[download] Direct download blocked (likely CORS) for ${requestUrl}, retrying via proxy ${proxyUrl}`,
-        error,
-      );
-      try {
-        return await fetchDownload(proxyUrl, sourceUrl, onProgress);
-      } catch (proxyError) {
-        throw normalizeDownloadError(proxyError, sourceUrl, true);
-      }
-    }
-    throw normalizeDownloadError(error, sourceUrl, false);
+    throw normalizeDownloadError(error, requestUrl);
   }
 }
 
 async function fetchDownload(
   requestUrl: string,
-  sourceUrl: string,
   onProgress: (progress: DownloadProgress) => void,
 ): Promise<DownloadResult> {
   const response = await fetch(requestUrl, { mode: "cors" });
@@ -69,7 +51,7 @@ async function fetchDownload(
   const contentDisposition = response.headers.get("Content-Disposition");
   const derivedFilename =
     parseFilename(contentDisposition) ??
-    deriveFilenameFromUrl(sourceUrl) ??
+    deriveFilenameFromUrl(requestUrl) ??
     DEFAULT_FILENAME;
 
   const reader = response.body.getReader();
@@ -172,56 +154,11 @@ function stripQuotes(value: string | undefined): string | null {
   return trimmed;
 }
 
-function shouldRetryWithProxy(error: unknown, requestUrl: string): boolean {
-  if (!isCorsError(error)) return false;
-  if (isProxyUrl(requestUrl)) return false;
-  if (typeof window === "undefined") return false;
-  return (
-    window.location.protocol === "http:" ||
-    window.location.protocol === "https:"
-  );
-}
-
-function isCorsError(error: unknown): error is TypeError {
-  return error instanceof TypeError;
-}
-
-function buildProxyUrl(url: string): string {
-  return `${DOWNLOAD_PROXY_PATH}?url=${encodeURIComponent(url)}`;
-}
-
-function isProxyUrl(url: string): boolean {
-  if (!url) return false;
-  if (url.startsWith(DOWNLOAD_PROXY_PATH)) return true;
-  try {
-    const parsed = new URL(url);
-    if (typeof window !== "undefined") {
-      const proxyAbsolute = new URL(
-        DOWNLOAD_PROXY_PATH,
-        window.location.origin,
-      );
-      return parsed.href === proxyAbsolute.href;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-function normalizeDownloadError(
-  error: unknown,
-  originalUrl: string,
-  attemptedProxy: boolean,
-): Error {
-  if (isCorsError(error)) {
+function normalizeDownloadError(error: unknown, originalUrl: string): Error {
+  if (error instanceof TypeError) {
     const origin = safeOrigin(originalUrl);
-    if (attemptedProxy) {
-      return new Error(
-        `Download blocked by CORS for ${origin}. Retried via the local proxy but it also failed. See the console for details.`,
-      );
-    }
     return new Error(
-      `Download blocked by CORS for ${origin}. If you're running the reader locally, keep the dev server running so the built-in download proxy can help.`,
+      `Download blocked by CORS for ${origin}. The server must send proper CORS headers to allow downloads.`,
     );
   }
   if (error instanceof Error) {
