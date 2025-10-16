@@ -220,7 +220,7 @@ export const AddBookPage = observer(() => {
             <h2 className="text-lg font-semibold text-red-600">
               Download failed
             </h2>
-            <p className="text-sm text-gray-600 break-all">{store.errorMsg}</p>
+            <p className="text-sm text-gray-600">{store.errorMsg}</p>
             <div className="flex gap-3">
               <button
                 className="px-4 py-2 bg-blue-600 text-white rounded"
