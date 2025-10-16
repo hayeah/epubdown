@@ -11,6 +11,7 @@ export interface DownloadResult {
 
 const DEFAULT_FILENAME = "download.epub";
 const DEFAULT_MIME = "application/epub+zip";
+const CORS_PROXY = "https://api.allorigins.win/raw";
 
 export async function downloadWithProgress(
   url: string,
@@ -21,13 +22,35 @@ export async function downloadWithProgress(
   try {
     return await fetchDownload(requestUrl, onProgress);
   } catch (error) {
-    throw normalizeDownloadError(error, requestUrl);
+    // If CORS error, retry with proxy
+    if (isCorsError(error)) {
+      console.warn(
+        `[download] Direct download blocked by CORS for ${requestUrl}, retrying via proxy`,
+        error,
+      );
+      try {
+        const proxyUrl = buildProxyUrl(requestUrl);
+        return await fetchDownload(proxyUrl, onProgress, requestUrl);
+      } catch (proxyError) {
+        throw normalizeDownloadError(proxyError, requestUrl, true);
+      }
+    }
+    throw normalizeDownloadError(error, requestUrl, false);
   }
+}
+
+function isCorsError(error: unknown): boolean {
+  return error instanceof TypeError;
+}
+
+function buildProxyUrl(url: string): string {
+  return `${CORS_PROXY}?url=${encodeURIComponent(url)}`;
 }
 
 async function fetchDownload(
   requestUrl: string,
   onProgress: (progress: DownloadProgress) => void,
+  originalUrl?: string,
 ): Promise<DownloadResult> {
   const response = await fetch(requestUrl, { mode: "cors" });
   if (!response.ok) {
@@ -49,9 +72,10 @@ async function fetchDownload(
       : undefined;
 
   const contentDisposition = response.headers.get("Content-Disposition");
+  const urlForFilename = originalUrl ?? requestUrl;
   const derivedFilename =
     parseFilename(contentDisposition) ??
-    deriveFilenameFromUrl(requestUrl) ??
+    deriveFilenameFromUrl(urlForFilename) ??
     DEFAULT_FILENAME;
 
   const reader = response.body.getReader();
@@ -154,9 +178,18 @@ function stripQuotes(value: string | undefined): string | null {
   return trimmed;
 }
 
-function normalizeDownloadError(error: unknown, originalUrl: string): Error {
+function normalizeDownloadError(
+  error: unknown,
+  originalUrl: string,
+  triedProxy: boolean,
+): Error {
   if (error instanceof TypeError) {
     const origin = safeOrigin(originalUrl);
+    if (triedProxy) {
+      return new Error(
+        `Download blocked by CORS for ${origin}. Both direct download and proxy failed.`,
+      );
+    }
     return new Error(
       `Download blocked by CORS for ${origin}. The server must send proper CORS headers to allow downloads.`,
     );
