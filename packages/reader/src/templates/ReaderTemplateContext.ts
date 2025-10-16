@@ -29,10 +29,14 @@ export class ReaderTemplateContext {
   get selectionContext(): string {
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) {
-      const { beforeContext, selectedText, afterContext } =
-        getSelectionContext(sel);
+      // Use chapter-content as the container scope
+      const container = document.querySelector(".chapter-content");
+      const { beforeContext, selectedText, afterContext } = getSelectionContext(
+        sel,
+        container ?? undefined,
+      );
       if (!selectedText) return "";
-      return `${beforeContext} ${selectedText} ${afterContext}`.trim();
+      return `${beforeContext} <<${selectedText}>> ${afterContext}`.trim();
     }
     return "";
   }
