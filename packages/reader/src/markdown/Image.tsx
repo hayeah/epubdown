@@ -2,10 +2,9 @@ import type { EPub } from "@epubdown/core";
 import { AlertCircle, Loader } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type React from "react";
-import { useCallback } from "react";
+import { AsyncView } from "../lib/AsyncView";
 import { uint8ArrayToBase64 } from "../lib/base64";
 import { useReaderStore } from "../stores/RootStore";
-import { usePromise } from "../utils/usePromise";
 
 // Helper functions for image loading
 function isExternalUrl(src: string): boolean {
@@ -55,64 +54,41 @@ export const Image: React.FC<ImageProps> = observer(
   ({ src, alt = "", title, width, height, className }) => {
     const readerStore = useReaderStore();
 
-    // Use usePromise for clean async loading
-    const {
-      value: imageSrc,
-      error,
-      loading,
-    } = usePromise(
-      async (signal) => {
-        return await getImageFromArchive(readerStore.epub, src);
-      },
-      [src, readerStore.epub],
-    );
-
-    const handleImageError = useCallback(() => {
-      console.error("img on error:", src);
-    }, [src]);
-
     // Placeholder dimensions style
     const placeholderStyle: React.CSSProperties = {
       width: width || "auto",
       height: height || "200px",
     };
 
-    if (error) {
-      return (
-        <span
-          style={{ ...placeholderStyle, display: "inline-block" }}
-          className={`bg-gray-100 inline-flex flex-col items-center justify-center border border-dashed border-gray-300 rounded text-red-600 text-sm gap-2 ${className || ""}`}
-        >
-          <AlertCircle className="w-8 h-8" />
-          <span>Failed to load image</span>
-          <span className="text-xs text-gray-500 px-2 text-center break-words">
-            {src}
-          </span>
-        </span>
-      );
-    }
-
-    if (loading) {
-      return (
-        <span
-          style={{ ...placeholderStyle, display: "inline-block" }}
-          className={`bg-gray-100 inline-flex items-center justify-center border border-dashed border-gray-300 rounded text-gray-500 ${className || ""}`}
-        >
-          <Loader className="w-8 h-8 animate-spin" />
-        </span>
-      );
-    }
-
     return (
-      <img
-        src={imageSrc || ""}
-        alt={alt}
-        title={title}
-        width={width}
-        height={height}
-        className={`max-w-full h-auto ${className || ""}`}
-        onError={handleImageError}
-      />
+      <AsyncView
+        onError={(err) => (
+          <span
+            style={{ ...placeholderStyle, display: "inline-block" }}
+            className={`bg-gray-100 inline-flex flex-col items-center justify-center border border-dashed border-gray-300 rounded text-red-600 text-sm gap-2 ${className || ""}`}
+          >
+            <AlertCircle className="w-8 h-8" />
+            <span>Failed to load image</span>
+            <span className="text-xs text-gray-500 px-2 text-center break-words">
+              {src}
+            </span>
+          </span>
+        )}
+      >
+        {async () => {
+          const imageSrc = await getImageFromArchive(readerStore.epub, src);
+          return (
+            <img
+              src={imageSrc}
+              alt={alt}
+              title={title}
+              width={width}
+              height={height}
+              className={`max-w-full h-auto ${className || ""}`}
+            />
+          );
+        }}
+      </AsyncView>
     );
   },
 );

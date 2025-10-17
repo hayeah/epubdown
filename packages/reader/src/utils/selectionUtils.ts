@@ -44,8 +44,11 @@ class SelectionContextExtractor {
     const before = this.extractBefore();
     const after = this.extractAfter();
 
-    const { before: clippedBefore, after: clippedAfter } =
-      this.fitToWordLimit(before, after, this.wordLimit);
+    const { before: clippedBefore, after: clippedAfter } = this.fitToWordLimit(
+      before,
+      after,
+      this.wordLimit,
+    );
 
     return {
       beforeContext: clippedBefore,
@@ -71,7 +74,8 @@ class SelectionContextExtractor {
     const anchorEl =
       this.baseRange.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
         ? (this.baseRange.commonAncestorContainer as Element)
-        : (this.baseRange.commonAncestorContainer.parentElement ?? document.body);
+        : (this.baseRange.commonAncestorContainer.parentElement ??
+          document.body);
 
     const articley =
       anchorEl.closest?.('article, main, section, [role="article"]') ?? null;
@@ -98,7 +102,8 @@ class SelectionContextExtractor {
     const frag = r.cloneContents();
     // Remove non-content elements commonly present in documents
     try {
-      frag.querySelectorAll?.("script, style, noscript, iframe, svg, canvas")
+      frag
+        .querySelectorAll?.("script, style, noscript, iframe, svg, canvas")
         .forEach((el) => el.remove());
     } catch {
       // querySelectorAll may not exist in very old environments; ignore
@@ -109,8 +114,8 @@ class SelectionContextExtractor {
 
   private normalize(s: string): string {
     return s
-      .replace(/\u00A0/g, " ")     // nbsp -> space
-      .replace(/\s+/g, " ")        // collapse whitespace
+      .replace(/\u00A0/g, " ") // nbsp -> space
+      .replace(/\s+/g, " ") // collapse whitespace
       .trim();
   }
 
@@ -157,7 +162,11 @@ export function getSelectionContext(
   container?: Element,
   wordLimit = 400,
 ): SelectionContext {
-  const extractor = new SelectionContextExtractor(selection, container, wordLimit);
+  const extractor = new SelectionContextExtractor(
+    selection,
+    container,
+    wordLimit,
+  );
   return extractor.extract();
 }
 

@@ -40,7 +40,9 @@ export const BookHtmlView = observer(function BookHtmlView({
       else shadow.innerHTML = "";
 
       const styles = document.createElement("style");
-      styles.textContent = tailwindBaseCSS + `
+      styles.textContent =
+        tailwindBaseCSS +
+        `
         .chapter-html-body{max-width:100%;overflow-x:auto}
         img{max-width:100%;height:auto}
         pre{overflow-x:auto}
@@ -55,9 +57,9 @@ export const BookHtmlView = observer(function BookHtmlView({
       shadow.appendChild(wrapper);
 
       const onClick = (e: MouseEvent) => {
-        const a = (e.target as HTMLElement).closest("a") as
-          | HTMLAnchorElement
-          | null;
+        const a = (e.target as HTMLElement).closest(
+          "a",
+        ) as HTMLAnchorElement | null;
         if (!a) return;
         const href = a.getAttribute("href") || "";
         if (!href) return;
