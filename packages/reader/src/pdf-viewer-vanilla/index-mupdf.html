@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Viewer - MuPDF.js</title>
+    <link rel="stylesheet" href="styles-scroll.css">
+
+</head>
+<body>
+    <div class="pdf-container">
+        <header class="pdf-header">
+            <h1>PDF Viewer - MuPDF.js (Continuous Scrolling)</h1>
+            <div class="pdf-controls">
+                <span class="page-info">
+                    Viewing: <span id="current-page">-</span> / <span id="page-count">-</span> pages
+                </span>
+                <div class="zoom-controls">
+                    <button id="zoom-out" class="btn">-</button>
+                    <span id="zoom-level">100%</span>
+                    <button id="zoom-in" class="btn">+</button>
+                    <button id="zoom-fit" class="btn">Fit Width</button>
+                </div>
+                <div class="performance-info">
+                    <span id="loaded-pages">Pages in memory: 0</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="pdf-scroll-container" id="pdf-scroll-container">
+            <div id="pdf-pages" class="pdf-pages">
+                <!-- Pages will be dynamically inserted here -->
+            </div>
+            <div id="loading" class="loading">Loading PDF...</div>
+            <div id="error" class="error" style="display: none;"></div>
+        </main>
+    </div>
+
+    <!-- Load MuPDF.js library from node_modules -->
+    <script src="../../node_modules/mupdf/dist/mupdf-wasm.js"></script>
+    <script type="module" src="viewer-mupdf.js"></script>
+</body>
+</html>

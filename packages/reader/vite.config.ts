@@ -31,6 +31,7 @@ for (const testPath of possiblePaths) {
 
 export default defineConfig({
   // assetsInclude: ["**/*.wasm"],
+  publicDir: "../../epubs",
   build: {
     target: "es2022", // Support top-level await
     rollupOptions: {

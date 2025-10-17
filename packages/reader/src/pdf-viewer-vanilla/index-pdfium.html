@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Viewer - PDFium</title>
+    <link rel="stylesheet" href="styles-scroll.css">
+
+    <!-- EmbedPDF PDFium module -->
+    <script type="module">
+        import { init } from 'https://cdn.jsdelivr.net/npm/@embedpdf/pdfium@1/+esm';
+        window.initPDFium = init;
+    </script>
+</head>
+<body>
+    <div class="pdf-container">
+        <header class="pdf-header">
+            <h1>PDF Viewer - Continuous Scrolling (PDFium)</h1>
+            <div class="pdf-controls">
+                <span class="page-info">
+                    Viewing: <span id="current-page">-</span> / <span id="page-count">-</span> pages
+                </span>
+                <div class="zoom-controls">
+                    <button id="zoom-out" class="btn">-</button>
+                    <span id="zoom-level">100%</span>
+                    <button id="zoom-in" class="btn">+</button>
+                    <button id="zoom-fit" class="btn">Fit Width</button>
+                </div>
+                <div class="performance-info">
+                    <span id="loaded-pages">Pages in memory: 0</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="pdf-scroll-container" id="pdf-scroll-container">
+            <div id="pdf-pages" class="pdf-pages">
+                <!-- Pages will be dynamically inserted here -->
+            </div>
+            <div id="loading" class="loading">Loading PDF...</div>
+            <div id="error" class="error" style="display: none;"></div>
+        </main>
+    </div>
+
+    <script src="viewer-pdfium.js"></script>
+</body>
+</html>

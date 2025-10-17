@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PDF Access</title>
+</head>
+<body>
+    <h1>Testing PDF File Access</h1>
+    <div id="output"></div>
+
+    <script>
+        async function testPDF() {
+            const output = document.getElementById('output');
+
+            try {
+                // Test fetching the PDF
+                const response = await fetch('/sample.pdf');
+                output.innerHTML += `<p>Fetch status: ${response.status} ${response.statusText}</p>`;
+                output.innerHTML += `<p>Content-Type: ${response.headers.get('Content-Type')}</p>`;
+
+                if (response.ok) {
+                    const arrayBuffer = await response.arrayBuffer();
+                    output.innerHTML += `<p>File size: ${arrayBuffer.byteLength} bytes</p>`;
+
+                    // Check PDF header
+                    const bytes = new Uint8Array(arrayBuffer.slice(0, 5));
+                    const header = String.fromCharCode(...bytes);
+                    output.innerHTML += `<p>File header: ${header}</p>`;
+                    output.innerHTML += `<p>Is PDF: ${header === '%PDF-' ? 'YES' : 'NO'}</p>`;
+                } else {
+                    output.innerHTML += `<p style="color: red;">Failed to fetch PDF</p>`;
+                }
+            } catch (error) {
+                output.innerHTML += `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        testPDF();
+    </script>
+</body>
+</html>

@@ -44,7 +44,7 @@ class PDFScrollViewer {
   async init() {
     try {
       // Load the PDF
-      this.pdfDoc = await pdfjsLib.getDocument("calculus.pdf").promise;
+      this.pdfDoc = await pdfjsLib.getDocument("/sample.pdf").promise;
       this.totalPages = this.pdfDoc.numPages;
 
       // Update UI

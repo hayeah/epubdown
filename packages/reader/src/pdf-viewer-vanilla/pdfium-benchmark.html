@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDFium Canvas Rendering Benchmark</title>
+    <script type="module">
+        import { init } from 'https://cdn.jsdelivr.net/npm/@embedpdf/pdfium@1/+esm';
+        window.initPDFium = init;
+    </script>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #569cd6;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #252526;
+            border-radius: 5px;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        button:disabled {
+            background: #3c3c3c;
+            cursor: not-allowed;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #252526;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-size: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .result-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #1e1e1e;
+            border-left: 3px solid #569cd6;
+        }
+        .result-title {
+            color: #4ec9b0;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .metric {
+            color: #ce9178;
+        }
+        .canvas-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #252526;
+            border-radius: 5px;
+        }
+        .canvas-preview {
+            max-width: 100%;
+            border: 1px solid #3c3c3c;
+            display: block;
+            margin: 10px auto;
+        }
+        .preview-title {
+            color: #4ec9b0;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .results-table th {
+            background: #1e1e1e;
+            color: #569cd6;
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #3c3c3c;
+        }
+        .results-table td {
+            padding: 8px;
+            border: 1px solid #3c3c3c;
+        }
+        .results-table tr:nth-child(even) {
+            background: #1e1e1e;
+        }
+        .results-table .metric-value {
+            color: #ce9178;
+            font-weight: bold;
+        }
+        .results-table .best-value {
+            color: #4ec9b0;
+            font-weight: bold;
+        }
+        .status {
+            color: #dcdcaa;
+            margin: 10px 0;
+        }
+        .error {
+            color: #f48771;
+        }
+        .success {
+            color: #4ec9b0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PDFium Canvas Rendering Benchmark</h1>
+
+        <div class="controls">
+            <div>
+                <label>PDF Path: </label>
+                <input type="text" id="pdfPath" value="sample.pdf" style="width: 300px; padding: 5px;">
+            </div>
+            <div style="margin-top: 10px;">
+                <label>Iterations: </label>
+                <input type="number" id="iterations" value="10" min="1" max="100" style="width: 80px; padding: 5px;">
+                <label style="margin-left: 20px;">Warmup: </label>
+                <input type="number" id="warmup" value="2" min="0" max="10" style="width: 80px; padding: 5px;">
+            </div>
+            <div style="margin-top: 15px;">
+                <button onclick="runAllBenchmarks()">🚀 Run All Benchmarks</button>
+                <button onclick="clearResults()">Clear Results</button>
+                <label style="margin-left: 20px;">
+                    <input type="checkbox" id="showCanvas" checked> Show Canvas Preview
+                </label>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+
+        <div class="results" id="results"></div>
+        <div class="canvas-container" id="canvasContainer"></div>
+    </div>
+
+    <script src="pdfium-benchmark.js" type="module"></script>
+</body>
+</html>
