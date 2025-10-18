@@ -1,7 +1,8 @@
 import { ContentToMarkdown, type DOMFile, type EPub } from "@epubdown/core";
 import { ArrowRight } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import React, { useEffect, useRef } from "react";
+import type React from "react";
+import { useEffect, useRef } from "react";
 import { BookHtmlView } from "./BookHtmlView";
 import { inlineChapterHTML } from "../lib/inlineHtmlAssets";
 import { AsyncView } from "../lib/AsyncView";

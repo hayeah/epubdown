@@ -1,5 +1,6 @@
 // AsyncView.tsx
-import React, { useEffect, useRef, useState } from "react";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 import { autorun, type IReactionDisposer } from "mobx";
 
 type AsyncViewProps = {

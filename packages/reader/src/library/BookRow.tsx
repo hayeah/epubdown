@@ -42,29 +42,35 @@ export const BookRow: React.FC<BookRowProps> = ({
   return (
     <Link
       href={`/book/${book.id}`}
-      className="flex flex-col gap-2 sm:flex-row sm:items-center px-4 sm:px-6 py-3 text-sm hover:bg-gray-50 border-b border-gray-100 cursor-pointer transition-colors duration-100 no-underline text-inherit group"
+      className="flex gap-3 px-4 sm:px-6 py-3 text-sm hover:bg-gray-50 border-b border-gray-100 cursor-pointer transition-colors duration-100 no-underline text-inherit group"
     >
-      {/* Title and Author */}
-      <div className="flex min-w-0 items-baseline gap-2">
+      {/* Unread indicator */}
+      <div className="flex items-start pt-1">
         {!book.lastOpenedAt && (
           <span
             className="inline-block w-2 h-2 rounded-full bg-blue-300 shrink-0"
             aria-label="Unread"
           />
         )}
-        <span className="font-medium text-gray-900 truncate">
-          {highlightText(book.title)}
-        </span>
-        {book.author && (
-          <span className="text-gray-500 text-xs truncate">
-            {highlightText(book.author)}
-          </span>
-        )}
       </div>
 
-      {/* Last opened */}
-      <div className="flex items-center justify-between w-full gap-3 sm:w-auto sm:gap-2 sm:ml-auto sm:justify-end">
-        <span className="text-xs text-gray-500">
+      {/* Title and Author - allow wrapping */}
+      <div className="flex-1 min-w-0">
+        <div className="break-words">
+          <span className="font-medium text-gray-900">
+            {highlightText(book.title)}
+          </span>
+          {book.author && (
+            <span className="text-gray-500 text-xs ml-2">
+              {highlightText(book.author)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Last opened and delete - fixed width on desktop */}
+      <div className="flex items-center gap-2 shrink-0 sm:w-24 sm:justify-end">
+        <span className="text-xs text-gray-500 whitespace-nowrap">
           {formatOpened(book.lastOpenedAt, book.createdAt)}
         </span>
 

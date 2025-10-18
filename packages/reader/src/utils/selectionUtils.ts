@@ -127,8 +127,8 @@ class SelectionContextExtractor {
     const bWords = beforeText ? beforeText.split(/\s+/) : [];
     const aWords = afterText ? afterText.split(/\s+/) : [];
 
-    let desiredBefore = Math.ceil(limit / 2);
-    let desiredAfter = Math.floor(limit / 2);
+    const desiredBefore = Math.ceil(limit / 2);
+    const desiredAfter = Math.floor(limit / 2);
 
     let takeBefore = Math.min(bWords.length, desiredBefore);
     let takeAfter = Math.min(aWords.length, desiredAfter);
