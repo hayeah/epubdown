@@ -60,10 +60,7 @@ describe("vanilla pdf viewer - PDFium", () => {
     document.head.appendChild(pdfiumScript);
 
     // Wait for PDFium init function to be available
-    await waitFor(
-      () => typeof window.initPDFium !== "undefined",
-      10_000,
-    );
+    await waitFor(() => typeof window.initPDFium !== "undefined", 10_000);
 
     // Now set up the HTML
     document.body.innerHTML = parsed.body.innerHTML;

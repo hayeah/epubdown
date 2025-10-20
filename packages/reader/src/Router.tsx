@@ -5,6 +5,7 @@ import { Library } from "./Library";
 import { ReaderPage } from "./ReaderPage";
 import { NotFound } from "./components/NotFound";
 import { PdfPage } from "./pdf/PdfPage";
+import { PdfViewerHPPage } from "./pdf-viewer/PdfViewerHPPage";
 
 export function AppRouter() {
   return (
@@ -13,6 +14,7 @@ export function AppRouter() {
         <Route path="/" component={Library} />
         <Route path="/book/:bookId/:chapterIndex?" component={ReaderPage} />
         <Route path="/pdf/:bookId" component={PdfPage} />
+        <Route path="/pdf-hp/:bookId" component={PdfViewerHPPage} />
         <Route
           path="/prototype/upload-errors"
           component={UploadErrorsPrototype}

@@ -48,7 +48,8 @@ class PDFiumScrollViewer {
   async initializePDFium() {
     try {
       // Fetch the WebAssembly binary
-      const pdfiumWasm = "https://cdn.jsdelivr.net/npm/@embedpdf/pdfium@1/dist/pdfium.wasm";
+      const pdfiumWasm =
+        "https://cdn.jsdelivr.net/npm/@embedpdf/pdfium@1/dist/pdfium.wasm";
       const response = await fetch(pdfiumWasm);
       const wasmBinary = await response.arrayBuffer();
 
@@ -66,12 +67,20 @@ class PDFiumScrollViewer {
         console.log("PDFium instance type:", typeof this.pdfium);
         console.log("Has ccall:", typeof this.pdfium.ccall);
         console.log("Has _malloc:", typeof this.pdfium._malloc);
-        console.log("PDFium properties sample:", Object.keys(this.pdfium).slice(0, 20));
+        console.log(
+          "PDFium properties sample:",
+          Object.keys(this.pdfium).slice(0, 20),
+        );
       } else {
         // The wrapper itself is the PDFium instance
         this.pdfium = wrapper;
         console.log("Using wrapper as PDFium instance");
-        console.log("Wrapper functions sample:", Object.keys(wrapper).filter(k => typeof wrapper[k] === 'function').slice(0, 30));
+        console.log(
+          "Wrapper functions sample:",
+          Object.keys(wrapper)
+            .filter((k) => typeof wrapper[k] === "function")
+            .slice(0, 30),
+        );
       }
 
       // Setup API references based on what's available
@@ -94,33 +103,39 @@ class PDFiumScrollViewer {
 
   setupAPIReferences() {
     // First, let's see what FPDF functions are available
-    const allFunctions = Object.keys(this.pdfium).filter(k => typeof this.pdfium[k] === 'function');
-    const fpdfFunctions = allFunctions.filter(k => k.includes('FPDF'));
+    const allFunctions = Object.keys(this.pdfium).filter(
+      (k) => typeof this.pdfium[k] === "function",
+    );
+    const fpdfFunctions = allFunctions.filter((k) => k.includes("FPDF"));
     console.log("Available FPDF functions:", fpdfFunctions);
 
     // Check which API style to use (with or without underscores)
-    const hasUnderscore = typeof this.pdfium._FPDF_LoadMemDocument === 'function';
+    const hasUnderscore =
+      typeof this.pdfium._FPDF_LoadMemDocument === "function";
 
-    console.log("PDFium API style:", hasUnderscore ? "with underscores" : "without underscores");
+    console.log(
+      "PDFium API style:",
+      hasUnderscore ? "with underscores" : "without underscores",
+    );
 
     // Setup all API function references
     const functions = [
-      'FPDF_LoadMemDocument',
-      'FPDF_GetPageCount',
-      'FPDF_GetLastError',
-      'FPDF_LoadPage',
-      'FPDF_GetPageWidthF',
-      'FPDF_GetPageHeightF',
-      'FPDF_ClosePage',
-      'FPDFBitmap_Create',
-      'FPDFBitmap_FillRect',
-      'FPDF_RenderPageBitmap',
-      'FPDFBitmap_GetStride',
-      'FPDFBitmap_GetBuffer',
-      'FPDFBitmap_Destroy',
-      'FPDF_CloseDocument',
-      'FPDF_DestroyLibrary',
-      'PDFiumExt_Init'
+      "FPDF_LoadMemDocument",
+      "FPDF_GetPageCount",
+      "FPDF_GetLastError",
+      "FPDF_LoadPage",
+      "FPDF_GetPageWidthF",
+      "FPDF_GetPageHeightF",
+      "FPDF_ClosePage",
+      "FPDFBitmap_Create",
+      "FPDFBitmap_FillRect",
+      "FPDF_RenderPageBitmap",
+      "FPDFBitmap_GetStride",
+      "FPDFBitmap_GetBuffer",
+      "FPDFBitmap_Destroy",
+      "FPDF_CloseDocument",
+      "FPDF_DestroyLibrary",
+      "PDFiumExt_Init",
     ];
 
     for (const func of functions) {
@@ -135,15 +150,23 @@ class PDFiumScrollViewer {
     }
 
     // Emscripten memory functions (always with underscore)
-    this.api.malloc = this.pdfium._malloc ? this.pdfium._malloc.bind(this.pdfium) : null;
-    this.api.free = this.pdfium._free ? this.pdfium._free.bind(this.pdfium) : null;
+    this.api.malloc = this.pdfium._malloc
+      ? this.pdfium._malloc.bind(this.pdfium)
+      : null;
+    this.api.free = this.pdfium._free
+      ? this.pdfium._free.bind(this.pdfium)
+      : null;
 
     // Log what we found
     if (!this.api.malloc) {
-      console.log("Warning: _malloc not found, will use alternative loading approach");
+      console.log(
+        "Warning: _malloc not found, will use alternative loading approach",
+      );
     }
     if (!this.pdfium.HEAPU8) {
-      console.log("Warning: HEAPU8 not found, direct memory access not available");
+      console.log(
+        "Warning: HEAPU8 not found, direct memory access not available",
+      );
     }
   }
 
@@ -168,14 +191,19 @@ class PDFiumScrollViewer {
       if (this.pdfium.ccall) {
         // Approach 1: Using ccall (most reliable)
         console.log("Using ccall approach for PDF loading");
-        pdfBuffer = this.pdfium.ccall("malloc", "number", ["number"], [pdfData.length]);
+        pdfBuffer = this.pdfium.ccall(
+          "malloc",
+          "number",
+          ["number"],
+          [pdfData.length],
+        );
         this.pdfium.HEAPU8.set(pdfData, pdfBuffer);
 
         pdfDocument = this.pdfium.ccall(
           "FPDF_LoadMemDocument",
           "number",
           ["number", "number", "number"],
-          [pdfBuffer, pdfData.length, 0]
+          [pdfBuffer, pdfData.length, 0],
         );
 
         // Keep the buffer reference - PDFium needs it
@@ -187,7 +215,11 @@ class PDFiumScrollViewer {
         this.pdfium.HEAPU8.set(pdfData, pdfDataPtr);
 
         // Call FPDF_LoadMemDocument with the pointer
-        pdfDocument = this.api.FPDF_LoadMemDocument(pdfDataPtr, pdfData.length, 0);
+        pdfDocument = this.api.FPDF_LoadMemDocument(
+          pdfDataPtr,
+          pdfData.length,
+          0,
+        );
 
         // Keep the buffer reference - PDFium needs it
         this.pdfBuffer = pdfDataPtr;
@@ -198,10 +230,21 @@ class PDFiumScrollViewer {
         // The embedpdf library might handle the data internally
         // Try passing the data in different formats
         const attempts = [
-          () => this.api.FPDF_LoadMemDocument(pdfData, pdfData.byteLength, null),
+          () =>
+            this.api.FPDF_LoadMemDocument(pdfData, pdfData.byteLength, null),
           () => this.api.FPDF_LoadMemDocument(pdfData, pdfData.byteLength, 0),
-          () => this.api.FPDF_LoadMemDocument(pdfData.buffer, pdfData.byteLength, null),
-          () => this.api.FPDF_LoadMemDocument(pdfData.buffer, pdfData.byteLength, 0),
+          () =>
+            this.api.FPDF_LoadMemDocument(
+              pdfData.buffer,
+              pdfData.byteLength,
+              null,
+            ),
+          () =>
+            this.api.FPDF_LoadMemDocument(
+              pdfData.buffer,
+              pdfData.byteLength,
+              0,
+            ),
           // Try with a password parameter as an empty string
           () => this.api.FPDF_LoadMemDocument(pdfData, pdfData.byteLength, ""),
         ];
@@ -210,7 +253,9 @@ class PDFiumScrollViewer {
           try {
             pdfDocument = attempt();
             if (pdfDocument && pdfDocument !== 0) {
-              console.log("Successfully loaded PDF with embedpdf wrapper approach");
+              console.log(
+                "Successfully loaded PDF with embedpdf wrapper approach",
+              );
               break;
             }
           } catch (e) {
@@ -222,7 +267,9 @@ class PDFiumScrollViewer {
       this.pdfDocument = pdfDocument;
 
       if (!this.pdfDocument || this.pdfDocument === 0) {
-        const error = this.api.FPDF_GetLastError ? this.api.FPDF_GetLastError() : "Unknown";
+        const error = this.api.FPDF_GetLastError
+          ? this.api.FPDF_GetLastError()
+          : "Unknown";
         const errorMessages = {
           0: "Success",
           1: "Unknown error",
@@ -230,16 +277,21 @@ class PDFiumScrollViewer {
           3: "File not in PDF format or corrupted",
           4: "Password required or incorrect password",
           5: "Unsupported security scheme",
-          6: "Page not found or content error"
+          6: "Page not found or content error",
         };
 
         // Additional debugging
         console.error("PDF loading failed with error:", error);
         console.error("pdfDocument value:", this.pdfDocument);
-        console.error("PDF data first bytes:", Array.from(pdfData.slice(0, 10)));
+        console.error(
+          "PDF data first bytes:",
+          Array.from(pdfData.slice(0, 10)),
+        );
         console.error("Expected PDF header: %PDF-");
 
-        throw new Error(`Failed to load PDF document. Error code: ${error} (${errorMessages[error] || 'Unknown error'})`);
+        throw new Error(
+          `Failed to load PDF document. Error code: ${error} (${errorMessages[error] || "Unknown error"})`,
+        );
       }
 
       this.totalPages = this.api.FPDF_GetPageCount(this.pdfDocument);
@@ -434,7 +486,7 @@ class PDFiumScrollViewer {
       0,
       scaledWidth,
       scaledHeight,
-      0xffffffff
+      0xffffffff,
     );
 
     // Render the page to the bitmap
@@ -446,7 +498,7 @@ class PDFiumScrollViewer {
       scaledWidth,
       scaledHeight,
       0,
-      0
+      0,
     );
 
     // Get the bitmap buffer and convert to ImageData
@@ -461,7 +513,7 @@ class PDFiumScrollViewer {
     const buffer = new Uint8Array(
       this.pdfium.HEAPU8.buffer,
       bufferPtr,
-      bufferSize
+      bufferSize,
     );
 
     // Convert BGRA to RGBA (PDFium uses BGRA format)
@@ -469,9 +521,9 @@ class PDFiumScrollViewer {
     let dstIndex = 0;
     for (let y = 0; y < scaledHeight; y++) {
       for (let x = 0; x < scaledWidth; x++) {
-        imageData.data[dstIndex] = buffer[srcIndex + 2];     // R
+        imageData.data[dstIndex] = buffer[srcIndex + 2]; // R
         imageData.data[dstIndex + 1] = buffer[srcIndex + 1]; // G
-        imageData.data[dstIndex + 2] = buffer[srcIndex];     // B
+        imageData.data[dstIndex + 2] = buffer[srcIndex]; // B
         imageData.data[dstIndex + 3] = buffer[srcIndex + 3]; // A
         srcIndex += 4;
         dstIndex += 4;
@@ -587,10 +639,7 @@ class PDFiumScrollViewer {
       const rect = container.getBoundingClientRect();
       const containerRect = this.container.getBoundingClientRect();
 
-      if (
-        rect.bottom > containerRect.top &&
-        rect.top < containerRect.bottom
-      ) {
+      if (rect.bottom > containerRect.top && rect.top < containerRect.bottom) {
         visiblePages.push(Number.parseInt(container.dataset.pageNum));
       }
     });

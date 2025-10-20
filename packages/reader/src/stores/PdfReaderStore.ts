@@ -101,7 +101,9 @@ export class PdfReaderStore {
       // Ensure scale is reasonable (between 0.5 and 3)
       const clampedScale = Math.max(0.5, Math.min(3, scale));
 
-      console.log(`Fit zoom for page ${targetPage}: ${clampedScale.toFixed(2)}`);
+      console.log(
+        `Fit zoom for page ${targetPage}: ${clampedScale.toFixed(2)}`,
+      );
 
       runInAction(() => {
         this.zoom = clampedScale;
