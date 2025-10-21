@@ -231,6 +231,48 @@ export class ReadingProgressStore {
       el.style.background = "";
     }
   }
+
+  // Effect methods for component integration
+  // Called from useEffect to set up and tear down tracking
+  onEffect(contentElement: HTMLElement): () => void {
+    this.setup(contentElement);
+
+    setTimeout(() => {
+      // Start tracking after a delay to allow scroll restoration to complete
+      this.startTracking(contentElement);
+    }, 100);
+
+    return () => {
+      this.stopTracking();
+    };
+  }
+
+  // Called from useLayoutEffect to handle scroll restoration
+  onLayoutEffect(contentElement: HTMLElement): void {
+    this.setup(contentElement);
+
+    // Check if we should restore scroll position based on hash
+    const hash = window.location.hash;
+    if (hash?.startsWith("#p_")) {
+      const position = this.parsePositionHash(hash);
+      if (position !== null) {
+        const targetBlock = this.getBlockByIndex(position);
+        if (targetBlock) {
+          // Add highlight class before scrolling
+          targetBlock.classList.add("reading-progress-highlight");
+
+          // Remove the highlight after animation completes
+          setTimeout(() => {
+            targetBlock.classList.remove("reading-progress-highlight");
+          }, 5000);
+        }
+      }
+      this.restoreScrollPosition(hash);
+    } else {
+      // No reading progress, scroll to top
+      window.scrollTo(0, 0);
+    }
+  }
 }
 
 // Singleton instance
