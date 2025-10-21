@@ -22,6 +22,14 @@ export async function renderPDFToDom(
   const doc = await engine.loadDocument(data);
   const pageIndex0 = pageNumber - 1;
 
+  // Validate page number
+  const totalPages = doc.pageCount();
+  if (pageIndex0 < 0 || pageIndex0 >= totalPages) {
+    throw new Error(
+      `Invalid page number ${pageNumber}. Document has ${totalPages} pages (valid range: 1-${totalPages})`,
+    );
+  }
+
   const t0 = performance.now();
   const page = await doc.loadPage(pageIndex0);
   await page.renderToCanvas(domCanvasElement, ppi);

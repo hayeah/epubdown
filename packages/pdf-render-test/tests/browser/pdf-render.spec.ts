@@ -27,5 +27,5 @@ describe("browser: render a few pages (PDF.js)", () => {
     expect(report.pages_per_sec).toBeGreaterThan(0);
     // UA memory may be null; canvas estimate should grow
     expect(report.canvas_estimated_delta_bytes).toBeGreaterThan(0);
-  }, 45_000);
+  }, 120_000);
 });

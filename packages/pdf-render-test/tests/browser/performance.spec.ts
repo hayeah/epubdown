@@ -141,6 +141,7 @@ describe("Performance: 20 canvases on single page (memory stress test)", () => {
       startPage: 1, // render page 1 twenty times
       canvasFactory,
       collectPerPage: false,
+      canvasMode: "append-all", // Memory stress test: keep all canvases in DOM
     });
 
     console.log("\n=== PDF.js 20-canvas Memory Test ===");
@@ -168,6 +169,7 @@ describe("Performance: 20 canvases on single page (memory stress test)", () => {
       startPage: 1,
       canvasFactory,
       collectPerPage: false,
+      canvasMode: "append-all", // Memory stress test: keep all canvases in DOM
     });
 
     console.log("\n=== PDFium 20-canvas Memory Test ===");

@@ -5,7 +5,17 @@ import type { DocumentHandle, PDFEngine, PageHandle } from "../types.js";
 let instance: WrappedPdfiumModule | null = null;
 let pdfiumCore: any = null; // Store the actual PDFium core instance
 
-export function createPdfiumEngine(wasmUrl = "/pdfium.wasm"): PDFEngine {
+export interface PdfiumEngineOptions {
+  wasmUrl?: string;
+}
+
+export function createPdfiumEngine(
+  options: PdfiumEngineOptions | string = {},
+): PDFEngine {
+  // Support legacy string parameter for wasmUrl
+  const opts = typeof options === "string" ? { wasmUrl: options } : options;
+  const { wasmUrl = "/pdfium.wasm" } = opts;
+
   return {
     name: "PDFium",
     async init() {
@@ -46,6 +56,7 @@ export function createPdfiumEngine(wasmUrl = "/pdfium.wasm"): PDFEngine {
 
       let ptr: number | null = null;
       let doc: any = null;
+      let allocMethod: "ccall" | "direct" | "wrapper" | null = null;
 
       // Try different approaches based on what's available
       if (pdfiumCore.ccall) {
@@ -59,6 +70,7 @@ export function createPdfiumEngine(wasmUrl = "/pdfium.wasm"): PDFEngine {
             ["number", "number", "number"],
             [ptr, data.length, 0],
           );
+          allocMethod = "ccall";
         } catch (e) {
           console.log("ccall approach failed:", e);
         }
@@ -71,6 +83,7 @@ export function createPdfiumEngine(wasmUrl = "/pdfium.wasm"): PDFEngine {
           if (ptr !== null) {
             pdfiumCore.HEAPU8.set(data, ptr);
             doc = instance.FPDF_LoadMemDocument(ptr, data.length, "");
+            allocMethod = "direct";
           }
         } catch (e) {
           console.log("Direct malloc approach failed:", e);
@@ -82,14 +95,21 @@ export function createPdfiumEngine(wasmUrl = "/pdfium.wasm"): PDFEngine {
         // The wrapper might handle memory internally
         try {
           doc = instance.FPDF_LoadMemDocument(data as any, data.length, "");
+          allocMethod = "wrapper";
+          ptr = null; // Wrapper manages memory internally
         } catch (e) {
           console.log("Wrapper approach failed:", e);
         }
       }
 
       if (!doc || doc === 0) {
-        if (ptr && pdfiumCore._free) {
-          pdfiumCore._free(ptr);
+        // Free memory using the same method that allocated it
+        if (ptr !== null) {
+          if (allocMethod === "ccall" && pdfiumCore.ccall) {
+            pdfiumCore.ccall("free", null, ["number"], [ptr]);
+          } else if (allocMethod === "direct" && pdfiumCore._free) {
+            pdfiumCore._free(ptr);
+          }
         }
         const errorCode = instance.FPDF_GetLastError
           ? instance.FPDF_GetLastError()
@@ -112,6 +132,12 @@ export function createPdfiumEngine(wasmUrl = "/pdfium.wasm"): PDFEngine {
         pageCount: () => instance!.FPDF_GetPageCount(doc),
         async loadPage(pageIndex0): Promise<PageHandle> {
           if (!instance) throw new Error("Instance is null");
+          const totalPages = instance.FPDF_GetPageCount(doc);
+          if (pageIndex0 < 0 || pageIndex0 >= totalPages) {
+            throw new Error(
+              `Invalid page index ${pageIndex0}. Document has ${totalPages} pages (valid range: 0-${totalPages - 1})`,
+            );
+          }
           const page = instance.FPDF_LoadPage(doc, pageIndex0);
           const wPt = instance.FPDF_GetPageWidthF(page);
           const hPt = instance.FPDF_GetPageHeightF(page);
@@ -144,27 +170,22 @@ export function createPdfiumEngine(wasmUrl = "/pdfium.wasm"): PDFEngine {
                 throw new Error("HEAPU8 not found for bitmap buffer");
               }
 
-              // PDFium uses BGRA format, need to convert to RGBA
-              const buffer = new Uint8Array(
-                heap.buffer,
-                heap.byteOffset + bufPtr,
-                len,
-              );
-              const rgba = new Uint8ClampedArray(len);
-
-              // Convert BGRA to RGBA
-              for (let i = 0; i < len; i += 4) {
-                rgba[i] = buffer[i + 2]!; // R
-                rgba[i + 1] = buffer[i + 1]!; // G
-                rgba[i + 2] = buffer[i]!; // B
-                rgba[i + 3] = buffer[i + 3]!; // A
-              }
-
               canvas.width = wPx;
               canvas.height = hPx;
               const ctx = canvas.getContext("2d");
               if (!ctx) throw new Error("Failed to get 2d context");
-              ctx.putImageData(new ImageData(rgba, wPx, hPx), 0, 0);
+
+              // Note: FPDF_REVERSE_BYTE_ORDER (flag 16) converts from BGRA to RGBA
+              // Create direct Uint8ClampedArray view from WASM heap and copy to ImageData
+              const imgData = ctx.createImageData(wPx, hPx);
+              const sourceView = new Uint8ClampedArray(
+                heap.buffer,
+                heap.byteOffset + bufPtr,
+                len,
+              );
+              imgData.data.set(sourceView);
+
+              ctx.putImageData(imgData, 0, 0);
 
               instance.FPDFBitmap_Destroy(bmp);
             },
@@ -177,8 +198,13 @@ export function createPdfiumEngine(wasmUrl = "/pdfium.wasm"): PDFEngine {
         destroy() {
           if (!instance) return;
           instance.FPDF_CloseDocument(doc);
-          if (ptr && pdfiumCore._free) {
-            pdfiumCore._free(ptr);
+          // Free memory using the same method that allocated it
+          if (ptr !== null) {
+            if (allocMethod === "ccall" && pdfiumCore.ccall) {
+              pdfiumCore.ccall("free", null, ["number"], [ptr]);
+            } else if (allocMethod === "direct" && pdfiumCore._free) {
+              pdfiumCore._free(ptr);
+            }
           }
         },
       };

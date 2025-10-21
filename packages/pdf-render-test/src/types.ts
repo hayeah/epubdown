@@ -45,7 +45,9 @@ export interface MemorySample {
 export interface PageRenderSample {
   page_index0: number;
   load_ms: number; // Time to load/parse page structure
-  render_ms: number; // Time to render pixels to canvas
+  render_ms: number; // Time to render pixels to canvas (engine API call)
+  composite_ms: number; // Time for browser to composite and paint to screen
+  total_ux_ms: number; // Total user-perceived time (load + render + composite)
   memory_after?: MemorySample;
 }
 
@@ -65,12 +67,14 @@ export interface BatchReport {
 
   // Timing (aggregate)
   total_load_ms: number; // Total time loading/parsing page structures
-  total_render_ms: number; // Total time rendering pixels to canvas
-  total_ms: number; // total_load_ms + total_render_ms
-  pages_per_sec: number; // Based on total_ms
+  total_render_ms: number; // Total time rendering pixels to canvas (engine API)
+  total_composite_ms: number; // Total time for browser compositing/painting
+  total_ux_ms: number; // Total user-perceived time (load + render + composite)
+  pages_per_sec: number; // Based on total_ux_ms (real-world throughput)
   total_load_formatted: string; // Human-readable load time
   total_render_formatted: string; // Human-readable render time
-  total_formatted: string; // Human-readable total time
+  total_composite_formatted: string; // Human-readable composite time
+  total_ux_formatted: string; // Human-readable UX time
 
   // Memory (aggregate)
   memory_before: MemorySample | null;

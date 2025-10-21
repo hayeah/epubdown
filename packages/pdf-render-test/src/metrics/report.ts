@@ -1,7 +1,12 @@
 import type { MemorySample } from "../types.js";
+import { pagesPerSecond } from "./timing.js";
 
+/**
+ * Compute pages per second rate
+ * @deprecated Use pagesPerSecond from timing.js instead
+ */
 export const computePagesPerSec = (total_ms: number, pages: number) =>
-  pages > 0 ? (pages / total_ms) * 1000 : 0;
+  pagesPerSecond(total_ms, pages);
 
 export const computeUADelta = (
   before: MemorySample | null,
