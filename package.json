@@ -4,8 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm -C packages/reader dev",
+    "dev:pdf": "pnpm --filter playground dev",
     "build": "pnpm -r --parallel build",
     "test": "pnpm -r test",
+    "test:browser": "pnpm --filter @yourorg/pdf-render-test test:browser",
+    "typecheck": "pnpm -r typecheck",
     "tsc": "tsc --noEmit",
     "format": "biome format --write",
     "lint": "biome lint --write",
