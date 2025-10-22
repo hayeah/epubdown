@@ -1,9 +1,12 @@
 // AsyncView.tsx
-import React, { useEffect, useRef, useState } from "react";
+import type React from "react";
+import { useEffect, useRef, useState, createElement } from "react";
 import { autorun, type IReactionDisposer } from "mobx";
 
 type AsyncViewProps = {
-  children: (ctx: { signal: AbortSignal }) => Promise<React.ReactNode>;
+  children: (ctx: {
+    signal: AbortSignal;
+  }) => Promise<React.ReactNode | (() => React.ReactNode)>;
   loader?: React.ReactNode;
   delayMs?: number; // when to show loader, default 500
   onError?: (err: Error) => React.ReactNode;
@@ -89,9 +92,15 @@ export function AsyncView({
 
       // Now handle the promise result asynchronously
       promise
-        .then((node) => {
+        .then((result) => {
           // Ignore stale or aborted completions
           if (runIdRef.current !== thisRunId || ac.signal.aborted) return;
+
+          // If the result is a function, treat it as a component
+          // This allows hooks to work in the returned component
+          const node =
+            typeof result === "function" ? createElement(result) : result;
+
           setCurrentView(node);
           setErrorView(null);
         })

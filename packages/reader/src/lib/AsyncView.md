@@ -12,6 +12,8 @@ A React component that wraps async operations with MobX reactivity, loading stat
 
 ## Usage
 
+### Basic Usage (React Nodes)
+
 ```tsx
 import { AsyncView } from './lib/AsyncView';
 
@@ -38,6 +40,129 @@ function MyComponent() {
   );
 }
 ```
+
+### Advanced Usage (Component Function with Hooks)
+
+To use React hooks like `useState`, `useEffect`, or `useRef` in your async content, return a component function instead of React nodes:
+
+```tsx
+import { AsyncView } from './lib/AsyncView';
+
+function MyComponent() {
+  const store = useMyStore();
+
+  return (
+    <AsyncView
+      loader={<Spinner />}
+      delayMs={500}
+      onError={(err) => <ErrorMessage error={err} />}
+    >
+      {async ({ signal }) => {
+        // Access observables here (before first await) for MobX tracking
+        const data = store.someObservable;
+
+        // Perform async work
+        const result = await fetchData(data, { signal });
+
+        // Return a component function to use hooks
+        return () => {
+          // Now you can use hooks!
+          const [count, setCount] = useState(0);
+          const divRef = useRef<HTMLDivElement>(null);
+
+          useEffect(() => {
+            console.log('Component mounted');
+          }, []);
+
+          return (
+            <div ref={divRef}>
+              {result}
+              <button onClick={() => setCount(count + 1)}>
+                Count: {count}
+              </button>
+            </div>
+          );
+        };
+      }}
+    </AsyncView>
+  );
+}
+```
+
+**Note:** When returning a component function, you can ignore dependencies in hooks since AsyncView relies on MobX observables to trigger re-renders, not React's dependency arrays.
+
+### Equivalent useEffect + useState Implementation
+
+Without `AsyncView`, you'd need to manually manage state, cleanup, and MobX reactions:
+
+```tsx
+import { useEffect, useState } from 'react';
+import { autorun } from 'mobx';
+
+function MyComponent() {
+  const store = useMyStore();
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const ac = new AbortController();
+
+    // Manual MobX tracking
+    const dispose = autorun(() => {
+      const data = store.someObservable;  // Track observable
+
+      setLoading(true);
+      setShowLoader(false);
+      setError(null);
+
+      // Delayed loader
+      const timer = setTimeout(() => {
+        if (mounted) setShowLoader(true);
+      }, 500);
+
+      fetchData(data, { signal: ac.signal })
+        .then((value) => {
+          if (!ac.signal.aborted && mounted) {
+            setResult(value);
+            setError(null);
+          }
+        })
+        .catch((err) => {
+          if (!ac.signal.aborted && mounted) {
+            setError(err);
+          }
+        })
+        .finally(() => {
+          clearTimeout(timer);
+          if (mounted) {
+            setLoading(false);
+            setShowLoader(false);
+          }
+        });
+    });
+
+    return () => {
+      mounted = false;
+      ac.abort();
+      dispose();
+    };
+  }, [store]);  // Must track store changes manually
+
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <>
+      {result && <div>{result}</div>}
+      {loading && showLoader && <Spinner />}
+    </>
+  );
+}
+```
+
+**AsyncView eliminates this boilerplate** by handling all the state management, cleanup, and MobX tracking automatically.
 
 ## Props
 

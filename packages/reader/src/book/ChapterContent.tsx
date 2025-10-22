@@ -1,13 +1,12 @@
 import { ContentToMarkdown, type DOMFile, type EPub } from "@epubdown/core";
 import { ArrowRight } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import React, { useEffect, useRef } from "react";
+import type React from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { BookHtmlView } from "./BookHtmlView";
-import { inlineChapterHTML } from "../lib/inlineHtmlAssets";
 import { AsyncView } from "../lib/AsyncView";
 import { markdownToReact } from "../markdownToReact";
 import { useReadingProgress } from "../stores/ReadingProgressStore";
-import type { ReaderStore } from "../stores/ReaderStore";
 import { useReaderStore } from "../stores/RootStore";
 
 // Helper component for HTML mode rendering
@@ -23,6 +22,8 @@ const HtmlModeRender: React.FC<{
 const MarkdownModeRender: React.FC<{
   chapter: DOMFile;
 }> = ({ chapter }) => {
+  const readingProgress = useReadingProgress();
+
   return (
     <AsyncView
       loader={
@@ -34,7 +35,27 @@ const MarkdownModeRender: React.FC<{
           basePath: chapter.base,
         });
         const markdown = await converter.convertXMLFile(chapter);
-        return await markdownToReact(markdown);
+        const reactContent = await markdownToReact(markdown);
+
+        // Return a component function to use hooks for reading progress tracking
+        return () => {
+          const contentRef = useRef<HTMLDivElement>(null);
+
+          // Scroll restoration using useLayoutEffect (runs before paint)
+          useLayoutEffect(() => {
+            if (contentRef.current) {
+              readingProgress.onLayoutEffect(contentRef.current);
+            }
+          }, []);
+
+          // Progress tracking using useEffect (runs after paint)
+          useEffect(() => {
+            if (!contentRef.current) return;
+            return readingProgress.onEffect(contentRef.current);
+          }, []);
+
+          return <div ref={contentRef}>{reactContent}</div>;
+        };
       }}
     </AsyncView>
   );
@@ -48,8 +69,6 @@ export interface ChapterContentProps {
 export const ChapterContent: React.FC<ChapterContentProps> = observer(
   ({ className }) => {
     const readerStore = useReaderStore();
-    const readingProgress = useReadingProgress();
-    const contentRef = useRef<HTMLDivElement>(null);
 
     const { currentChapter, currentChapterIndex, chapters, epub, useHtmlMode } =
       readerStore;
@@ -71,46 +90,6 @@ export const ChapterContent: React.FC<ChapterContentProps> = observer(
       }
     }
 
-    // Set up IntersectionObserver for reading position tracking
-    useEffect(() => {
-      if (!reactTree || !contentRef.current) return;
-
-      const contentElement = contentRef.current;
-
-      readingProgress.setup(contentElement);
-
-      // Check if we should restore scroll position based on hash
-      const hash = window.location.hash;
-      if (hash?.startsWith("#p_")) {
-        const position = readingProgress.parsePositionHash(hash);
-        if (position !== null) {
-          const targetBlock = readingProgress.getBlockByIndex(position);
-          if (targetBlock) {
-            // Add highlight class before scrolling
-            targetBlock.classList.add("reading-progress-highlight");
-
-            // Remove the highlight after animation completes
-            setTimeout(() => {
-              targetBlock.classList.remove("reading-progress-highlight");
-            }, 5000);
-          }
-        }
-        readingProgress.restoreScrollPosition(hash);
-      } else {
-        // No reading progress, scroll to top
-        window.scrollTo(0, 0);
-      }
-
-      setTimeout(() => {
-        // Start tracking only after scroll restoration is complete
-        readingProgress.startTracking(contentElement);
-      }, 100);
-
-      return () => {
-        readingProgress.stopTracking();
-      };
-    }, [reactTree, readingProgress]);
-
     const handleContinueReading = () => {
       if (hasNextChapter) {
         readerStore.handleChapterChange(currentChapterIndex + 1);
@@ -125,9 +104,7 @@ export const ChapterContent: React.FC<ChapterContentProps> = observer(
 
     return (
       <article className={`epub-chapter ${className ?? ""}`}>
-        <div className="chapter-content" ref={contentRef}>
-          {reactTree}
-        </div>
+        <div className="chapter-content">{reactTree}</div>
 
         {/* Continue Reading Link */}
         {hasNextChapter && (
