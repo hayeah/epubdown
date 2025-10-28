@@ -145,3 +145,6 @@ __screenshots__
 
 # SSL certificates for local dev
 *.pem
+
+# Test fixtures
+packages/pdf-render/test/src/test_pdfs

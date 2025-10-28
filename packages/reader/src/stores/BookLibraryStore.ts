@@ -8,6 +8,8 @@ import type { ErrorItem } from "../components/ErrorFlash";
 import { BlobStore } from "../lib/BlobStore";
 import { BookDatabase, type BookMetadata } from "../lib/BookDatabase";
 import { getDb } from "../lib/providers";
+import { sha256Bytes } from "../utils/sha256";
+import { PdfPageSizeCache } from "../lib/PdfPageSizeCache";
 
 export interface StoredBook extends BookMetadata {
   blob?: Blob;
@@ -22,6 +24,7 @@ export class BookLibraryStore {
   isDragging = false;
   uploadErrors: ErrorItem[] = [];
   loadBooksDebounced: DebouncedFunc<() => void>;
+  readonly pageSizeCache: PdfPageSizeCache;
 
   constructor(
     private readonly blobStore: BlobStore,
@@ -29,6 +32,7 @@ export class BookLibraryStore {
     private readonly sqliteDb: SQLiteDB,
     private readonly events: AppEventSystem,
   ) {
+    this.pageSizeCache = new PdfPageSizeCache(sqliteDb);
     makeAutoObservable(this);
 
     // Create debounced function with lodash
@@ -144,11 +148,14 @@ export class BookLibraryStore {
     const epubFiles = files.filter((file) =>
       file.name.toLowerCase().endsWith(".epub"),
     );
+    const pdfFiles = files.filter((file) =>
+      file.name.toLowerCase().endsWith(".pdf"),
+    );
 
-    if (epubFiles.length === 0) {
+    if (epubFiles.length === 0 && pdfFiles.length === 0) {
       this.addUploadError(
         "Invalid files",
-        "Please select or drop EPUB files only",
+        "Please select or drop EPUB or PDF files only",
       );
       return;
     }
@@ -156,7 +163,7 @@ export class BookLibraryStore {
     // Track actual processing progress
     const startTime = Date.now();
     let processedCount = 0;
-    const totalFiles = epubFiles.length;
+    const totalFiles = epubFiles.length + pdfFiles.length;
     let hasErrors = false;
 
     // Show progress after 300ms delay
@@ -178,6 +185,27 @@ export class BookLibraryStore {
         });
       } catch (error) {
         console.error("Failed to add book:", error);
+        hasErrors = true;
+        runInAction(() => {
+          this.addUploadError(file.name, (error as Error).message);
+        });
+      }
+    }
+
+    for (const file of pdfFiles) {
+      try {
+        await this.addPdf(file);
+        processedCount++;
+
+        // Update progress based on actual files processed
+        const progress = Math.round((processedCount / totalFiles) * 100);
+        runInAction(() => {
+          if (this.uploadProgress !== null) {
+            this.uploadProgress = progress;
+          }
+        });
+      } catch (error) {
+        console.error("Failed to add PDF:", error);
         hasErrors = true;
         runInAction(() => {
           this.addUploadError(file.name, (error as Error).message);
@@ -221,6 +249,7 @@ export class BookLibraryStore {
       fileSize: file.size,
       metadata: JSON.stringify(meta),
       contentHash,
+      fileType: "epub",
     });
 
     await this.blobStore.put(`book-${id}`, file);
@@ -256,6 +285,7 @@ export class BookLibraryStore {
       fileSize: file.size,
       metadata: JSON.stringify(epubMetadata),
       contentHash,
+      fileType: "epub",
     });
 
     // Store the book file using numeric ID
@@ -316,6 +346,69 @@ export class BookLibraryStore {
       blob,
       metadata,
     };
+  }
+
+  async addPdf(file: File): Promise<number> {
+    const arrayBuffer = await file.arrayBuffer();
+    const contentHash = await sha256Bytes(arrayBuffer);
+
+    // Check for duplicate
+    const existing = await this.bookDb.findByHash(contentHash);
+    if (existing) {
+      throw new Error(`"${existing.title}" is already in your library`);
+    }
+
+    const title = file.name.replace(/\.pdf$/i, "");
+    const bookId = await this.bookDb.addBook({
+      title,
+      author: "",
+      filename: file.name,
+      fileSize: file.size,
+      metadata: JSON.stringify({
+        filename: file.name,
+        mime: "application/pdf",
+      }),
+      contentHash,
+      fileType: "pdf",
+    });
+
+    await this.blobStore.put(`book-${bookId}`, file);
+    this.loadBooksDebounced();
+    return bookId;
+  }
+
+  async ensurePdf(file: File): Promise<number> {
+    const arrayBuffer = await file.arrayBuffer();
+    const contentHash = await sha256Bytes(arrayBuffer);
+    const existing = await this.bookDb.findByHash(contentHash);
+
+    if (existing) {
+      const key = `book-${existing.id}`;
+      const blob = await this.blobStore.getBlob(key);
+      if (!blob) {
+        await this.blobStore.put(key, file);
+      }
+      this.loadBooksDebounced();
+      return existing.id;
+    }
+
+    const title = file.name.replace(/\.pdf$/i, "");
+    const id = await this.bookDb.addBook({
+      title,
+      author: "",
+      filename: file.name,
+      fileSize: file.size,
+      metadata: JSON.stringify({
+        filename: file.name,
+        mime: "application/pdf",
+      }),
+      contentHash,
+      fileType: "pdf",
+    });
+
+    await this.blobStore.put(`book-${id}`, file);
+    this.loadBooksDebounced();
+    return id;
   }
 
   focusSearchBar(): void {

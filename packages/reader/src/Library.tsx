@@ -79,12 +79,12 @@ export const Library = observer(() => {
             onClick={handleChooseFile}
             className="w-full px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150"
           >
-            Choose EPUB File
+            Choose EPUB or PDF File
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".epub"
+            accept=".epub,.pdf"
             multiple
             onChange={handleFileSelect}
             className="hidden"
@@ -144,7 +144,7 @@ export const Library = observer(() => {
           <div className="min-h-screen bg-gray-50 flex items-center justify-center">
             <div className="text-center space-y-4">
               <p className="text-gray-500 text-lg">
-                Drop EPUB files here or add a book
+                Drop EPUB or PDF files here or add a book
               </p>
               <button
                 type="button"

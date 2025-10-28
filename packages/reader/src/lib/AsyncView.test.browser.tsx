@@ -215,7 +215,7 @@ describe("AsyncView component function returns with hooks", () => {
   });
 
   it("should support useState hook in component function", async () => {
-    let effectCallCount = 0;
+    const effectCallCount = 0;
 
     render(
       <AsyncView>

@@ -41,7 +41,7 @@ export const BookRow: React.FC<BookRowProps> = ({
 
   return (
     <Link
-      href={`/book/${book.id}`}
+      href={book.fileType === "pdf" ? `/pdf/${book.id}` : `/book/${book.id}`}
       className="flex gap-3 px-4 sm:px-6 py-3 text-sm hover:bg-gray-50 border-b border-gray-100 cursor-pointer transition-colors duration-100 no-underline text-inherit group"
     >
       {/* Unread indicator */}
@@ -59,6 +59,9 @@ export const BookRow: React.FC<BookRowProps> = ({
         <div className="break-words">
           <span className="font-medium text-gray-900">
             {highlightText(book.title)}
+            {book.fileType === "pdf" && (
+              <span className="text-xs text-gray-500 ml-1">(pdf)</span>
+            )}
           </span>
           {book.author && (
             <span className="text-gray-500 text-xs ml-2">
