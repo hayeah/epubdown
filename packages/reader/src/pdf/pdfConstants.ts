@@ -1,4 +1,4 @@
-export const ZOOM_PPI_LEVELS = [72, 96, 120, 144, 168, 192, 216, 288];
+export const ZOOM_PPI_LEVELS = [72, 96, 120, 144, 168, 192];
 
 export const DEFAULT_PAGE_PT = {
   w: 612, // US Letter width in points

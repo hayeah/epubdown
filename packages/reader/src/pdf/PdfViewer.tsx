@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 import { reaction } from "mobx";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PdfReaderStore } from "../stores/PdfReaderStore";
 import { makeVisibilityTracker } from "./VisibilityWindow";
 import { ZOOM_PPI_LEVELS, ppiForFitWidth } from "./pdfConstants";
@@ -18,10 +18,12 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
   );
   const currentPageObserverRef = useRef<IntersectionObserver | null>(null);
 
-  const devicePixelRatio = useMemo(
-    () => (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1),
-    [],
-  );
+  // Force re-render on DPR changes (fix #2)
+  const [dprTick, setDprTick] = useState(0);
+
+  // Compute DPR each render instead of memoizing (fix #2)
+  const devicePixelRatio =
+    typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
 
   const zoomModeRef = useRef<"manual" | "fit">("manual");
   const pendingScrollRestore = useRef<{
@@ -68,7 +70,7 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
     });
   };
 
-  const fitCurrentWidth = () => {
+  const fitCurrentWidth = useCallback(() => {
     if (!containerRef.current) return;
     const index0 = Math.max(0, store.currentPage - 1);
     const page = store.pages[index0];
@@ -90,12 +92,149 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       pendingScrollRestore.current = { pageIndex, position };
       store.setPpi(ppiFit);
     }
-  };
+  }, [store, calculateCurrentPosition]);
 
   useEffect(() => {
     slotRefs.current.length = store.pageCount;
     canvasHostRefs.current.length = store.pageCount;
   }, [store.pageCount]);
+
+  // ResizeObserver for container size changes in fit mode (fix #4)
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(() => {
+      if (zoomModeRef.current === "fit") {
+        fitCurrentWidth();
+      }
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [fitCurrentWidth]);
+
+  // Keyboard shortcuts for zoom and navigation
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle shortcuts if not in an input/textarea
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      switch (e.key) {
+        case "+":
+        case "=": {
+          // Zoom in
+          e.preventDefault();
+          zoomModeRef.current = "manual";
+          let currentZoomIndex = ZOOM_PPI_LEVELS.indexOf(store.ppi);
+          if (currentZoomIndex === -1) {
+            currentZoomIndex = ZOOM_PPI_LEVELS.findIndex(
+              (ppi) => ppi > store.ppi,
+            );
+            if (currentZoomIndex === -1)
+              currentZoomIndex = ZOOM_PPI_LEVELS.length - 1;
+            else currentZoomIndex--;
+          }
+          const newIndex = Math.min(
+            ZOOM_PPI_LEVELS.length - 1,
+            currentZoomIndex + 1,
+          );
+          const newPpi = ZOOM_PPI_LEVELS[newIndex];
+          if (newPpi && newPpi !== store.ppi) {
+            const position = calculateCurrentPosition();
+            const pageIndex = store.currentPageIndex;
+            pendingScrollRestore.current = { pageIndex, position };
+            store.setPpi(newPpi);
+          }
+          break;
+        }
+        case "-":
+        case "_": {
+          // Zoom out
+          e.preventDefault();
+          zoomModeRef.current = "manual";
+          let currentZoomIndex = ZOOM_PPI_LEVELS.indexOf(store.ppi);
+          if (currentZoomIndex === -1) {
+            currentZoomIndex = ZOOM_PPI_LEVELS.findIndex(
+              (ppi) => ppi >= store.ppi,
+            );
+            if (currentZoomIndex === -1)
+              currentZoomIndex = ZOOM_PPI_LEVELS.length;
+          }
+          const newIndex = Math.max(0, currentZoomIndex - 1);
+          const newPpi = ZOOM_PPI_LEVELS[newIndex];
+          if (newPpi && newPpi !== store.ppi) {
+            const position = calculateCurrentPosition();
+            const pageIndex = store.currentPageIndex;
+            pendingScrollRestore.current = { pageIndex, position };
+            store.setPpi(newPpi);
+          }
+          break;
+        }
+        case "0": {
+          // Reset to 100%
+          e.preventDefault();
+          zoomModeRef.current = "manual";
+          if (store.ppi !== 96) {
+            const position = calculateCurrentPosition();
+            const pageIndex = store.currentPageIndex;
+            pendingScrollRestore.current = { pageIndex, position };
+            store.setPpi(96);
+          }
+          break;
+        }
+        case "f":
+        case "F": {
+          // Fit to width
+          e.preventDefault();
+          zoomModeRef.current = "fit";
+          fitCurrentWidth();
+          break;
+        }
+        case "PageUp": {
+          // Previous page
+          e.preventDefault();
+          const prevPage = Math.max(1, store.currentPage - 1);
+          if (prevPage !== store.currentPage) {
+            store.setCurrentPage(prevPage);
+            const slot = slotRefs.current[prevPage - 1];
+            if (slot && containerRef.current) {
+              slot.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }
+          break;
+        }
+        case "PageDown": {
+          // Next page
+          e.preventDefault();
+          const nextPage = Math.min(store.pageCount, store.currentPage + 1);
+          if (nextPage !== store.currentPage) {
+            store.setCurrentPage(nextPage);
+            const slot = slotRefs.current[nextPage - 1];
+            if (slot && containerRef.current) {
+              slot.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }
+          break;
+        }
+      }
+    };
+
+    const container = containerRef.current;
+    container.addEventListener("keydown", handleKeyDown);
+    // Make container focusable to receive keyboard events
+    if (!container.hasAttribute("tabindex")) {
+      container.setAttribute("tabindex", "0");
+    }
+
+    return () => {
+      container.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [store, calculateCurrentPosition, fitCurrentWidth]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -186,11 +325,21 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
       store.setPosition(position);
     };
 
+    // Throttle position updates to ~10/s (fix #5)
+    let lastWriteTime = 0;
+    const throttledUpdatePosition = () => {
+      const now = performance.now();
+      if (now - lastWriteTime > 100) {
+        updatePosition();
+        lastWriteTime = now;
+      }
+    };
+
     // Notify store about scroll/layout changes (triggers render scheduling)
     const onScrollEvent = () => {
       store.onScroll();
-      // Update URL immediately without scheduling
-      updatePosition();
+      // Update URL with throttling to reduce noise
+      throttledUpdatePosition();
     };
 
     // Handle resize and DPR changes with RAF for fit mode
@@ -202,6 +351,8 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
         const dprChanged = Math.abs(nowDpr - prevDprRef.current) > 0.001;
         if (dprChanged) {
           prevDprRef.current = nowDpr;
+          // Force React re-render on DPR changes (fix #2)
+          setDprTick((t) => t + 1);
         }
         if (zoomModeRef.current === "fit" && containerRef.current) {
           fitCurrentWidth();
@@ -436,7 +587,7 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
               if (i === -1) {
                 return (
                   store.ppi >=
-                  (ZOOM_PPI_LEVELS[ZOOM_PPI_LEVELS.length - 1] ?? 288)
+                  (ZOOM_PPI_LEVELS[ZOOM_PPI_LEVELS.length - 1] ?? 192)
                 );
               }
               return i >= ZOOM_PPI_LEVELS.length - 1;
@@ -485,7 +636,6 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
           const { width, height } = store.getPageLayout(index0);
           const cssWidth = Math.max(1, Math.floor(width / devicePixelRatio));
           const cssHeight = Math.max(1, Math.floor(height / devicePixelRatio));
-          const aspectRatio = width > 0 ? width / height : 1;
           const hasCanvas = Boolean(store.pages[index0]?.canvas);
           const pageKey = store.pages[index0]?.index0 ?? index0;
           const isVisible = store.visibleSet.has(index0);
@@ -529,12 +679,23 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
                 <div
                   ref={(el) => {
                     canvasHostRefs.current[index0] = el;
+
+                    // Fix #1: ensure existing canvas gets mounted even if reaction doesn't fire
+                    if (el) {
+                      const canvas = store.pages[index0]?.canvas ?? null;
+                      if (canvas && !el.contains(canvas)) {
+                        canvas.style.maxWidth = "100%";
+                        canvas.style.height = "auto";
+                        canvas.style.display = "block";
+                        el.appendChild(canvas);
+                      }
+                    }
                   }}
                   className="relative bg-white shadow-sm"
                   style={{
                     width: cssWidth,
+                    height: cssHeight,
                     maxWidth: "100%",
-                    aspectRatio: String(aspectRatio),
                   }}
                 >
                   {!hasCanvas && (
@@ -557,8 +718,8 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
                   }}
                   style={{
                     width: cssWidth,
+                    height: cssHeight,
                     maxWidth: "100%",
-                    aspectRatio: String(aspectRatio),
                   }}
                   className="bg-white shadow-sm"
                 />
