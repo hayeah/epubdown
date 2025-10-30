@@ -142,7 +142,7 @@ const Header = observer(({ store }: { store: SliderStore }) => {
 
   const handleMaxValueChange = (e: React.FormEvent) => {
     e.preventDefault();
-    const n = parseInt(inputValue, 10);
+    const n = Number.parseInt(inputValue, 10);
     if (isNaN(n) || n < 1) {
       setError("Please enter a number >= 1");
       return;
@@ -559,7 +559,7 @@ const ContentArea = observer(({ store }: { store: SliderStore }) => {
 
   const handleMaxValueChange = (e: React.FormEvent) => {
     e.preventDefault();
-    const n = parseInt(inputValue, 10);
+    const n = Number.parseInt(inputValue, 10);
     if (isNaN(n) || n < 1) {
       setError("Please enter a number >= 1");
       return;

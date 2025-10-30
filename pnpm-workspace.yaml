@@ -2,6 +2,8 @@ packages:
   - packages/core
   - packages/reader
   - packages/sqlite-browser
+  - packages/pdf-render
+  - packages/pdf-render/playground
 
 catalog:
   "@biomejs/biome": ^1.9.4

@@ -13,6 +13,8 @@
     "paths": {
       "@epubdown/core": ["../core/src"],
       "@epubdown/core/*": ["../core/src/*"],
+      "@epubdown/pdf-render": ["../pdf-render/src"],
+      "@epubdown/pdf-render/*": ["../pdf-render/src/*"],
       "@hayeah/sqlite-browser": ["../sqlite-browser/src"],
       "@hayeah/sqlite-browser/*": ["../sqlite-browser/src/*"]
     }

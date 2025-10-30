@@ -10,6 +10,7 @@ export default defineConfig({
   // assetsInclude: ["**/*.wasm"],
   // optimizeDeps: { exclude: ["@electric-sql/pglite", "wa-sqlite"] },
   build: {
+    target: "esnext", // Support top-level await
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "index.html"),

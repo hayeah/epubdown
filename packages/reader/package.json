@@ -22,7 +22,9 @@
     "check": "biome check --write"
   },
   "dependencies": {
+    "@embedpdf/pdfium": "^1.4.1",
     "@epubdown/core": "workspace:^",
+    "@epubdown/pdf-render": "workspace:^",
     "@hayeah/sqlite-browser": "workspace:^",
     "html-dom-parser": "^5.1.1",
     "html-react-parser": "^5",
@@ -31,6 +33,7 @@
     "marked": "^5",
     "mobx": "^6",
     "mobx-react-lite": "^4",
+    "pdfjs-dist": "^5.4.149",
     "react": "^19",
     "react-dom": "^19",
     "react-dropzone": "^14.3.8",

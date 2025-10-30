@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PDF Render Test</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, Arial, sans-serif; margin: 16px; }
+    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    #canvases { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+    canvas { border: 1px solid #ddd; }
+    pre { background: #f6f8fa; padding: 8px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>PDF Render Test</h1>
+  <div class="row">
+    <label>Engine:
+      <select id="engine">
+        <option>PDFJS</option>
+        <option>PDFium</option>
+      </select>
+    </label>
+    <label>Pages: <input id="pages" type="number" min="1" value="3" /></label>
+    <button id="render">Render</button>
+    <button id="clear">Clear Canvases</button>
+  </div>
+  <div class="row">
+    <input type="file" id="file" accept="application/pdf"/>
+    <span>(or it will use /sample.pdf)</span>
+  </div>
+  <h3>Metrics</h3>
+  <pre id="metrics"></pre>
+  <div id="canvases"></div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
