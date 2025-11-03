@@ -932,6 +932,18 @@ export class PdfReaderStore {
     }
     const newIndex = Math.min(zoomLevels.length - 1, currentZoomIndex + 1);
     let newPpi = zoomLevels[newIndex];
+
+    // If we're at the last standard level and maxPpi is higher, zoom to maxPpi
+    const lastStandardPpi = zoomLevels[zoomLevels.length - 1] ?? 192;
+    if (
+      newPpi &&
+      newPpi === lastStandardPpi &&
+      this.ppi >= lastStandardPpi &&
+      maxPpi > lastStandardPpi
+    ) {
+      newPpi = maxPpi;
+    }
+
     // Limit to fit width PPI
     if (newPpi && newPpi > maxPpi) {
       newPpi = maxPpi;
@@ -1036,13 +1048,12 @@ export class PdfReaderStore {
   /**
    * Check if zoom in is possible
    */
-  canZoomIn(zoomLevels: number[], maxPpi: number): boolean {
-    let i = zoomLevels.indexOf(this.ppi);
-    if (i === -1) {
-      // Not at a standard level, check if we can zoom in
-      return this.ppi < maxPpi;
+  canZoomIn(_zoomLevels: number[], maxPpi: number): boolean {
+    // Can always zoom in if below maxPpi
+    if (this.ppi < maxPpi) {
+      return true;
     }
-    return i < zoomLevels.length - 1 && this.ppi < maxPpi;
+    return false;
   }
 
   /**
