@@ -101,6 +101,7 @@ export function SimplePdfViewer({
     return () => {
       mounted = false;
       doc?.destroy();
+      canvasRefs.current.clear();
     };
   }, [pdfData, engineKind, wasmUrl]);
 
@@ -111,9 +112,12 @@ export function SimplePdfViewer({
     let mounted = true;
 
     async function renderPages() {
-      // Render pages around current page
+      // Render pages around current page (2 before, 2 after)
       const startPage = Math.max(0, currentPage - 2);
-      const endPage = Math.min(pageCount - 1, currentPage + 1);
+      const endPage = Math.min(pageCount - 1, currentPage + 2);
+
+      // Collect all page updates to batch them
+      const updates = new Map<number, Partial<PageState>>();
 
       for (let i = startPage; i <= endPage; i++) {
         if (!mounted || !doc) return;
@@ -125,12 +129,15 @@ export function SimplePdfViewer({
           const canvas = canvasRefs.current.get(i);
           if (!canvas) continue;
 
+          let width = page.width;
+          let height = page.height;
+
           // Get page size if not already known
-          if (page.width === 0) {
+          if (width === 0) {
             const size = await doc.getPageSize(i);
             const scale = ppi / 72;
-            page.width = Math.floor(size.wPt * scale);
-            page.height = Math.floor(size.hPt * scale);
+            width = Math.floor(size.wPt * scale);
+            height = Math.floor(size.hPt * scale);
           }
 
           // Render page
@@ -138,14 +145,24 @@ export function SimplePdfViewer({
           await pageHandle.renderToCanvas(canvas, ppi);
           pageHandle.destroy();
 
-          page.canvas = canvas;
-          page.rendered = true;
-
-          // Force re-render to update state
-          setPages([...pages]);
+          // Collect the update for this page
+          updates.set(i, { width, height, canvas, rendered: true });
         } catch (err) {
           console.error(`Failed to render page ${i}:`, err);
         }
+      }
+
+      // Batch update all pages at once
+      if (updates.size > 0 && mounted) {
+        setPages((prev) => {
+          const next = [...prev];
+          for (const [index, update] of updates) {
+            if (next[index]) {
+              next[index] = { ...next[index], ...update };
+            }
+          }
+          return next;
+        });
       }
     }
 
@@ -171,14 +188,18 @@ export function SimplePdfViewer({
 
   const handleZoomIn = () => {
     setPpi((prev) => Math.min(288, prev + 24));
-    // Clear rendered state to force re-render
-    setPages(pages.map((p) => ({ ...p, rendered: false })));
+    // Reset dimensions and rendered state to force recomputation
+    setPages((prev) =>
+      prev.map((p) => ({ ...p, width: 0, height: 0, rendered: false })),
+    );
   };
 
   const handleZoomOut = () => {
     setPpi((prev) => Math.max(72, prev - 24));
-    // Clear rendered state to force re-render
-    setPages(pages.map((p) => ({ ...p, rendered: false })));
+    // Reset dimensions and rendered state to force recomputation
+    setPages((prev) =>
+      prev.map((p) => ({ ...p, width: 0, height: 0, rendered: false })),
+    );
   };
 
   if (isLoading) {
@@ -198,7 +219,11 @@ export function SimplePdfViewer({
   }
 
   if (!doc || pageCount === 0) {
-    return null;
+    return (
+      <div className={`flex items-center justify-center h-full ${className}`}>
+        <p>No pages to display</p>
+      </div>
+    );
   }
 
   return (
@@ -261,16 +286,25 @@ export function SimplePdfViewer({
         <div className="flex flex-col items-center gap-4 p-4">
           {pages.map((page) => {
             const isCurrentPage = page.index0 === currentPage - 1;
+            const hasSize = page.width > 0 && page.height > 0;
             return (
               <div
                 key={page.index0}
                 className={`bg-white shadow-lg ${
                   isCurrentPage ? "ring-2 ring-blue-500" : ""
                 }`}
-                style={{
-                  width: page.width || 612,
-                  height: page.height || 792,
-                }}
+                style={
+                  hasSize
+                    ? {
+                        width: page.width,
+                        height: page.height,
+                      }
+                    : {
+                        width: 600,
+                        aspectRatio: "8.5 / 11",
+                        minHeight: 100,
+                      }
+                }
               >
                 <canvas
                   ref={(el) => {

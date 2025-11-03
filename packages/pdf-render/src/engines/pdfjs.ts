@@ -1,6 +1,7 @@
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import type {
   DocumentHandle,
+  OutlineItem,
   PageHandle,
   PageSizePt,
   PDFEngine,
@@ -42,9 +43,61 @@ export function createPdfjsEngine(): PDFEngine {
         return { wPt: viewport.width, hPt: viewport.height };
       };
 
+      const getOutline = async (): Promise<OutlineItem[]> => {
+        const outline = await pdf.getOutline();
+        if (!outline || outline.length === 0) return [];
+
+        const result: OutlineItem[] = [];
+
+        const flattenOutline = async (
+          items: any[],
+          level: number,
+        ): Promise<void> => {
+          for (const item of items) {
+            if (item.title && item.dest) {
+              try {
+                // Get the destination details
+                const dest =
+                  typeof item.dest === "string"
+                    ? await pdf.getDestination(item.dest)
+                    : item.dest;
+
+                if (dest && Array.isArray(dest) && dest.length > 0) {
+                  // Get page reference from destination
+                  const pageRef = dest[0];
+                  const pageIndex = await pdf.getPageIndex(pageRef);
+                  const pageNumber = pageIndex + 1; // Convert to 1-based
+
+                  result.push({
+                    title: item.title,
+                    pageNumber,
+                    level,
+                  });
+                }
+              } catch (err) {
+                // Skip items with invalid destinations
+                console.warn(
+                  `Failed to resolve outline item "${item.title}":`,
+                  err,
+                );
+              }
+            }
+
+            // Recursively process sub-items
+            if (item.items && item.items.length > 0) {
+              await flattenOutline(item.items, level + 1);
+            }
+          }
+        };
+
+        await flattenOutline(outline, 0);
+        return result;
+      };
+
       return {
         pageCount: () => pdf.numPages,
         getPageSize,
+        getOutline,
         async loadPage(index0): Promise<PageHandle> {
           const page = await pdf.getPage(index0 + 1);
           return {

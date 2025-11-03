@@ -10,6 +10,12 @@ export interface PageSizePt {
   hPt: number;
 }
 
+export interface OutlineItem {
+  title: string;
+  pageNumber: number; // 1-based page number
+  level: number; // 0-based nesting level
+}
+
 export interface PageHandle {
   renderToCanvas(canvas: HTMLCanvasElement, ppi: number): Promise<void>;
   destroy(): void;
@@ -19,6 +25,7 @@ export interface DocumentHandle {
   pageCount(): number;
   getPageSize(pageIndex0: number): Promise<PageSizePt>;
   loadPage(pageIndex0: number): Promise<PageHandle>;
+  getOutline(): Promise<OutlineItem[]>;
   destroy(): void;
 }
 
