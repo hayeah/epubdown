@@ -1,0 +1,28 @@
+{
+  "name": "@epubdown/extension",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Chrome extension for copying text with context and showing outlines",
+  "scripts": {
+    "dev": "vite build --watch --mode development && vite build --watch --mode development --config vite.config.content.ts",
+    "build": "vite build && vite build --config vite.config.content.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check --write"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/chrome": "^0.0.278",
+    "@types/node": "catalog:",
+    "@types/react": "^19.0.3",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

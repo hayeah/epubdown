@@ -11,7 +11,7 @@ catalogs:
       version: 1.9.4
     '@types/bun':
       specifier: latest
-      version: 1.3.0
+      version: 1.3.2
     '@types/node':
       specifier: ^22.10.2
       version: 22.18.9
@@ -87,6 +87,43 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.7.1)(@vitest/browser@3.2.4)(jsdom@25.0.1)(lightningcss@1.30.1)(msw@2.11.6(@types/node@24.7.1)(typescript@5.9.3))
+
+  packages/extension:
+    dependencies:
+      '@mozilla/readability':
+        specifier: ^0.6.0
+        version: 0.6.0
+      react:
+        specifier: ^19
+        version: 19.2.0
+      react-dom:
+        specifier: ^19
+        version: 19.2.0(react@19.2.0)
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 'catalog:'
+        version: 1.9.4
+      '@types/chrome':
+        specifier: ^0.0.278
+        version: 0.0.278
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.18.9
+      '@types/react':
+        specifier: ^19.0.3
+        version: 19.2.2
+      '@types/react-dom':
+        specifier: ^19.0.2
+        version: 19.2.1(@types/react@19.2.2)
+      '@vitejs/plugin-react':
+        specifier: ^4
+        version: 4.7.0(vite@6.3.6(@types/node@22.18.9)(jiti@2.6.1)(lightningcss@1.30.1))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 6.3.6(@types/node@22.18.9)(jiti@2.6.1)(lightningcss@1.30.1)
 
   packages/pdf-render:
     dependencies:
@@ -208,7 +245,7 @@ importers:
         version: 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@types/bun':
         specifier: 'catalog:'
-        version: 1.3.0(@types/react@19.2.2)
+        version: 1.3.2(@types/react@19.2.2)
       '@types/lodash':
         specifier: ^4.17.20
         version: 4.17.20
@@ -814,6 +851,10 @@ packages:
   '@mixmark-io/domino@2.2.0':
     resolution: {integrity: sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw==}
 
+  '@mozilla/readability@0.6.0':
+    resolution: {integrity: sha512-juG5VWh4qAivzTAeMzvY9xs9HY5rAcr2E4I7tiSSCokRFi7XIZCAu92ZkSTsIj1OPceCifL3cpfteP3pDT9/QQ==}
+    engines: {node: '>=14.0.0'}
+
   '@mswjs/interceptors@0.40.0':
     resolution: {integrity: sha512-EFd6cVbHsgLa6wa4RljGj6Wk75qoHxUSyc5asLyyPSyuhIcdS2Q3Phw6ImS1q+CkALthJRShiYfKANcQMuMqsQ==}
     engines: {node: '>=18'}
@@ -1164,11 +1205,14 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
-  '@types/bun@1.3.0':
-    resolution: {integrity: sha512-+lAGCYjXjip2qY375xX/scJeVRmZ5cY0wyHYyCYxNcdEXrQ4AOe3gACgd4iQ8ksOslJtW4VNxBJ8llUwc3a6AA==}
+  '@types/bun@1.3.2':
+    resolution: {integrity: sha512-t15P7k5UIgHKkxwnMNkJbWlh/617rkDGEdSsDbu+qNHTaz9SKf7aC8fiIlUdD5RPpH6GEkP0cK7WlvmrEBRtWg==}
 
   '@types/chai@5.2.2':
     resolution: {integrity: sha512-8kB30R7Hwqf40JPiKhVzodJs2Qc1ZJ5zuT3uzw5Hq/dhNCl3G3l83jfpdI1e20BP348+fV7VIL/+FxaXkqBmWg==}
+
+  '@types/chrome@0.0.278':
+    resolution: {integrity: sha512-PDIJodOu7o54PpSOYLybPW/MDZBCjM1TKgf31I3Q/qaEbNpIH09rOM3tSEH3N7Q+FAqb1933LhF8ksUPYeQLNg==}
 
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
@@ -1181,6 +1225,15 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+
+  '@types/filesystem@0.0.36':
+    resolution: {integrity: sha512-vPDXOZuannb9FZdxgHnqSwAG/jvdGM8Wq+6N4D/d80z+D4HWH+bItqsZaVRQykAn6WEVeEkLm2oQigyHtgb0RA==}
+
+  '@types/filewriter@0.0.33':
+    resolution: {integrity: sha512-xFU8ZXTw4gd358lb2jw25nxY9QAgqn2+bKKjKOYfNCzN4DKCFetK7sPtrlpg66Ywe3vWY9FNxprZawAh9wfJ3g==}
+
+  '@types/har-format@1.2.16':
+    resolution: {integrity: sha512-fluxdy7ryD3MV6h8pTfTYpy/xQzCFC7m89nOH9y94cNqJ1mDIDPut7MnRHI3F6qRmh/cT2fUjG1MLdCNb4hE9A==}
 
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
@@ -1394,8 +1447,8 @@ packages:
   builtin-status-codes@3.0.0:
     resolution: {integrity: sha512-HpGFw18DgFWlncDfjTa2rcQ4W88O1mC8e8yZ2AvQY5KDaktSTwo+KRf6nHK6FRI5FyRyb/5T6+TSxfP7QyGsmQ==}
 
-  bun-types@1.3.0:
-    resolution: {integrity: sha512-u8X0thhx+yJ0KmkxuEo9HAtdfgCBaM/aI9K90VQcQioAmkVp3SG3FkwWGibUFz3WdXAdcsqOcbU40lK7tbHdkQ==}
+  bun-types@1.3.2:
+    resolution: {integrity: sha512-i/Gln4tbzKNuxP70OWhJRZz1MRfvqExowP7U6JKoI8cntFrtxg7RJK3jvz7wQW54UuvNC8tbKHHri5fy74FVqg==}
     peerDependencies:
       '@types/react': ^19
 
@@ -3456,6 +3509,8 @@ snapshots:
 
   '@mixmark-io/domino@2.2.0': {}
 
+  '@mozilla/readability@0.6.0': {}
+
   '@mswjs/interceptors@0.40.0':
     dependencies:
       '@open-draft/deferred-promise': 2.2.0
@@ -3741,15 +3796,20 @@ snapshots:
     dependencies:
       '@babel/types': 7.28.4
 
-  '@types/bun@1.3.0(@types/react@19.2.2)':
+  '@types/bun@1.3.2(@types/react@19.2.2)':
     dependencies:
-      bun-types: 1.3.0(@types/react@19.2.2)
+      bun-types: 1.3.2(@types/react@19.2.2)
     transitivePeerDependencies:
       - '@types/react'
 
   '@types/chai@5.2.2':
     dependencies:
       '@types/deep-eql': 4.0.2
+
+  '@types/chrome@0.0.278':
+    dependencies:
+      '@types/filesystem': 0.0.36
+      '@types/har-format': 1.2.16
 
   '@types/debug@4.1.12':
     dependencies:
@@ -3762,6 +3822,14 @@ snapshots:
       '@types/estree': 1.0.8
 
   '@types/estree@1.0.8': {}
+
+  '@types/filesystem@0.0.36':
+    dependencies:
+      '@types/filewriter': 0.0.33
+
+  '@types/filewriter@0.0.33': {}
+
+  '@types/har-format@1.2.16': {}
 
   '@types/hast@3.0.4':
     dependencies:
@@ -4083,7 +4151,7 @@ snapshots:
 
   builtin-status-codes@3.0.0: {}
 
-  bun-types@1.3.0(@types/react@19.2.2):
+  bun-types@1.3.2(@types/react@19.2.2):
     dependencies:
       '@types/node': 24.7.1
       '@types/react': 19.2.2
