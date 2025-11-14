@@ -647,7 +647,9 @@ export function extractArticleContent(): {
     return {
       title: article.title || "",
       content: article.content || "",
-      textContent: (article.textContent || "").trim(),
+      textContent: (article.textContent || "")
+        .replace(/\n{3,}/g, "\n\n") // collapse 3+ newlines to 2
+        .trim(),
     };
   } catch (err) {
     console.error("Failed to extract article content:", err);

@@ -208,7 +208,7 @@ async function copyArticleContent(templateId?: string): Promise<void> {
     pageTitle: article.title || document.title,
     url: location.href,
     fragmentUrl: undefined,
-    selection: article.textContent.trim(),
+    selection: article.textContent, // already processed by extractArticleContent
     beforeContext: "",
     afterContext: "",
   };
