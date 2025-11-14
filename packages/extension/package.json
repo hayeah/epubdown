@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite build --watch --mode development && vite build --watch --mode development --config vite.config.content.ts",
     "build": "vite build && vite build --config vite.config.content.ts",
+    "package": "pnpm build && cd dist && zip -r ../extension-v$npm_package_version.zip . -x '*.DS_Store'",
     "typecheck": "tsc --noEmit",
     "check": "biome check --write"
   },

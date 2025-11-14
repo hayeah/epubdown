@@ -29,12 +29,32 @@ pnpm -C packages/extension build
 pnpm -C packages/extension dev
 ```
 
-### Loading in Chrome
+### Loading in Chrome (Development)
 
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Enable "Developer mode" (toggle in top-right)
 3. Click "Load unpacked"
 4. Select the `packages/extension/dist` directory
+
+### Packaging for Distribution
+
+To create a .zip file that can be shared or submitted to the Chrome Web Store:
+
+```bash
+# Build and package the extension
+pnpm -C packages/extension package
+```
+
+This will create `extension-v0.1.0.zip` (or whatever version is in package.json) in the `packages/extension/` directory.
+
+**To install the packaged extension:**
+1. Share the .zip file with others
+2. They extract it to a folder
+3. Follow the "Loading in Chrome" steps above, selecting the extracted folder
+
+**For Chrome Web Store submission:**
+1. Upload the .zip file directly to the Chrome Web Store Developer Dashboard
+2. No need to extract - Chrome Web Store accepts .zip files
 
 ### Project Structure
 
