@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Copy with Context",
+  "version": "0.1.0",
+  "description": "Copy selection + smart context to ChatGPT, then show the outline overlay.",
+  "permissions": [
+    "contextMenus",
+    "scripting",
+    "activeTab",
+    "storage",
+    "sidePanel"
+  ],
+  "optional_permissions": ["offscreen"],
+  "background": {
+    "service_worker": "background/service_worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/popup.html"
+  },
+  "side_panel": {
+    "default_path": "panel/index.html"
+  },
+  "icons": {
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/contentScript.js"],
+      "css": ["content/contentScript.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": ["<all_urls>"]
+}

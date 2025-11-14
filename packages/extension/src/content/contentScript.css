@@ -1,0 +1,10 @@
+/**
+ * Minimal content script styles
+ * Most styles are in Shadow DOM (see overlay.ts)
+ */
+
+/* Reset for custom element host */
+cwc-overlay {
+  all: initial;
+  display: block;
+}
