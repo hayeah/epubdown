@@ -16,8 +16,23 @@ export interface OutlineItem {
   level: number; // 0-based nesting level
 }
 
+export interface TileRect {
+  srcX: number; // Source X in PDF points
+  srcY: number; // Source Y in PDF points
+  srcWidth: number; // Source width in PDF points
+  srcHeight: number; // Source height in PDF points
+}
+
 export interface PageHandle {
-  renderToCanvas(canvas: HTMLCanvasElement, ppi: number): Promise<void>;
+  renderToCanvas(
+    canvas: HTMLCanvasElement | OffscreenCanvas,
+    ppi: number,
+  ): Promise<void>;
+  renderTileToCanvas(
+    canvas: HTMLCanvasElement | OffscreenCanvas,
+    ppi: number,
+    tile: TileRect,
+  ): Promise<void>;
   destroy(): void;
 }
 

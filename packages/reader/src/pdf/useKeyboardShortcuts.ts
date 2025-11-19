@@ -1,12 +1,11 @@
 import { useEffect, type RefObject } from "react";
 import type { PdfReaderStore } from "../stores/PdfReaderStore";
-import { ZOOM_PPI_LEVELS } from "./pdfConstants";
+import { ZOOM_PERCENT_LEVELS } from "./pdfConstants";
 
 interface UseKeyboardShortcutsOptions {
   store: PdfReaderStore;
   containerRef: RefObject<HTMLDivElement | null>;
-  calculateCurrentPosition: () => number;
-  maxPpi: number;
+  calculateCurrentPositionWithPage: () => { pageNum: number; position: number };
   onNavigateToPage: (page: number) => void;
 }
 
@@ -16,10 +15,11 @@ interface UseKeyboardShortcutsOptions {
  * SHORTCUTS:
  * - +/= : Zoom in
  * - -/_ : Zoom out
- * - 0   : Reset to 100%
- * - f/F : Fit to width
- * - PageUp   : Previous page
- * - PageDown : Next page
+ * - 0   : Reset to 100% (fit to width)
+ * - Home : Jump to first page
+ * - End  : Jump to last page
+ * - PageUp   : Previous page (Shift+PageUp: -10 pages)
+ * - PageDown : Next page (Shift+PageDown: +10 pages)
  *
  * REQUIREMENTS:
  * - Container must be focused (tabindex="0")
@@ -28,8 +28,7 @@ interface UseKeyboardShortcutsOptions {
 export function useKeyboardShortcuts({
   store,
   containerRef,
-  calculateCurrentPosition,
-  maxPpi,
+  calculateCurrentPositionWithPage,
   onNavigateToPage,
 }: UseKeyboardShortcutsOptions) {
   useEffect(() => {
@@ -47,51 +46,62 @@ export function useKeyboardShortcuts({
       switch (e.key) {
         case "+":
         case "=": {
-          // Zoom in
+          // Zoom in - ignore if already restoring to prevent capturing incorrect position
+          if (store.pendingScrollRestore) return;
           e.preventDefault();
-          const position = calculateCurrentPosition();
-          store.zoomIn(position, ZOOM_PPI_LEVELS, maxPpi);
+          const { pageNum, position } = calculateCurrentPositionWithPage();
+          store.setPendingScrollRestore(pageNum, position);
+          store.zoomIn(ZOOM_PERCENT_LEVELS);
           break;
         }
         case "-":
         case "_": {
-          // Zoom out
+          // Zoom out - ignore if already restoring to prevent capturing incorrect position
+          if (store.pendingScrollRestore) return;
           e.preventDefault();
-          const position = calculateCurrentPosition();
-          store.zoomOut(position, ZOOM_PPI_LEVELS);
+          const { pageNum, position } = calculateCurrentPositionWithPage();
+          store.setPendingScrollRestore(pageNum, position);
+          store.zoomOut(ZOOM_PERCENT_LEVELS);
           break;
         }
         case "0": {
-          // Reset to 100%
+          // Reset to 100% (fit to width) - ignore if already restoring to prevent capturing incorrect position
+          if (store.pendingScrollRestore) return;
           e.preventDefault();
-          const position = calculateCurrentPosition();
-          store.resetZoom(position);
+          const { pageNum, position } = calculateCurrentPositionWithPage();
+          store.setPendingScrollRestore(pageNum, position);
+          store.resetZoom();
           break;
         }
-        case "f":
-        case "F": {
-          // Fit to width
+        case "Home": {
+          // Jump to first page
           e.preventDefault();
-          if (!containerRef.current) return;
-          const cssWidth = containerRef.current.clientWidth;
-          const position = calculateCurrentPosition();
-          const dpr = window.devicePixelRatio || 1;
-          store.fitToWidth(cssWidth, position, dpr);
+          onNavigateToPage(1);
+          break;
+        }
+        case "End": {
+          // Jump to last page
+          e.preventDefault();
+          onNavigateToPage(store.pageCount);
           break;
         }
         case "PageUp": {
-          // Previous page
+          // Previous page (Shift+PageUp: -10 pages)
           e.preventDefault();
-          const prevPage = Math.max(1, store.currentPage - 1);
+          const prevPage = e.shiftKey
+            ? Math.max(1, store.currentPage - 10)
+            : Math.max(1, store.currentPage - 1);
           if (prevPage !== store.currentPage) {
             onNavigateToPage(prevPage);
           }
           break;
         }
         case "PageDown": {
-          // Next page
+          // Next page (Shift+PageDown: +10 pages)
           e.preventDefault();
-          const nextPage = Math.min(store.pageCount, store.currentPage + 1);
+          const nextPage = e.shiftKey
+            ? Math.min(store.pageCount, store.currentPage + 10)
+            : Math.min(store.pageCount, store.currentPage + 1);
           if (nextPage !== store.currentPage) {
             onNavigateToPage(nextPage);
           }
@@ -111,5 +121,5 @@ export function useKeyboardShortcuts({
     return () => {
       container.removeEventListener("keydown", handleKeyDown);
     };
-  }, [store, containerRef, calculateCurrentPosition, maxPpi, onNavigateToPage]);
+  }, [store, containerRef, calculateCurrentPositionWithPage, onNavigateToPage]);
 }
