@@ -32,6 +32,7 @@ export class ReaderStore {
 
   // UI state
   isSidebarOpen = false;
+  showCopyMultipleModal = false;
   useHtmlMode =
     new URLSearchParams(window.location.search).get("mode") === "html";
   private popoverRef: HTMLElement | null = null;
@@ -60,6 +61,7 @@ export class ReaderStore {
       currentChapterIndex: observable,
       currentBookId: observable,
       isSidebarOpen: observable,
+      showCopyMultipleModal: observable,
       useHtmlMode: observable,
       tocInfo: observable.ref,
       handleLoadBook: action,
@@ -70,6 +72,8 @@ export class ReaderStore {
       loadBookAndChapter: action,
       setSidebarOpen: action,
       toggleSidebar: action,
+      openCopyMultipleModal: action,
+      closeCopyMultipleModal: action,
       setHtmlMode: action,
       handleUrlChange: action,
       handleChapterChange: action,
@@ -313,6 +317,101 @@ export class ReaderStore {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
+  openCopyMultipleModal() {
+    this.showCopyMultipleModal = true;
+  }
+
+  closeCopyMultipleModal() {
+    this.showCopyMultipleModal = false;
+  }
+
+  async copyMultipleChapters(selectedNavIndices: number[]): Promise<void> {
+    if (!this.navItems || selectedNavIndices.length === 0) return;
+
+    try {
+      // Map TOC nav items to chapters, keeping track of which nav items correspond to which chapters
+      const chapterMap = new Map<
+        number,
+        { chapter: DOMFile; navItems: FlatNavItem[] }
+      >();
+
+      for (const navIdx of selectedNavIndices) {
+        const navItem = this.navItems[navIdx];
+        if (navItem) {
+          const chapterIdx = this.findChapterIndexByPath(navItem.path);
+
+          if (chapterIdx !== -1) {
+            const chapter = this.chapters[chapterIdx];
+            if (chapter) {
+              if (!chapterMap.has(chapterIdx)) {
+                chapterMap.set(chapterIdx, { chapter, navItems: [] });
+              }
+              chapterMap.get(chapterIdx)!.navItems.push(navItem);
+            }
+          }
+        }
+      }
+
+      // Sort by chapter index to maintain order
+      const sortedEntries = Array.from(chapterMap.entries()).sort(
+        ([a], [b]) => a - b,
+      );
+
+      if (sortedEntries.length === 0) {
+        console.warn(
+          "copyMultipleChapters: no chapters resolved from selected nav indices",
+          selectedNavIndices,
+        );
+        return;
+      }
+
+      // Convert each chapter to markdown
+      const chapterContents: Array<{ title: string; content: string }> = [];
+      for (const [chapterIdx, { chapter, navItems }] of sortedEntries) {
+        const converter = ContentToMarkdown.create({ basePath: chapter.base });
+        const markdown = await converter.convertXMLFile(chapter);
+
+        // Use the first nav item's label as the chapter title
+        // If multiple nav items point to the same chapter, we could list them all,
+        // but for now we'll just use the first one
+        const label = navItems[0]?.label || `Chapter ${chapterIdx + 1}`;
+        chapterContents.push({ title: label, content: markdown });
+      }
+
+      // Build the combined content string
+      const multipleChaptersContent = chapterContents
+        .map((ch) => `## ${ch.title}\n\n${ch.content}`)
+        .join("\n\n---\n\n");
+
+      // Find the template for multiple chapters by id, fallback to first
+      const template =
+        this.templates.multipleChapters?.find(
+          (t) => t.id === "copy-multiple-chapters",
+        ) ?? this.templates.multipleChapters?.[0];
+
+      if (!template) {
+        // Fallback: just copy the combined content
+        copyToClipboard(multipleChaptersContent);
+        return;
+      }
+
+      // Create a context with the multiple chapters content
+      const context = {
+        bookTitle: this.metadata?.title || "Unknown Book",
+        bookAuthor:
+          this.metadata?.creator || this.metadata?.author || "Unknown Author",
+        multipleChaptersContent,
+      };
+
+      // Render template with context
+      const output = await template.render(context);
+      copyToClipboard(output);
+    } catch (error) {
+      console.error("Failed to copy multiple chapters:", error);
+      throw error;
+    }
+  }
+
   setHtmlMode(on: boolean) {
     this.useHtmlMode = on;
     // Update URL query param (preserve fragment)
@@ -381,6 +480,16 @@ export class ReaderStore {
 
   private buildGlobalCommands(): Command[] {
     const commands: Command[] = [];
+
+    // Add "Copy multiple chapters" command
+    commands.push({
+      id: "copy-multiple-chapters",
+      label: "Copy multiple chapters",
+      scope: "global",
+      action: () => {
+        this.openCopyMultipleModal();
+      },
+    });
 
     // Generate commands from global templates
     for (const def of this.templates.global) {
