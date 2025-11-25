@@ -1,6 +1,5 @@
-import { Menu } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useRoute } from "wouter";
 import { OpenOnDrop } from "../components/OpenOnDrop";
 import { useBookLibraryStore, useEventSystem } from "../stores/RootStore";
@@ -17,18 +16,6 @@ export const PdfPage = observer(() => {
     () => new PdfReaderStore(lib, events, lib.pageSizeCache),
     [lib, events],
   );
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Check if mobile on mount and window resize
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024); // lg breakpoint
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   useEffect(() => {
     if (match && params?.bookId) {
@@ -73,20 +60,6 @@ export const PdfPage = observer(() => {
             />
           </PdfSidebar>
         </div>
-
-        {/* Mobile menu button */}
-        {isMobile && (
-          <div className="fixed top-4 left-4 z-50">
-            <button
-              type="button"
-              onClick={() => store.setSidebarOpen(true)}
-              className="p-2 bg-white shadow-md rounded-lg hover:shadow-lg transition-shadow"
-              aria-label="Open menu"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-          </div>
-        )}
 
         <PdfViewer store={store} />
       </div>

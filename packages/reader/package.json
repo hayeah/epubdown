@@ -28,6 +28,7 @@
     "@hayeah/sqlite-browser": "workspace:^",
     "html-dom-parser": "^5.1.1",
     "html-react-parser": "^5",
+    "jszip": "^3",
     "lodash": "^4.17.21",
     "lucide-react": "^0.525.0",
     "marked": "^5",
@@ -39,6 +40,7 @@
     "react-dropzone": "^14.3.8",
     "react-markdown": "^9.0.1",
     "remark-gfm": "^4.0.0",
+    "shiki": "^3.15.0",
     "tailwindcss": "^4.0.0-beta.10",
     "wouter": "^2.x",
     "yargs": "^17"
@@ -58,7 +60,6 @@
     "@vitejs/plugin-react": "^4",
     "fake-indexeddb": "^6.0.1",
     "jsdom": "^25.0.1",
-    "jszip": "^3",
     "rollup-plugin-visualizer": "^6.0.0",
     "tswire": "https://github.com/hayeah/tswire",
     "typescript": "catalog:",

@@ -3,6 +3,7 @@ import CommandPalettePage from "../pages/CommandPalettePage";
 import { UploadErrorsPrototype } from "../prototype/UploadErrors";
 import SliderPrototype from "../prototype/slider/SliderPrototype";
 import PageSliderDemo from "../prototype/pageSlider/PageSliderDemo";
+import { CollectionPage } from "./collection/CollectionPage";
 import { AddBookPage } from "./pages/AddBookPage";
 import { Library } from "./Library";
 import { ReaderPage } from "./ReaderPage";
@@ -17,6 +18,10 @@ export function AppRouter() {
         <Route path="/addBook" component={AddBookPage} />
         <Route path="/book/:bookId/:chapterIndex?" component={ReaderPage} />
         <Route path="/pdf/:bookId" component={PdfPage} />
+        <Route
+          path="/collection/:collectionId/:filePath*"
+          component={CollectionPage}
+        />
         <Route
           path="/prototype/upload-errors"
           component={UploadErrorsPrototype}

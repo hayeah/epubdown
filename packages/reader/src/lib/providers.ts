@@ -4,6 +4,7 @@ import { CommandPaletteStore } from "../../command/CommandPaletteStore";
 import type { AppCtx, AppEventSystem, AppLayers } from "../app/context";
 import { EventSystem } from "../events/EventSystem";
 import { BookLibraryStore } from "../stores/BookLibraryStore";
+import { CollectionStore } from "../stores/CollectionStore";
 import { ReaderStore } from "../stores/ReaderStore";
 import { RootStore } from "../stores/RootStore";
 import { ReaderTemplateContext } from "../templates/ReaderTemplateContext";
@@ -74,6 +75,12 @@ export async function provideBookLibraryStore(
   return store;
 }
 
+export async function provideCollectionStore(
+  sqliteDb: SQLiteDB,
+): Promise<CollectionStore> {
+  return CollectionStore.create(sqliteDb);
+}
+
 export function provideEventSystem(): AppEventSystem {
   const system = new EventSystem();
   return system;
@@ -103,6 +110,7 @@ export function initRootStore(cfg: StorageConfig): RootStore {
     provideReaderTemplates,
     ReaderStore,
     provideBookLibraryStore,
+    provideCollectionStore,
     CommandPaletteStore,
     RootStore,
   ]);

@@ -1,8 +1,10 @@
-import { ChevronLeft, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useState } from "react";
 import type { TocNode, PdfTocStore } from "@epubdown/pdf-render";
+import { TocContainer } from "../components/reader/TocContainer";
+import { TocSearchBar } from "../components/reader/TocSearchBar";
 
 interface PdfTableOfContentsProps {
   tocStore: PdfTocStore;
@@ -101,8 +103,7 @@ export const PdfTableOfContents: React.FC<PdfTableOfContentsProps> = observer(
     const activeNodeId = tocStore.activeItemId;
     const expanded = tocStore.expanded;
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const query = e.target.value;
+    const handleSearchChange = (query: string) => {
       setSearchQuery(query);
       tocStore.setFilter(query);
     };
@@ -111,61 +112,43 @@ export const PdfTableOfContents: React.FC<PdfTableOfContentsProps> = observer(
       tocStore.expandToActive();
     };
 
-    if (tocStore.items.length === 0) {
-      return (
-        <div className="p-4 text-gray-500">No table of contents available</div>
-      );
-    }
+    const headerTools = (
+      <>
+        <button
+          type="button"
+          onClick={handleExpandToActive}
+          className="text-xs px-2 py-1 hover:bg-gray-100 rounded transition-colors text-gray-600"
+          title="Expand to current chapter"
+        >
+          Expand to current
+        </button>
+        <TocSearchBar
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder="Search chapters..."
+        />
+      </>
+    );
 
     return (
-      <div className="h-full flex flex-col bg-white">
-        <div className="flex items-center justify-between p-2 bg-white border-b">
-          <button
-            type="button"
-            onClick={handleExpandToActive}
-            className="text-xs px-2 py-1 hover:bg-gray-100 rounded transition-colors text-gray-600"
-            title="Expand to current chapter"
-          >
-            Expand to current
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="lg:hidden p-1 hover:bg-gray-100 rounded transition-colors"
-            aria-label="Close table of contents"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-2 border-b">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              placeholder="Search chapters..."
-              className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <TocContainer
+        isEmpty={tocStore.items.length === 0}
+        emptyMessage="No table of contents available"
+        headerTools={headerTools}
+      >
+        <ul role="tree" aria-label="Table of contents">
+          {tocTree.map((node) => (
+            <TocTreeNode
+              key={node.id}
+              node={node}
+              tocStore={tocStore}
+              onPageSelect={onPageSelect}
+              activeNodeId={activeNodeId}
+              expanded={expanded}
             />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 bg-white">
-          <ul role="tree" aria-label="Table of contents">
-            {tocTree.map((node) => (
-              <TocTreeNode
-                key={node.id}
-                node={node}
-                tocStore={tocStore}
-                onPageSelect={onPageSelect}
-                activeNodeId={activeNodeId}
-                expanded={expanded}
-              />
-            ))}
-          </ul>
-        </div>
-      </div>
+          ))}
+        </ul>
+      </TocContainer>
     );
   },
 );

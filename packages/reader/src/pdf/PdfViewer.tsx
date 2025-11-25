@@ -1,18 +1,12 @@
 import { observer } from "mobx-react-lite";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FC,
-} from "react";
+import { useCallback, useEffect, useRef, useState, type FC } from "react";
 import type { PdfReaderStore } from "../stores/PdfReaderStore";
 import { ZOOM_PERCENT_LEVELS } from "./pdfConstants";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { PageSlider } from "../slider/PageSlider";
 import { PageSlotWrapper } from "./PageSlot";
 import { PdfDebugOverlay } from "./PdfDebugOverlay";
+import { ReaderHeader } from "../components/ReaderHeader";
 
 /**
  * Isolated observer component for PageSlider
@@ -703,6 +697,25 @@ export const PdfViewer = observer(({ store }: PdfViewerProps) => {
         className="pdf-scroll-container mx-auto px-4 py-8"
         style={{ maxWidth: containerMaxWidth }}
       >
+        {/* Reader Header */}
+        <ReaderHeader
+          title={store.bookTitle || "PDF Document"}
+          subtitle={
+            store.currentTocItem?.title ||
+            `Page ${store.currentPage} of ${pageCount}`
+          }
+          hasPrevious={store.hasPreviousPage}
+          hasNext={store.hasNextPage}
+          onPrevious={() => store.goToPreviousPage()}
+          onNext={() => store.goToNextPage()}
+          progress={{
+            current: store.currentPage,
+            total: pageCount,
+            label: "Page",
+          }}
+          onToggleSidebar={() => store.setSidebarOpen(true)}
+        />
+
         {Array.from({ length: pageCount }).map((_, index0) => {
           const page = index0 + 1; // Convert 0-based array index to 1-based page number
           const pageData = store.getPageData(page);

@@ -3,15 +3,19 @@ import { createContext, useContext } from "react";
 import type { CommandPaletteStore } from "../../command/CommandPaletteStore";
 import type { AppEventSystem } from "../app/context";
 import { getDb } from "../lib/providers";
+import type { ReaderTemplates } from "../templates/Template";
 import type { BookLibraryStore } from "./BookLibraryStore";
+import type { CollectionStore } from "./CollectionStore";
 import type { ReaderStore } from "./ReaderStore";
 
 export class RootStore {
   constructor(
     public readerStore: ReaderStore,
     public bookLibraryStore: BookLibraryStore,
+    public collectionStore: CollectionStore,
     public eventSystem: AppEventSystem,
     public commandPaletteStore: CommandPaletteStore,
+    public readerTemplates: ReaderTemplates,
   ) {}
 
   reset() {
@@ -21,6 +25,9 @@ export class RootStore {
   async close(): Promise<void> {
     if (this.bookLibraryStore) {
       await this.bookLibraryStore.close();
+    }
+    if (this.collectionStore) {
+      await this.collectionStore.close();
     }
   }
 }
@@ -55,4 +62,14 @@ export function useCommandPaletteStore(): CommandPaletteStore {
 export function useEventSystem(): AppEventSystem {
   const rootStore = useRootStore();
   return rootStore.eventSystem;
+}
+
+export function useCollectionStore(): CollectionStore {
+  const rootStore = useRootStore();
+  return rootStore.collectionStore;
+}
+
+export function useTemplates(): ReaderTemplates {
+  const rootStore = useRootStore();
+  return rootStore.readerTemplates;
 }

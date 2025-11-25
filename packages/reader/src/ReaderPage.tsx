@@ -1,6 +1,5 @@
-import { Menu } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { CommandPalette } from "../command/CommandPalette";
 import { ChapterContent } from "./book/ChapterContent";
@@ -16,20 +15,8 @@ export const ReaderPage = observer(() => {
   const readingProgress = useReadingProgress();
   const [location, navigate] = useLocation();
   const [match, params] = useRoute("/book/:bookId/:chapterIndex?");
-  const [isMobile, setIsMobile] = useState(false);
   const lastProcessedUrl = useRef<string>("");
   const readerContainerRef = useRef<HTMLDivElement>(null);
-
-  // Check if mobile on mount and window resize
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024); // lg breakpoint
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
   const { epub, currentChapterIndex, chapters, metadata } = readerStore;
 
   const bookId = match ? params?.bookId : null;
@@ -101,20 +88,6 @@ export const ReaderPage = observer(() => {
                 </div>
 
                 <div className="p-4 sm:p-6 lg:p-8">
-                  {/* Mobile menu button */}
-                  {isMobile && (
-                    <div className="fixed top-4 left-4 z-50">
-                      <button
-                        type="button"
-                        onClick={() => readerStore.setSidebarOpen(true)}
-                        className="p-2 bg-white shadow-md rounded-lg hover:shadow-lg transition-shadow"
-                        aria-label="Open menu"
-                      >
-                        <Menu className="w-6 h-6" />
-                      </button>
-                    </div>
-                  )}
-
                   <div className="book-reader" ref={readerContainerRef}>
                     {/* Chapter Navigation Widget */}
                     <ChapterNavigation />
