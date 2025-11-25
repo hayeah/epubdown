@@ -6,6 +6,7 @@ interface OpenOnDropProps {
   overlayText?: string;
   noClick?: boolean;
   noKeyboard?: boolean;
+  acceptMarkdown?: boolean;
   children?: ReactNode | ((helpers: { open: () => void }) => ReactNode);
 }
 
@@ -15,8 +16,28 @@ export function OpenOnDrop({
   overlayText = "Drop files here",
   noClick = true,
   noKeyboard = true,
+  acceptMarkdown = false,
 }: OpenOnDropProps) {
   const [isDragging, setIsDragging] = useState(false);
+
+  const acceptedTypes: Record<string, string[]> = {
+    "application/epub+zip": [".epub"],
+    "application/pdf": [".pdf"],
+  };
+
+  if (acceptMarkdown) {
+    acceptedTypes["text/markdown"] = [".md", ".markdown"];
+    acceptedTypes["text/plain"] = [".txt"];
+    acceptedTypes["image/*"] = [
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".gif",
+      ".svg",
+      ".webp",
+      ".bmp",
+    ];
+  }
 
   const { getRootProps, getInputProps, open } = useDropzone({
     onDrop: async (files) => {
@@ -26,10 +47,7 @@ export function OpenOnDrop({
     },
     onDragEnter: () => setIsDragging(true),
     onDragLeave: () => setIsDragging(false),
-    accept: {
-      "application/epub+zip": [".epub"],
-      "application/pdf": [".pdf"],
-    },
+    accept: acceptedTypes,
     multiple: true,
     noClick,
     noKeyboard,

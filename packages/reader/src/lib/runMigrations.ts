@@ -52,4 +52,44 @@ export async function runMigrations(db: SQLiteDB): Promise<void> {
   await migrator.up([
     { name: "create_pdf_page_sizes_table", up: createPdfPageSizesTable },
   ]);
+
+  const createCollectionsTable = `
+    CREATE TABLE IF NOT EXISTS collections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      last_opened_at INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_collections_created_at ON collections(created_at);
+    CREATE INDEX IF NOT EXISTS idx_collections_last_opened_at ON collections(last_opened_at);
+    CREATE INDEX IF NOT EXISTS idx_collections_name ON collections(name);
+  `;
+
+  await migrator.up([
+    { name: "create_collections_table", up: createCollectionsTable },
+  ]);
+
+  const createCollectionFilesTable = `
+    CREATE TABLE IF NOT EXISTS collection_files (
+      collection_id INTEGER NOT NULL,
+      file_path TEXT NOT NULL,
+      content_hash BLOB NOT NULL,
+      title TEXT,
+      frontmatter TEXT,
+      sort_order INTEGER NOT NULL,
+      file_type TEXT NOT NULL,
+      PRIMARY KEY (collection_id, file_path),
+      FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_collection_files_collection_id ON collection_files(collection_id);
+    CREATE INDEX IF NOT EXISTS idx_collection_files_content_hash ON collection_files(content_hash);
+    CREATE INDEX IF NOT EXISTS idx_collection_files_file_type ON collection_files(file_type);
+  `;
+
+  await migrator.up([
+    { name: "create_collection_files_table", up: createCollectionFilesTable },
+  ]);
 }

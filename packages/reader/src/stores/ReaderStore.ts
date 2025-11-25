@@ -422,7 +422,7 @@ export class ReaderStore {
       setTimeout(() => {
         const element = document.getElementById(fragment);
         if (element) {
-          element.scrollIntoView({ behavior: "smooth" });
+          element.scrollIntoView({ behavior: "auto" });
         }
       }, 100);
     }
