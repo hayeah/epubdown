@@ -42,6 +42,14 @@ export const CollectionPage = observer(() => {
     const url = `/collection/${params.collectionId}/${encodeURIComponent(filePath)}${headingId ? `#${headingId}` : ""}`;
     navigate(url, { replace: true });
 
+    // Update current heading ID
+    readerStore.setCurrentHeadingId(headingId || null);
+
+    // Close sidebar when navigating to a heading
+    if (headingId) {
+      readerStore.setSidebarOpen(false);
+    }
+
     // Scroll to heading if specified
     if (headingId) {
       setTimeout(() => {
@@ -111,17 +119,20 @@ export const CollectionPage = observer(() => {
       });
       setRenderedContent(content);
 
-      // Scroll to hash fragment after content renders
+      // Scroll to hash fragment after content renders and update heading ID
       const hash = window.location.hash.slice(1);
       if (hash) {
+        readerStore.setCurrentHeadingId(hash);
         setTimeout(() => {
           const element = document.getElementById(hash);
           element?.scrollIntoView({ behavior: "auto" });
         }, 100);
+      } else {
+        readerStore.setCurrentHeadingId(null);
       }
     };
     render();
-  }, [readerStore?.currentFile?.content]);
+  }, [readerStore?.currentFile?.content, readerStore]);
 
   // Check if current file is a media file
   const currentFileIsMedia = useMemo(() => {

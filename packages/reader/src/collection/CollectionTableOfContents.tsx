@@ -25,7 +25,7 @@ function slugify(text: string): string {
 export const CollectionTableOfContents: React.FC<CollectionTableOfContentsProps> =
   observer(({ store, onNavigate }) => {
     const [searchQuery, setSearchQuery] = useState("");
-    const { tocItems, currentFilePath } = store;
+    const { tocItems, currentFilePath, currentHeadingId } = store;
 
     // Filter TOC items based on search query
     const filteredItems = useMemo(() => {
@@ -66,11 +66,26 @@ export const CollectionTableOfContents: React.FC<CollectionTableOfContentsProps>
       >
         <ul>
           {filteredItems.map((item) => {
-            const isActive =
-              item.filePath === currentFilePath && item.level === 0;
             const isMediaSection = item.id === "media-section";
             const isMediaItem = item.id.startsWith("media-");
             const indent = item.level;
+
+            // Regular file/heading item
+            const isHeading = item.headingIndex !== undefined;
+            const headingText = isHeading ? item.label : undefined;
+
+            // Check if this item is active
+            let isActive = false;
+            if (item.filePath === currentFilePath) {
+              if (isHeading && headingText) {
+                // For headings, check if the slug matches the current heading ID
+                const headingSlug = slugify(headingText);
+                isActive = headingSlug === currentHeadingId;
+              } else if (item.level === 0 && !currentHeadingId) {
+                // For top-level files, active when no heading is selected
+                isActive = true;
+              }
+            }
 
             // Icon based on type
             let icon: React.ReactNode = null;
@@ -90,10 +105,6 @@ export const CollectionTableOfContents: React.FC<CollectionTableOfContentsProps>
                 </li>
               );
             }
-
-            // Regular file/heading item
-            const isHeading = item.headingIndex !== undefined;
-            const headingText = isHeading ? item.label : undefined;
 
             return (
               <TocListItem

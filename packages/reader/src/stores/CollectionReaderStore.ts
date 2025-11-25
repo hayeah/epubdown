@@ -34,6 +34,7 @@ export class CollectionReaderStore {
   mediaFiles: CollectionFile[] = [];
   currentFilePath: string | null = null;
   currentFile: LoadedMarkdownFile | null = null;
+  currentHeadingId: string | null = null;
   isSidebarOpen = false;
   isLoading = false;
 
@@ -273,6 +274,10 @@ export class CollectionReaderStore {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
+  setCurrentHeadingId(headingId: string | null): void {
+    this.currentHeadingId = headingId;
+  }
+
   reset(): void {
     // Revoke all cached blob URLs
     for (const url of this.imageUrlCache.values()) {
@@ -285,6 +290,7 @@ export class CollectionReaderStore {
     this.mediaFiles = [];
     this.currentFilePath = null;
     this.currentFile = null;
+    this.currentHeadingId = null;
     this.isSidebarOpen = false;
     this.isLoading = false;
   }
