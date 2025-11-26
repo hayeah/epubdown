@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { CommandPalette } from "../../command/CommandPalette";
 import { ReaderHeader } from "../components/ReaderHeader";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { markdownToReact } from "../markdownToReact";
 import { CollectionReaderStore } from "../stores/CollectionReaderStore";
 import {
@@ -34,6 +35,20 @@ export const CollectionPage = observer(() => {
       templates,
     );
   }, [collectionStore, events, palette, templates]);
+
+  // Build document title from collection and current file
+  const documentTitle = useMemo(() => {
+    if (!readerStore?.collection) return null;
+    const parts: string[] = [];
+    const fileTitle = readerStore.currentFile?.title;
+    if (fileTitle) {
+      parts.push(fileTitle);
+    }
+    parts.push(readerStore.collection.name);
+    return parts.join(" - ");
+  }, [readerStore?.collection, readerStore?.currentFile?.title]);
+
+  useDocumentTitle(documentTitle);
 
   // Navigate to a file and update URL
   const navigateToFile = async (filePath: string, headingId?: string) => {

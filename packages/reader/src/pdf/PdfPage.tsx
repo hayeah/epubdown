@@ -2,6 +2,7 @@ import { observer } from "mobx-react-lite";
 import { useEffect, useMemo } from "react";
 import { useRoute } from "wouter";
 import { OpenOnDrop } from "../components/OpenOnDrop";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { useBookLibraryStore, useEventSystem } from "../stores/RootStore";
 import { PdfReaderStore } from "../stores/PdfReaderStore";
 import { PdfViewer } from "./PdfViewer";
@@ -16,6 +17,21 @@ export const PdfPage = observer(() => {
     () => new PdfReaderStore(lib, events, lib.pageSizeCache),
     [lib, events],
   );
+
+  // Build document title from PDF metadata and current TOC item
+  const documentTitle = useMemo(() => {
+    const parts: string[] = [];
+    const tocItem = store.currentTocItem;
+    if (tocItem?.title) {
+      parts.push(tocItem.title);
+    }
+    if (store.bookTitle) {
+      parts.push(store.bookTitle);
+    }
+    return parts.length > 0 ? parts.join(" - ") : null;
+  }, [store.currentTocItem, store.bookTitle]);
+
+  useDocumentTitle(documentTitle);
 
   useEffect(() => {
     if (match && params?.bookId) {

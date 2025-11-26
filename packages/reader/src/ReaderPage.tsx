@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { CommandPalette } from "../command/CommandPalette";
 import { ChapterContent } from "./book/ChapterContent";
@@ -7,6 +7,7 @@ import { ChapterNavigation } from "./book/ChapterNavigation";
 import { Sidebar } from "./book/Sidebar";
 import { TableOfContents } from "./book/TableOfContents";
 import { OpenOnDrop } from "./components/OpenOnDrop";
+import { useDocumentTitle } from "./lib/useDocumentTitle";
 import { useReadingProgress } from "./stores/ReadingProgressStore";
 import { useReaderStore } from "./stores/RootStore";
 
@@ -21,6 +22,19 @@ export const ReaderPage = observer(() => {
 
   const bookId = match ? params?.bookId : null;
   const initialChapter = match ? Number(params?.chapterIndex ?? 0) : 0;
+
+  // Build document title from book metadata and current chapter
+  const documentTitle = useMemo(() => {
+    if (!epub) return null;
+    const bookTitle = metadata.title || "Unknown Book";
+    const chapterTitle = readerStore.currentChapterTitle;
+    if (chapterTitle) {
+      return `${chapterTitle} | ${bookTitle}`;
+    }
+    return bookTitle;
+  }, [epub, metadata.title, readerStore.currentChapterTitle]);
+
+  useDocumentTitle(documentTitle);
 
   // Set navigate function on ReaderStore
   useEffect(() => {

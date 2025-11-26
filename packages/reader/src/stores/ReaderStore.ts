@@ -74,7 +74,6 @@ export class ReaderStore {
       handleUrlChange: action,
       handleChapterChange: action,
       handleTocChapterSelect: action,
-      updatePageTitle: action,
       currentChapter: computed,
       hasNextChapter: computed,
       hasPreviousChapter: computed,
@@ -235,8 +234,6 @@ export class ReaderStore {
   async setChapter(index: number) {
     if (index >= 0 && index < this.chapters.length) {
       this.currentChapterIndex = index;
-      // Update page title when chapter changes
-      this.updatePageTitle();
     }
   }
 
@@ -491,9 +488,6 @@ export class ReaderStore {
     if (this.currentChapterIndex !== targetChapterIndex) {
       await this.setChapter(targetChapterIndex);
     }
-
-    // Update page title after loading book/chapter
-    await this.updatePageTitle();
   }
 
   // Computed getters
@@ -627,22 +621,6 @@ export class ReaderStore {
     }
 
     return 0;
-  }
-
-  async updatePageTitle(): Promise<void> {
-    if (!this.epub || !this.currentChapter) return;
-
-    // Get chapter title using the new chapterLabel method
-    const chapterTitle = this.chapterLabel(this.currentChapterIndex);
-    const bookTitle = this.metadata.title || "Unknown Book";
-
-    // Update document title
-    if (chapterTitle) {
-      document.title = `${chapterTitle} | ${bookTitle}`;
-    } else {
-      // If no chapter label found, only show book title
-      document.title = bookTitle;
-    }
   }
 
   /**

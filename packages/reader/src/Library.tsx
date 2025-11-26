@@ -2,6 +2,7 @@ import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { useDocumentTitle } from "./lib/useDocumentTitle";
 import { AddToCollectionModal } from "./collection/AddToCollectionModal";
 import { ErrorFlash } from "./components/ErrorFlash";
 import { OpenOnDrop } from "./components/OpenOnDrop";
@@ -27,6 +28,8 @@ export const Library = observer(() => {
   const store = useBookLibraryStore();
   const collectionStore = useCollectionStore();
   const [, navigate] = useLocation();
+
+  useDocumentTitle("My Library");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCollectionModal, setShowCollectionModal] = useState(false);
   const [pendingMarkdownFiles, setPendingMarkdownFiles] = useState<File[]>([]);

@@ -349,16 +349,6 @@ export class PdfReaderStore {
       { autoBind: true },
     );
 
-    // Set up reaction to update document title when page or TOC changes
-    reaction(
-      () => ({
-        page: this.currentPage,
-        tocItem: this.tocStore.getCurrentTocItem(this.currentPage),
-        title: this.bookTitle,
-      }),
-      () => this.updateDocumentTitle(),
-    );
-
     // Set up reaction to clear preventUrlWrite when restoration completes or resets
     reaction(
       () => this.restoration.phase,
@@ -472,26 +462,6 @@ export class PdfReaderStore {
    */
   get fullBitmapCount(): number {
     return this.bitmaps.size;
-  }
-
-  private updateDocumentTitle() {
-    if (typeof window === "undefined") return;
-
-    const parts: string[] = [];
-
-    // Add current TOC item title if available
-    const tocItem = this.tocStore.getCurrentTocItem(this.currentPage);
-    if (tocItem?.title) {
-      parts.push(tocItem.title);
-    }
-
-    // Add book title
-    if (this.bookTitle) {
-      parts.push(this.bookTitle);
-    }
-
-    // Set the title, or use default if no parts
-    document.title = parts.length > 0 ? parts.join(" - ") : "PDF Reader";
   }
 
   toggleSidebar() {
@@ -621,9 +591,6 @@ export class PdfReaderStore {
         // Mark restoration as ready (PDF loaded, sizes will load next)
         this.restoration.markReady();
       }
-
-      // Update document title after TOC is loaded
-      this.updateDocumentTitle();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       runInAction(() => {
