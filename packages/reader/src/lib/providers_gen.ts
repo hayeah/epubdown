@@ -5,6 +5,7 @@ import { BookDatabase } from "./BookDatabase";
 import {
   provideBlobStore,
   provideBookLibraryStore,
+  provideCollectionStore,
   provideEventSystem,
   provideReaderTemplates,
   provideSQLiteDB,
@@ -22,6 +23,7 @@ export async function initRootStore(cfg: StorageConfig) {
     sQLiteDB,
     appEventSystem,
   );
+  const collectionStore = await provideCollectionStore(sQLiteDB);
   const commandPaletteStore = new CommandPaletteStore(appEventSystem);
   const readerTemplates = provideReaderTemplates();
   const readerStore = new ReaderStore(
@@ -33,8 +35,10 @@ export async function initRootStore(cfg: StorageConfig) {
   const rootStore = new RootStore(
     readerStore,
     bookLibraryStore,
+    collectionStore,
     appEventSystem,
     commandPaletteStore,
+    readerTemplates,
   );
   return rootStore;
 }

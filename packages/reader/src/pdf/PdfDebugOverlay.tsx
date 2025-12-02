@@ -115,7 +115,7 @@ export const PdfDebugOverlay = observer(
     const toggleButton = (
       <button
         onClick={onToggle}
-        className="fixed top-4 right-20 z-50 bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg text-xs font-mono hover:bg-gray-700 transition-colors"
+        className="fixed bottom-4 right-20 z-50 bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg text-xs font-mono hover:bg-gray-700 transition-colors"
         title={isOpen ? "Hide debug overlay" : "Show debug overlay"}
       >
         {isOpen ? "Debug ✕" : "Debug"}

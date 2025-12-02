@@ -1,6 +1,7 @@
 import { DEFAULT_PDFIUM_WASM_URL } from "@embedpdf/pdfium";
 import {
   type DocumentHandle,
+  type OutlineItem,
   type PDFEngine,
   type PageData,
   type PageStatus,
@@ -23,7 +24,7 @@ import type { AppEventSystem } from "../app/context";
 import type { PdfPageSizeCache } from "../lib/PdfPageSizeCache";
 import type { BookLibraryStore } from "./BookLibraryStore";
 
-export type { PageStatus, PageData, TocNode };
+export type { PageStatus, PageData, TocNode, OutlineItem };
 
 /**
  * Restoration phase state machine
@@ -348,16 +349,6 @@ export class PdfReaderStore {
       { autoBind: true },
     );
 
-    // Set up reaction to update document title when page or TOC changes
-    reaction(
-      () => ({
-        page: this.currentPage,
-        tocItem: this.tocStore.getCurrentTocItem(this.currentPage),
-        title: this.bookTitle,
-      }),
-      () => this.updateDocumentTitle(),
-    );
-
     // Set up reaction to clear preventUrlWrite when restoration completes or resets
     reaction(
       () => this.restoration.phase,
@@ -473,32 +464,43 @@ export class PdfReaderStore {
     return this.bitmaps.size;
   }
 
-  private updateDocumentTitle() {
-    if (typeof window === "undefined") return;
-
-    const parts: string[] = [];
-
-    // Add current TOC item title if available
-    const tocItem = this.tocStore.getCurrentTocItem(this.currentPage);
-    if (tocItem?.title) {
-      parts.push(tocItem.title);
-    }
-
-    // Add book title
-    if (this.bookTitle) {
-      parts.push(this.bookTitle);
-    }
-
-    // Set the title, or use default if no parts
-    document.title = parts.length > 0 ? parts.join(" - ") : "PDF Reader";
-  }
-
   toggleSidebar() {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
   setSidebarOpen(isOpen: boolean) {
     this.isSidebarOpen = isOpen;
+  }
+
+  /**
+   * Setup event bindings for sidebar interactions
+   */
+  setupBindings(
+    scope: "overlay:sidebar",
+    _readerContainer?: HTMLElement,
+    sidebarElement?: () => HTMLElement | null,
+  ) {
+    if (scope === "overlay:sidebar" && sidebarElement) {
+      return this.events.register([
+        "overlay:sidebar",
+        {
+          id: "pdf.sidebar.close.bgClick",
+          event: { kind: "bgClick", shield: sidebarElement },
+          layer: "overlay:sidebar",
+          when: () => this.isSidebarOpen,
+          run: () => this.setSidebarOpen(false),
+        },
+        {
+          id: "pdf.sidebar.close.escape",
+          event: { kind: "key", combo: "Escape" },
+          layer: "overlay:sidebar",
+          when: () => this.isSidebarOpen,
+          run: () => this.setSidebarOpen(false),
+        },
+      ]);
+    }
+
+    return () => {};
   }
 
   /**
@@ -589,9 +591,6 @@ export class PdfReaderStore {
         // Mark restoration as ready (PDF loaded, sizes will load next)
         this.restoration.markReady();
       }
-
-      // Update document title after TOC is loaded
-      this.updateDocumentTitle();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       runInAction(() => {
@@ -1899,6 +1898,45 @@ export class PdfReaderStore {
 
     // Update active item when page changes
     this.updateActiveItem();
+  }
+
+  /**
+   * Navigate to next page
+   */
+  goToNextPage() {
+    if (this.hasNextPage) {
+      this.setCurrentPage(this.currentPage + 1);
+    }
+  }
+
+  /**
+   * Navigate to previous page
+   */
+  goToPreviousPage() {
+    if (this.hasPreviousPage) {
+      this.setCurrentPage(this.currentPage - 1);
+    }
+  }
+
+  /**
+   * Check if there is a next page
+   */
+  get hasNextPage(): boolean {
+    return this.currentPage < this.pageCount;
+  }
+
+  /**
+   * Check if there is a previous page
+   */
+  get hasPreviousPage(): boolean {
+    return this.currentPage > 1;
+  }
+
+  /**
+   * Get current TOC item for the current page
+   */
+  get currentTocItem(): OutlineItem | null {
+    return this.tocStore.getCurrentTocItem(this.currentPage);
   }
 
   updateFromUrl(url: URL) {

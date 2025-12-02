@@ -1,8 +1,8 @@
-import { Menu } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useRoute } from "wouter";
 import { OpenOnDrop } from "../components/OpenOnDrop";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { useBookLibraryStore, useEventSystem } from "../stores/RootStore";
 import { PdfReaderStore } from "../stores/PdfReaderStore";
 import { PdfViewer } from "./PdfViewer";
@@ -17,18 +17,21 @@ export const PdfPage = observer(() => {
     () => new PdfReaderStore(lib, events, lib.pageSizeCache),
     [lib, events],
   );
-  const [isMobile, setIsMobile] = useState(false);
 
-  // Check if mobile on mount and window resize
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024); // lg breakpoint
-    };
+  // Build document title from PDF metadata and current TOC item
+  const documentTitle = useMemo(() => {
+    const parts: string[] = [];
+    const tocItem = store.currentTocItem;
+    if (tocItem?.title) {
+      parts.push(tocItem.title);
+    }
+    if (store.bookTitle) {
+      parts.push(store.bookTitle);
+    }
+    return parts.length > 0 ? parts.join(" - ") : null;
+  }, [store.currentTocItem, store.bookTitle]);
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  useDocumentTitle(documentTitle);
 
   useEffect(() => {
     if (match && params?.bookId) {
@@ -73,20 +76,6 @@ export const PdfPage = observer(() => {
             />
           </PdfSidebar>
         </div>
-
-        {/* Mobile menu button */}
-        {isMobile && (
-          <div className="fixed top-4 left-4 z-50">
-            <button
-              type="button"
-              onClick={() => store.setSidebarOpen(true)}
-              className="p-2 bg-white shadow-md rounded-lg hover:shadow-lg transition-shadow"
-              aria-label="Open menu"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-          </div>
-        )}
 
         <PdfViewer store={store} />
       </div>
