@@ -122,6 +122,7 @@ export class ContentToMarkdown {
   // Apply a sequence of DOM-first transforms
   private transformDocument(doc: Document): Document {
     this.removeMetadataElements(doc);
+    this.wrapBareTextNodes(doc);
     if (this._preserveIDs) this.insertIdAnchors(doc);
     this.normalizeHeadings(doc);
     this.normalizeLinkHrefs(doc);
@@ -292,6 +293,146 @@ export class ContentToMarkdown {
           container.parentNode.insertBefore(anchorDiv, container);
         }
       }
+    }
+  }
+
+  /**
+   * Wraps bare text nodes and <br> elements under <body> into <p> elements.
+   *
+   * Some EPUBs (especially malformed XHTML that fell back to HTML parsing)
+   * have text and <br> tags directly under <body> instead of inside <p>.
+   * Turndown treats <br> as soft line breaks, producing a wall of text
+   * with no paragraph separation.
+   *
+   * This groups consecutive inline nodes (text, <br>, <span>, <a>, etc.)
+   * between block elements into <p> wrappers, splitting on double <br> sequences.
+   */
+  private wrapBareTextNodes(doc: Document): void {
+    const body = doc.querySelector("body");
+    if (!body) return;
+
+    const blockTags = new Set([
+      "P",
+      "DIV",
+      "H1",
+      "H2",
+      "H3",
+      "H4",
+      "H5",
+      "H6",
+      "UL",
+      "OL",
+      "LI",
+      "TABLE",
+      "BLOCKQUOTE",
+      "PRE",
+      "FIGURE",
+      "SECTION",
+      "ARTICLE",
+      "NAV",
+      "HEADER",
+      "FOOTER",
+      "HR",
+    ]);
+
+    // Check if body has bare text or br children that need wrapping
+    let hasBareContent = false;
+    for (const node of body.childNodes) {
+      if (node.nodeType === 3 && node.textContent?.trim()) {
+        hasBareContent = true;
+        break;
+      }
+      if (node.nodeType === 1 && (node as Element).tagName === "BR") {
+        hasBareContent = true;
+        break;
+      }
+    }
+    if (!hasBareContent) return;
+
+    // Collect runs of inline nodes, splitting into paragraphs on double <br>
+    const paragraphs: Node[][] = [];
+    let current: Node[] = [];
+
+    const children = Array.from(body.childNodes);
+    for (let i = 0; i < children.length; i++) {
+      const node = children[i]!;
+
+      if (node.nodeType === 1) {
+        const tag = (node as Element).tagName;
+
+        if (blockTags.has(tag)) {
+          if (current.length > 0) {
+            paragraphs.push(current);
+            current = [];
+          }
+          paragraphs.push([node]);
+          continue;
+        }
+
+        // Detect double <br> as paragraph break
+        if (tag === "BR") {
+          const next = children[i + 1];
+          if (next?.nodeType === 1 && (next as Element).tagName === "BR") {
+            if (current.length > 0) {
+              paragraphs.push(current);
+              current = [];
+            }
+            i++;
+            continue;
+          }
+        }
+      }
+
+      // Skip whitespace-only text nodes between block elements
+      if (node.nodeType === 3 && !node.textContent?.trim()) {
+        continue;
+      }
+
+      current.push(node);
+    }
+    if (current.length > 0) {
+      paragraphs.push(current);
+    }
+
+    // Rebuild body content
+    while (body.firstChild) {
+      body.removeChild(body.firstChild);
+    }
+
+    for (const group of paragraphs) {
+      // Single block element — re-append as-is
+      const first = group[0];
+      if (
+        group.length === 1 &&
+        first &&
+        first.nodeType === 1 &&
+        blockTags.has((first as Element).tagName)
+      ) {
+        body.appendChild(first);
+        continue;
+      }
+
+      // Strip leading/trailing <br> from inline groups
+      while (group.length > 0) {
+        const head = group[0];
+        if (head && head.nodeType === 1 && (head as Element).tagName === "BR") {
+          group.shift();
+        } else break;
+      }
+      while (group.length > 0) {
+        const tail = group[group.length - 1];
+        if (tail && tail.nodeType === 1 && (tail as Element).tagName === "BR") {
+          group.pop();
+        } else break;
+      }
+
+      if (group.length === 0) continue;
+
+      const p = doc.createElement("p");
+      for (const node of group) {
+        p.appendChild(node);
+      }
+      body.appendChild(p);
     }
   }
 }
