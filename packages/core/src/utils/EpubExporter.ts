@@ -45,6 +45,7 @@ export class EpubExporter {
       index: number;
       filename: string;
       label: string;
+      inTOC: boolean;
     }> = [];
 
     let index = 0;
@@ -80,7 +81,12 @@ export class EpubExporter {
         `  ${filename}${pathMap.size > 0 ? ` (${pathMap.size} images)` : ""}`,
       );
 
-      chapters.push({ index, filename, label: label || filename });
+      chapters.push({
+        index,
+        filename,
+        label: label || filename,
+        inTOC: tocLabel !== undefined,
+      });
     }
 
     const outline = this.generateOutline(chapters);
@@ -90,6 +96,14 @@ export class EpubExporter {
       "utf8",
     );
     console.log("  000-outline.md");
+
+    const bookJSON = this.generateBookJSON(chapters);
+    await fs.writeFile(
+      path.join(this.outdir, "book.json"),
+      JSON.stringify(bookJSON, null, 2) + "\n",
+      "utf8",
+    );
+    console.log("  book.json");
 
     console.log(`\nExported ${chapters.length} chapters to ${this.outdir}`);
   }
@@ -231,6 +245,38 @@ export class EpubExporter {
     }
 
     return map;
+  }
+
+  private generateBookJSON(
+    chapters: Array<{
+      index: number;
+      filename: string;
+      label: string;
+      inTOC: boolean;
+    }>,
+  ): Record<string, unknown> {
+    const meta = this.epub.metadata.toJSON();
+
+    const outlineEntries = chapters
+      .filter((ch) => ch.inTOC)
+      .map((ch) => ({ filename: ch.filename, title: ch.label }));
+
+    const chapterEntries = chapters.map((ch) => {
+      const entry: { filename: string; title?: string } = {
+        filename: ch.filename,
+      };
+      // Only include title if the chapter has a meaningful label (not just the filename)
+      if (ch.label !== ch.filename) {
+        entry.title = ch.label;
+      }
+      return entry;
+    });
+
+    return {
+      ...meta,
+      outline: outlineEntries,
+      chapters: chapterEntries,
+    };
   }
 
   private generateOutline(
