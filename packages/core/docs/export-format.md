@@ -1,3 +1,8 @@
+---
+title: EPUB Export Directory Format
+description: Spec for the flat, markdown-friendly directory structure produced by `epub export`. Covers file naming, image extraction, title resolution, and edge case handling.
+---
+
 # EPUB Export Directory Format
 
 The `epub export` CLI converts an EPUB file into a flat, markdown-friendly directory structure suitable for reading, searching, and feeding into LLMs.
