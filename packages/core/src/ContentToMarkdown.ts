@@ -349,7 +349,7 @@ export class ContentToMarkdown {
     }
     if (!hasBareContent) return;
 
-    // Collect runs of inline nodes, splitting into paragraphs on double <br>
+    // Collect runs of inline nodes, splitting into paragraphs on every <br>
     const paragraphs: Node[][] = [];
     let current: Node[] = [];
 
@@ -369,17 +369,13 @@ export class ContentToMarkdown {
           continue;
         }
 
-        // Detect double <br> as paragraph break
+        // Every <br> is a paragraph break
         if (tag === "BR") {
-          const next = children[i + 1];
-          if (next?.nodeType === 1 && (next as Element).tagName === "BR") {
-            if (current.length > 0) {
-              paragraphs.push(current);
-              current = [];
-            }
-            i++;
-            continue;
+          if (current.length > 0) {
+            paragraphs.push(current);
+            current = [];
           }
+          continue;
         }
       }
 
