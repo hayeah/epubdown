@@ -95,8 +95,10 @@ export class TableOfContents {
     }
 
     const convertNavPoints = (parent: Element): string => {
-      const navPoints = Array.from(
-        parent.querySelectorAll(":scope > navPoint"),
+      // Use childNodes filter instead of `:scope > navPoint` because
+      // jsdom's nwsapi mangles the :scope pseudo-class in XML documents
+      const navPoints = Array.from(parent.children).filter(
+        (el) => el.tagName.toLowerCase() === "navpoint",
       );
       if (navPoints.length === 0) {
         return "";
