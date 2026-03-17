@@ -63,9 +63,8 @@ export class EpubExporter {
       const titleMatch = markdown.match(/^#\s+(.+)$/m);
       const label = tocLabel || titleMatch?.[1];
 
-      const filename = label
-        ? `${prefix}-${this.slug(label)}.md`
-        : `${prefix}.md`;
+      const slugged = label ? this.slug(label) : "";
+      const filename = slugged ? `${prefix}-${slugged}.md` : `${prefix}.md`;
 
       // Save images and build path mapping
       const pathMap = await this.saveImages(imageRefs, prefix);
@@ -246,12 +245,10 @@ export class EpubExporter {
   }
 
   private slug(text: string): string {
-    return (
-      text
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 50) || "untitled"
-    );
+    return text
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 50);
   }
 }
