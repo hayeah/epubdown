@@ -167,12 +167,19 @@ export class TableOfContents {
       return [];
     }
 
+    // Use children filter instead of :scope selectors because
+    // jsdom's nwsapi mangles :scope in certain document types,
+    // returning all descendants instead of direct children
     const parseNavList = (listElement: Element): NavItem[] => {
-      const items = Array.from(listElement.querySelectorAll(":scope > li"));
+      const items = Array.from(listElement.children).filter(
+        (el) => el.tagName.toLowerCase() === "li",
+      );
       const navItems: NavItem[] = [];
 
       for (const item of items) {
-        const link = item.querySelector(":scope > a");
+        const link = Array.from(item.children).find(
+          (el) => el.tagName.toLowerCase() === "a",
+        );
         if (!link) continue;
 
         const href = link.getAttribute("href") || "";
@@ -197,7 +204,10 @@ export class TableOfContents {
         }
 
         // Check for nested list and parse recursively
-        const nestedList = item.querySelector(":scope > ul, :scope > ol");
+        const nestedList = Array.from(item.children).find((el) => {
+          const tag = el.tagName.toLowerCase();
+          return tag === "ul" || tag === "ol";
+        });
         if (nestedList) {
           navItem.subitems = parseNavList(nestedList);
         }
@@ -209,7 +219,10 @@ export class TableOfContents {
     };
 
     // Find the main list (ol or ul) within the nav element
-    const mainList = navElement.querySelector(":scope > ol, :scope > ul");
+    const mainList = Array.from(navElement.children).find((el) => {
+      const tag = el.tagName.toLowerCase();
+      return tag === "ol" || tag === "ul";
+    });
     if (mainList) {
       return parseNavList(mainList);
     }
