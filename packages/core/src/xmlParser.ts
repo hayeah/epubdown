@@ -49,6 +49,13 @@ if (import.meta.SSR ?? typeof window === "undefined") {
           });
           return dom.window.document;
         } catch (error) {
+          // Malformed XHTML is common in EPUBs — fall back to lenient HTML parsing
+          if (mimeType === "application/xhtml+xml") {
+            const dom = new JSDOM(string, {
+              contentType: "text/html",
+            });
+            return dom.window.document;
+          }
           // Create a parsererror document similar to browser behavior
           const errorDom = new JSDOM(`<parsererror>${error}</parsererror>`, {
             contentType: "text/xml",
