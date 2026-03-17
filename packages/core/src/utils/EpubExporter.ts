@@ -58,13 +58,14 @@ export class EpubExporter {
       // Convert chapter to markdown
       let markdown = await this.epub.chapterMarkdown(chapter.path);
 
-      // Get label from ToC, fall back to first heading, then "chapter"
+      // Get label from ToC, fall back to first heading
       const tocLabel = this.tocLabelMap.get(chapter.path);
       const titleMatch = markdown.match(/^#\s+(.+)$/m);
-      const label = tocLabel || titleMatch?.[1] || "chapter";
+      const label = tocLabel || titleMatch?.[1];
 
-      const safeName = this.slug(label);
-      const filename = `${prefix}-${safeName}.md`;
+      const filename = label
+        ? `${prefix}-${this.slug(label)}.md`
+        : `${prefix}.md`;
 
       // Save images and build path mapping
       const pathMap = await this.saveImages(imageRefs, prefix);
@@ -80,7 +81,7 @@ export class EpubExporter {
         `  ${filename}${pathMap.size > 0 ? ` (${pathMap.size} images)` : ""}`,
       );
 
-      chapters.push({ index, filename, label });
+      chapters.push({ index, filename, label: label || filename });
     }
 
     const outline = this.generateOutline(chapters);
