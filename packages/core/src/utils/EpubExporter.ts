@@ -1,6 +1,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { DOMFile } from "../DOMFile";
 import { EPub } from "../Epub";
+import { normalizePath } from "./normalizePath";
+
+interface ImageRef {
+  /** Absolute archive path (e.g. /OEBPS/images/foo.png) */
+  archivePath: string;
+  /** Alt text from the img tag */
+  alt: string;
+}
 
 export class EpubExporter {
   private tocLabelMap?: Map<string, string>;
@@ -30,7 +39,6 @@ export class EpubExporter {
   async export(): Promise<void> {
     await fs.mkdir(this.outdir, { recursive: true });
 
-    // Build ToC label map for chapter titles
     this.tocLabelMap = await this.buildTOCLabelMap();
 
     const chapters: Array<{
@@ -44,6 +52,9 @@ export class EpubExporter {
       index += 1;
       const prefix = String(index).padStart(3, "0");
 
+      // Extract image refs from DOM before markdown conversion (Turndown may drop them)
+      const imageRefs = this.extractImageRefs(chapter);
+
       // Convert chapter to markdown
       let markdown = await this.epub.chapterMarkdown(chapter.path);
 
@@ -55,17 +66,23 @@ export class EpubExporter {
       const safeName = this.slug(label);
       const filename = `${prefix}-${safeName}.md`;
 
-      // Extract and rewrite images
-      markdown = await this.processImages(markdown, prefix);
+      // Save images and build path mapping
+      const pathMap = await this.saveImages(imageRefs, prefix);
 
-      // Write chapter markdown
+      // Rewrite any absolute image paths that made it into the markdown
+      markdown = this.rewriteImagePaths(markdown, pathMap);
+
+      // Append images that Turndown dropped (not found in markdown)
+      markdown = this.appendMissingImages(markdown, imageRefs, pathMap);
+
       await fs.writeFile(path.join(this.outdir, filename), markdown, "utf8");
-      console.log(`  ${filename}`);
+      console.log(
+        `  ${filename}${pathMap.size > 0 ? ` (${pathMap.size} images)` : ""}`,
+      );
 
       chapters.push({ index, filename, label });
     }
 
-    // Generate outline
     const outline = this.generateOutline(chapters);
     await fs.writeFile(
       path.join(this.outdir, "000-outline.md"),
@@ -77,57 +94,67 @@ export class EpubExporter {
     console.log(`\nExported ${chapters.length} chapters to ${this.outdir}`);
   }
 
-  private async buildTOCLabelMap(): Promise<Map<string, string>> {
-    const map = new Map<string, string>();
-    const flatItems = await this.epub.toc.flatNavItems();
+  /** Extract image references from chapter DOM, resolving relative paths to absolute */
+  private extractImageRefs(chapter: DOMFile): ImageRef[] {
+    const refs: ImageRef[] = [];
+    const seen = new Set<string>();
 
-    for (const item of flatItems) {
-      // Strip fragment from path
-      const basePath = item.path.split("#")[0] ?? item.path;
-      // Use first matching label for each path
-      if (!map.has(basePath)) {
-        map.set(basePath, item.label);
-      }
+    // Regular img tags
+    const imgs = chapter.dom.querySelectorAll("img[src]");
+    for (const img of imgs) {
+      const src = img.getAttribute("src");
+      if (!src) continue;
+      const archivePath = this.resolveImagePath(chapter.base, src);
+      if (!archivePath || seen.has(archivePath)) continue;
+      seen.add(archivePath);
+      refs.push({ archivePath, alt: img.getAttribute("alt") || "" });
     }
 
-    return map;
+    // SVG image elements (xlink:href or href)
+    const svgImages = chapter.dom.querySelectorAll("image");
+    for (const img of svgImages) {
+      const href =
+        img.getAttribute("xlink:href") ||
+        img.getAttribute("href") ||
+        img.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+      if (!href) continue;
+      const archivePath = this.resolveImagePath(chapter.base, href);
+      if (!archivePath || seen.has(archivePath)) continue;
+      seen.add(archivePath);
+      refs.push({ archivePath, alt: "" });
+    }
+
+    return refs;
   }
 
-  private async processImages(
-    markdown: string,
-    prefix: string,
-  ): Promise<string> {
-    // Match markdown images with absolute archive paths
-    const imageRegex = /!\[([^\]]*)\]\((\/[^)]+)\)/g;
-    const imageExts = new Set([
-      ".png",
-      ".jpg",
-      ".jpeg",
-      ".gif",
-      ".svg",
-      ".webp",
-      ".avif",
-      ".bmp",
-      ".tiff",
-      ".tif",
-    ]);
+  /** Resolve a potentially relative image src to an absolute archive path */
+  private resolveImagePath(base: string, src: string): string | null {
+    if (/^(https?:|data:|blob:)/i.test(src)) return null;
+    if (src.startsWith("/")) return src;
+    return normalizePath(base, src);
+  }
 
-    const replacements: Array<{ original: string; replacement: string }> = [];
+  /** Save images to the NNN/ directory and return a mapping of archive path -> relative path */
+  private async saveImages(
+    imageRefs: ImageRef[],
+    prefix: string,
+  ): Promise<Map<string, string>> {
+    const pathMap = new Map<string, string>();
     const usedNames = new Set<string>();
 
-    for (const match of markdown.matchAll(imageRegex)) {
-      const fullMatch = match[0];
-      const alt = match[1] ?? "";
-      const absPath = match[2];
-      if (!absPath) continue;
+    for (const ref of imageRefs) {
+      const imageData = await this.epub.resolver.readRaw(ref.archivePath);
+      if (!imageData) {
+        console.warn(`  Warning: image not found in EPUB: ${ref.archivePath}`);
+        continue;
+      }
 
-      const ext = path.extname(absPath).toLowerCase();
-      if (!imageExts.has(ext)) continue;
+      const ext = path.extname(ref.archivePath).toLowerCase();
+      let basename = path.basename(ref.archivePath);
 
-      // Determine unique output filename
-      let basename = path.basename(absPath);
+      // Deduplicate filenames
       if (usedNames.has(basename)) {
-        const nameWithoutExt = path.basename(absPath, ext);
+        const nameWithoutExt = path.basename(ref.archivePath, ext);
         let counter = 2;
         while (usedNames.has(`${nameWithoutExt}-${counter}${ext}`)) {
           counter++;
@@ -136,32 +163,74 @@ export class EpubExporter {
       }
       usedNames.add(basename);
 
-      // Read image from epub
-      const imageData = await this.epub.resolver.readRaw(absPath);
-      if (!imageData) {
-        console.warn(`  Warning: image not found in EPUB: ${absPath}`);
-        continue;
-      }
-
-      // Write image to prefix/ directory
       const imageDir = path.join(this.outdir, prefix);
       await fs.mkdir(imageDir, { recursive: true });
       await fs.writeFile(path.join(imageDir, basename), imageData);
 
-      const relativePath = `${prefix}/${basename}`;
-      replacements.push({
-        original: fullMatch,
-        replacement: `![${alt}](${relativePath})`,
-      });
+      pathMap.set(ref.archivePath, `${prefix}/${basename}`);
     }
 
-    // Apply replacements
-    let result = markdown;
-    for (const { original, replacement } of replacements) {
-      result = result.replace(original, replacement);
+    return pathMap;
+  }
+
+  /** Rewrite absolute archive image paths in markdown to relative paths */
+  private rewriteImagePaths(
+    markdown: string,
+    pathMap: Map<string, string>,
+  ): string {
+    if (pathMap.size === 0) return markdown;
+
+    // Match markdown images with absolute archive paths
+    return markdown.replace(
+      /!\[([^\]]*)\]\((\/[^)]+)\)/g,
+      (match, alt: string, absPath: string) => {
+        const relativePath = pathMap.get(absPath);
+        if (relativePath) return `![${alt}](${relativePath})`;
+        return match;
+      },
+    );
+  }
+
+  /** Append markdown image references for images that Turndown dropped */
+  private appendMissingImages(
+    markdown: string,
+    imageRefs: ImageRef[],
+    pathMap: Map<string, string>,
+  ): string {
+    const missingImages: string[] = [];
+
+    for (const ref of imageRefs) {
+      const relativePath = pathMap.get(ref.archivePath);
+      if (!relativePath) continue;
+
+      // Check if this image already appears in the markdown
+      if (
+        markdown.includes(relativePath) ||
+        markdown.includes(ref.archivePath)
+      ) {
+        continue;
+      }
+
+      missingImages.push(`![${ref.alt}](${relativePath})`);
     }
 
-    return result;
+    if (missingImages.length === 0) return markdown;
+
+    return `${markdown.trimEnd()}\n\n${missingImages.join("\n\n")}\n`;
+  }
+
+  private async buildTOCLabelMap(): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    const flatItems = await this.epub.toc.flatNavItems();
+
+    for (const item of flatItems) {
+      const basePath = item.path.split("#")[0] ?? item.path;
+      if (!map.has(basePath)) {
+        map.set(basePath, item.label);
+      }
+    }
+
+    return map;
   }
 
   private generateOutline(
