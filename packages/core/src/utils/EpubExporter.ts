@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { DOMFile } from "../DOMFile";
 import { EPub } from "../Epub";
+import type { NavItem } from "../TableOfContents";
 import { normalizePath } from "./normalizePath";
 
 interface ImageRef {
@@ -45,8 +46,10 @@ export class EpubExporter {
       index: number;
       filename: string;
       label: string;
-      inTOC: boolean;
     }> = [];
+
+    // Maps archive paths to exported filenames for building nested outline
+    const archivePathToFilename = new Map<string, string>();
 
     let index = 0;
     for await (const chapter of this.epub.chapters(false)) {
@@ -81,11 +84,11 @@ export class EpubExporter {
         `  ${filename}${pathMap.size > 0 ? ` (${pathMap.size} images)` : ""}`,
       );
 
+      archivePathToFilename.set(chapter.path, filename);
       chapters.push({
         index,
         filename,
         label: label || filename,
-        inTOC: tocLabel !== undefined,
       });
     }
 
@@ -97,7 +100,10 @@ export class EpubExporter {
     );
     console.log("  000-outline.md");
 
-    const bookJSON = this.generateBookJSON(chapters);
+    const bookJSON = await this.generateBookJSON(
+      chapters,
+      archivePathToFilename,
+    );
     await fs.writeFile(
       path.join(this.outdir, "book.json"),
       JSON.stringify(bookJSON, null, 2) + "\n",
@@ -247,25 +253,26 @@ export class EpubExporter {
     return map;
   }
 
-  private generateBookJSON(
+  private async generateBookJSON(
     chapters: Array<{
       index: number;
       filename: string;
       label: string;
-      inTOC: boolean;
     }>,
-  ): Record<string, unknown> {
+    archivePathToFilename: Map<string, string>,
+  ): Promise<Record<string, unknown>> {
     const meta = this.epub.metadata.toJSON();
 
-    const outlineEntries = chapters
-      .filter((ch) => ch.inTOC)
-      .map((ch) => ({ filename: ch.filename, title: ch.label }));
+    const navItems = await this.epub.toc.navItems();
+    const outline = this.buildOutlineFromNavItems(
+      navItems,
+      archivePathToFilename,
+    );
 
     const chapterEntries = chapters.map((ch) => {
       const entry: { filename: string; title?: string } = {
         filename: ch.filename,
       };
-      // Only include title if the chapter has a meaningful label (not just the filename)
       if (ch.label !== ch.filename) {
         entry.title = ch.label;
       }
@@ -274,9 +281,41 @@ export class EpubExporter {
 
     return {
       ...meta,
-      outline: outlineEntries,
+      outline,
       chapters: chapterEntries,
     };
+  }
+
+  private buildOutlineFromNavItems(
+    navItems: NavItem[],
+    pathToFilename: Map<string, string>,
+  ): Array<Record<string, unknown>> {
+    const results: Array<Record<string, unknown>> = [];
+
+    for (const item of navItems) {
+      const basePath = item.path.split("#")[0] ?? item.path;
+      const filename = pathToFilename.get(basePath);
+      if (!filename) continue;
+
+      const entry: Record<string, unknown> = {
+        filename,
+        title: item.label,
+      };
+
+      if (item.subitems && item.subitems.length > 0) {
+        const children = this.buildOutlineFromNavItems(
+          item.subitems,
+          pathToFilename,
+        );
+        if (children.length > 0) {
+          entry.children = children;
+        }
+      }
+
+      results.push(entry);
+    }
+
+    return results;
   }
 
   private generateOutline(
