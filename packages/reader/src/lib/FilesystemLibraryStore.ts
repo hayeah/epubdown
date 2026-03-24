@@ -65,8 +65,8 @@ export class FilesystemLibraryStore implements LibraryStore {
 
     const metadata = rowToBookMetadata(result.rows[0]);
 
-    // Read blob from filesystem
-    const fileHandle = await this.resolveFileHandle(id);
+    // Read blob from filesystem using filename (relative path)
+    const fileHandle = await this.resolveFileHandle(metadata.filename);
     const file = await fileHandle.getFile();
 
     // Update last opened
@@ -82,43 +82,48 @@ export class FilesystemLibraryStore implements LibraryStore {
     // Step 1: walk directory
     const onDisk = await this.walkDirectory();
 
-    // Step 2: get current index
+    // Step 2: get current index — use filename (relative path) as the key
     const indexResult = await this.db.query(
-      "SELECT id, mtime FROM books WHERE library_id = ?",
+      "SELECT id, filename, mtime FROM books WHERE library_id = ?",
       [this.libraryId],
     );
-    const indexMap = new Map<string, number>(
-      indexResult.rows.map((r: any) => [r.id, r.mtime]),
+    const indexMap = new Map<string, { id: number; mtime: number }>(
+      indexResult.rows.map((r: any) => [
+        r.filename,
+        { id: r.id, mtime: r.mtime },
+      ]),
     );
 
     // Step 3: diff
     const toAdd: FileEntry[] = [];
-    const toUpdate: FileEntry[] = [];
-    const toRemove: string[] = [];
+    const toUpdate: { entry: FileEntry; existingId: number }[] = [];
+    const toRemove: number[] = [];
 
     for (const entry of onDisk) {
-      const cachedMtime = indexMap.get(entry.relativePath);
-      if (cachedMtime === undefined) {
+      const cached = indexMap.get(entry.relativePath);
+      if (!cached) {
         toAdd.push(entry);
-      } else if (cachedMtime !== entry.file.lastModified) {
-        toUpdate.push(entry);
+      } else if (cached.mtime !== entry.file.lastModified) {
+        toUpdate.push({ entry, existingId: cached.id });
       }
       indexMap.delete(entry.relativePath);
     }
-    toRemove.push(...indexMap.keys());
+    // Remaining in indexMap = removed from disk
+    for (const { id } of indexMap.values()) {
+      toRemove.push(id);
+    }
 
     // Step 4: process changes
-    for (const entry of [...toAdd, ...toUpdate]) {
+    for (const entry of toAdd) {
       const meta = await this.parseMetadata(entry);
       await this.db.exec(
-        `INSERT OR REPLACE INTO books (id, library_id, title, author, filename, file_size, file_type, mtime, metadata, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO books (library_id, title, author, filename, file_size, file_type, mtime, metadata, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          entry.relativePath,
           this.libraryId,
           meta.title,
           meta.author || null,
-          entry.file.name,
+          entry.relativePath,
           entry.file.size,
           entry.fileType,
           entry.file.lastModified,
@@ -128,11 +133,25 @@ export class FilesystemLibraryStore implements LibraryStore {
       );
     }
 
+    for (const { entry, existingId } of toUpdate) {
+      const meta = await this.parseMetadata(entry);
+      await this.db.exec(
+        `UPDATE books SET title = ?, author = ?, file_size = ?, file_type = ?, mtime = ?, metadata = ?
+         WHERE id = ?`,
+        [
+          meta.title,
+          meta.author || null,
+          entry.file.size,
+          entry.fileType,
+          entry.file.lastModified,
+          meta.metadata || null,
+          existingId,
+        ],
+      );
+    }
+
     for (const id of toRemove) {
-      await this.db.exec("DELETE FROM books WHERE id = ? AND library_id = ?", [
-        id,
-        this.libraryId,
-      ]);
+      await this.db.exec("DELETE FROM books WHERE id = ?", [id]);
     }
 
     this.lastSyncAt = Date.now();
