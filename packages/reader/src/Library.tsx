@@ -1,7 +1,7 @@
 import { observer } from "mobx-react-lite";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { ErrorFlash } from "./components/ErrorFlash";
 import { OpenOnDrop } from "./components/OpenOnDrop";
 import type { BookMetadata as NewBookMetadata } from "./lib/LibraryStore";
@@ -13,9 +13,21 @@ export const Library = observer(() => {
   const store = useBookLibraryStore();
   const registry = useLibraryRegistry();
   const [, navigate] = useLocation();
+  const params = useParams<{ libraryIndex?: string }>();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync URL library index with registry
+  useEffect(() => {
+    const index = params.libraryIndex
+      ? Number.parseInt(params.libraryIndex, 10)
+      : 0;
+    const lib = registry.libraries[index];
+    if (lib && lib.id !== registry.activeLibraryId) {
+      registry.switchLibrary(lib.id);
+    }
+  }, [params.libraryIndex, registry]);
 
   // Reactive book list from active library store
   const [libraryBooks, setLibraryBooks] = useState<NewBookMetadata[]>([]);

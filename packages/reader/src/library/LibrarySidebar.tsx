@@ -1,15 +1,22 @@
 import { FolderOpen, Plus, Star, Trash2 } from "lucide-react";
 import { observer } from "mobx-react-lite";
+import { useLocation } from "wouter";
 import type { LibraryConfig } from "../lib/LibraryStore";
 import { useLibraryRegistry } from "../stores/RootStore";
 
+function libraryPath(index: number): string {
+  return index === 0 ? "/" : `/library/${index}`;
+}
+
 export const LibrarySidebar = observer(() => {
   const registry = useLibraryRegistry();
+  const [, navigate] = useLocation();
 
   const handleAddLibrary = async () => {
     try {
       const lib = await registry.addFilesystemLibrary();
-      registry.switchLibrary(lib.id);
+      const index = registry.libraries.findIndex((l) => l.id === lib.id);
+      navigate(libraryPath(index));
     } catch (e) {
       // User cancelled the directory picker
       console.error("Failed to add library:", e);
@@ -24,6 +31,7 @@ export const LibrarySidebar = observer(() => {
     )
       return;
     await registry.removeLibrary(lib.id);
+    navigate("/");
   };
 
   return (
@@ -33,11 +41,11 @@ export const LibrarySidebar = observer(() => {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 space-y-0.5">
-        {registry.libraries.map((lib) => (
+        {registry.libraries.map((lib, index) => (
           <button
             key={lib.id}
             type="button"
-            onClick={() => registry.switchLibrary(lib.id)}
+            onClick={() => navigate(libraryPath(index))}
             className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors group ${
               registry.activeLibraryId === lib.id
                 ? "bg-blue-100 text-blue-800 font-medium"
