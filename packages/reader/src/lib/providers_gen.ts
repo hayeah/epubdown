@@ -1,7 +1,9 @@
 import { CommandPaletteStore } from "../../command/CommandPaletteStore";
 import { ReaderStore } from "../stores/ReaderStore";
 import { RootStore } from "../stores/RootStore";
+import { LibraryRegistry } from "../stores/LibraryRegistry";
 import { BookDatabase } from "./BookDatabase";
+import { DirectoryHandleStore } from "./DirectoryHandleStore";
 import {
   provideBlobStore,
   provideBookLibraryStore,
@@ -22,6 +24,12 @@ export async function initRootStore(cfg: StorageConfig) {
     sQLiteDB,
     appEventSystem,
   );
+
+  // Initialize library registry
+  const handleStore = await DirectoryHandleStore.open();
+  const libraryRegistry = new LibraryRegistry(sQLiteDB, blobStore, handleStore);
+  await libraryRegistry.load();
+
   const commandPaletteStore = new CommandPaletteStore(appEventSystem);
   const readerTemplates = provideReaderTemplates();
   const readerStore = new ReaderStore(
@@ -33,6 +41,7 @@ export async function initRootStore(cfg: StorageConfig) {
   const rootStore = new RootStore(
     readerStore,
     bookLibraryStore,
+    libraryRegistry,
     appEventSystem,
     commandPaletteStore,
   );

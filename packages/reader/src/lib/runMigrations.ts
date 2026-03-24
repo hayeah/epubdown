@@ -52,4 +52,30 @@ export async function runMigrations(db: SQLiteDB): Promise<void> {
   await migrator.up([
     { name: "create_pdf_page_sizes_table", up: createPdfPageSizesTable },
   ]);
+
+  const createLibrariesTable = `
+    CREATE TABLE IF NOT EXISTS libraries (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
+    -- Seed the default built-in library
+    INSERT OR IGNORE INTO libraries (id, name, type, created_at)
+    VALUES ('default', 'My Library', 'indexeddb', 0);
+
+    -- Add library_id to books, defaulting existing rows to 'default'
+    ALTER TABLE books ADD COLUMN library_id TEXT NOT NULL DEFAULT 'default'
+      REFERENCES libraries(id) ON DELETE CASCADE;
+
+    CREATE INDEX IF NOT EXISTS idx_books_library_id ON books(library_id);
+
+    -- Add mtime column for filesystem sync caching
+    ALTER TABLE books ADD COLUMN mtime INTEGER;
+  `;
+
+  await migrator.up([
+    { name: "create_libraries_table", up: createLibrariesTable },
+  ]);
 }

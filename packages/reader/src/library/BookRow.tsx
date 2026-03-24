@@ -6,19 +6,22 @@ import { formatRelative } from "../utils/dateUtils";
 
 interface BookRowProps {
   book: BookMetadata;
-  onDelete: (e: React.MouseEvent) => void;
+  bookId?: string; // string ID for routing (filesystem uses relative paths)
+  onDelete?: (e: React.MouseEvent) => void;
   searchQuery: string;
 }
 
 export const BookRow: React.FC<BookRowProps> = ({
   book,
+  bookId,
   onDelete,
   searchQuery,
 }) => {
+  const id = bookId ?? String(book.id);
+
   // Highlight matching text
   const highlightText = (text: string) => {
     if (!searchQuery) return text;
-    // Escape special regex characters
     const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(`(${escapedQuery})`, "gi");
     const parts = text.split(regex);
@@ -39,9 +42,14 @@ export const BookRow: React.FC<BookRowProps> = ({
     return "never";
   };
 
+  const href =
+    book.fileType === "pdf"
+      ? `/pdf/${encodeURIComponent(id)}`
+      : `/book/${encodeURIComponent(id)}`;
+
   return (
     <Link
-      href={book.fileType === "pdf" ? `/pdf/${book.id}` : `/book/${book.id}`}
+      href={href}
       className="flex gap-3 px-4 sm:px-6 py-3 text-sm hover:bg-gray-50 border-b border-gray-100 cursor-pointer transition-colors duration-100 no-underline text-inherit group"
     >
       {/* Unread indicator */}
@@ -54,7 +62,7 @@ export const BookRow: React.FC<BookRowProps> = ({
         )}
       </div>
 
-      {/* Title and Author - allow wrapping */}
+      {/* Title and Author */}
       <div className="flex-1 min-w-0">
         <div className="break-words">
           <span className="font-medium text-gray-900">
@@ -71,26 +79,27 @@ export const BookRow: React.FC<BookRowProps> = ({
         </div>
       </div>
 
-      {/* Last opened and delete - fixed width on desktop */}
+      {/* Last opened and delete */}
       <div className="flex items-center gap-2 shrink-0 sm:w-24 sm:justify-end">
         <span className="text-xs text-gray-500 whitespace-nowrap">
           {formatOpened(book.lastOpenedAt, book.createdAt)}
         </span>
 
-        {/* Delete action - hover on desktop, always visible on touch */}
-        <div className="flex items-center transition-opacity duration-150 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              onDelete(e);
-            }}
-            className="p-1 hover:bg-gray-200 rounded transition-colors"
-            aria-label="Delete book"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-gray-400 hover:text-red-500" />
-          </button>
-        </div>
+        {onDelete && (
+          <div className="flex items-center transition-opacity duration-150 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                onDelete(e);
+              }}
+              className="p-1 hover:bg-gray-200 rounded transition-colors"
+              aria-label="Delete book"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-gray-400 hover:text-red-500" />
+            </button>
+          </div>
+        )}
       </div>
     </Link>
   );

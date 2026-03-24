@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { registerAgentAPI } from "./lib/AgentAPI";
 import { provideStorageConfig } from "./lib/providers";
 import { initRootStore } from "./lib/providers_gen";
 import { StoreProvider } from "./stores/RootStore";
@@ -13,6 +14,9 @@ if (!rootElement) {
 // Initialize async stores and render
 const config = provideStorageConfig();
 initRootStore(config).then((rootStore) => {
+  // Register agent API for programmatic control
+  registerAgentAPI(rootStore);
+
   createRoot(rootElement).render(
     <StrictMode>
       <StoreProvider value={rootStore}>

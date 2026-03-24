@@ -4,26 +4,60 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { ErrorFlash } from "./components/ErrorFlash";
 import { OpenOnDrop } from "./components/OpenOnDrop";
+import type { BookMetadata as NewBookMetadata } from "./lib/LibraryStore";
 import { BookList, SearchBar } from "./library/index";
-import { useRootStore } from "./stores/RootStore";
-import { useBookLibraryStore } from "./stores/RootStore";
+import { LibrarySidebar } from "./library/LibrarySidebar";
+import { useBookLibraryStore, useLibraryRegistry } from "./stores/RootStore";
 
 export const Library = observer(() => {
-  const rootStore = useRootStore();
   const store = useBookLibraryStore();
+  const registry = useLibraryRegistry();
   const [, navigate] = useLocation();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Reactive book list from active library store
+  const [libraryBooks, setLibraryBooks] = useState<NewBookMetadata[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
+
+  const activeLib = registry.activeLibrary;
+  const isFilesystemLibrary = activeLib?.type === "filesystem";
+
+  // Load books when active library changes or search changes
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingLibrary(true);
+
+    const activeStore = registry.activeStore();
+    activeStore
+      .listBooks(searchQuery ? { match: searchQuery } : undefined)
+      .then((books) => {
+        if (!cancelled) {
+          setLibraryBooks(books);
+          setIsLoadingLibrary(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [registry.activeLibraryId, searchQuery, registry]);
+
+  const refreshBooks = () => {
+    const activeStore = registry.activeStore();
+    activeStore
+      .listBooks(searchQuery ? { match: searchQuery } : undefined)
+      .then(setLibraryBooks);
+  };
+
   const handleDrop = (files: File[]) => {
+    if (isFilesystemLibrary) return; // Read-only
     store.handleFiles(files);
   };
 
-  const handleShowUploadModal = () => {
-    setShowUploadModal(true);
-  };
-
+  const handleShowUploadModal = () => setShowUploadModal(true);
   const handleCloseModal = () => {
     setShowUploadModal(false);
     setUrlInput("");
@@ -37,9 +71,7 @@ export const Library = observer(() => {
     }
   };
 
-  const handleChooseFile = () => {
-    fileInputRef.current?.click();
-  };
+  const handleChooseFile = () => fileInputRef.current?.click();
 
   const handleUrlSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,10 +82,22 @@ export const Library = observer(() => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      handleCloseModal();
+    if (e.key === "Escape") handleCloseModal();
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    // Also update old store for the default library
+    if (!isFilesystemLibrary) {
+      store.searchBooks(query);
     }
   };
+
+  // Setup event bindings for library view
+  useEffect(() => {
+    const dispose = store.setupBindings();
+    return dispose;
+  }, [store]);
 
   const uploadModal = showUploadModal ? (
     <div
@@ -66,8 +110,6 @@ export const Library = observer(() => {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-gray-900">Add Book</h2>
-
-        {/* File Upload Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between border-b border-gray-200 pb-3">
             <span className="text-sm font-medium text-gray-700">
@@ -90,8 +132,6 @@ export const Library = observer(() => {
             className="hidden"
           />
         </div>
-
-        {/* URL Section */}
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between border-b border-gray-200 pb-3">
             <span className="text-sm font-medium text-gray-700">
@@ -115,8 +155,6 @@ export const Library = observer(() => {
             </button>
           </form>
         </div>
-
-        {/* Cancel Button */}
         <div className="pt-2">
           <button
             type="button"
@@ -130,106 +168,121 @@ export const Library = observer(() => {
     </div>
   ) : null;
 
-  // Setup event bindings for library view
-  useEffect(() => {
-    const dispose = store.setupBindings();
-    return dispose;
-  }, [store]);
-
-  // Empty state
-  if (store.books.length === 0 && !store.searchQuery && !store.isLoading) {
-    return (
-      <>
-        <OpenOnDrop onDrop={handleDrop} overlayText="Drop files to upload">
-          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <p className="text-gray-500 text-lg">
-                Drop EPUB or PDF files here or add a book
-              </p>
-              <button
-                type="button"
-                onClick={handleShowUploadModal}
-                className="inline-flex items-center justify-center px-6 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm"
-              >
-                Upload
-              </button>
-            </div>
-          </div>
-        </OpenOnDrop>
-        {uploadModal}
-      </>
-    );
-  }
+  // Use library store books for filesystem, existing store for indexeddb
+  const displayBooks = isFilesystemLibrary ? libraryBooks : store.books;
+  const displaySearchQuery = isFilesystemLibrary
+    ? searchQuery
+    : store.searchQuery;
+  const isEmpty =
+    displayBooks.length === 0 &&
+    !displaySearchQuery &&
+    !store.isLoading &&
+    !isLoadingLibrary;
 
   return (
     <>
-      <OpenOnDrop onDrop={handleDrop} overlayText="Drop files to upload">
-        <div className="min-h-screen bg-gray-50">
-          {/* Header */}
-          <header className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/80">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
-              <h1 className="text-xl font-semibold text-gray-900">
-                My Library
-              </h1>
+      <div className="flex h-screen">
+        <LibrarySidebar />
 
-              <div className="w-full lg:flex-1">
-                <SearchBar
-                  value={store.searchQuery}
-                  onChange={(query: string) => store.searchBooks(query)}
-                />
-              </div>
-
-              <div className="flex w-full lg:w-auto lg:justify-end">
-                <button
-                  type="button"
-                  onClick={handleShowUploadModal}
-                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm text-center"
-                >
-                  Upload
-                </button>
-              </div>
-            </div>
-
-            {/* Upload progress */}
-            {store.uploadProgress !== null && (
-              <div className="bg-blue-50/80 backdrop-blur-sm">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                    <span className="text-sm font-medium text-blue-700">
-                      Uploading...
-                    </span>
-                    <div className="flex-1 bg-blue-200 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                        style={{ width: `${store.uploadProgress}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-blue-700 tabular-nums">
-                      {store.uploadProgress}%
-                    </span>
-                  </div>
+        <div className="flex-1 flex flex-col min-w-0">
+          {isEmpty ? (
+            <OpenOnDrop onDrop={handleDrop} overlayText="Drop files to upload">
+              <div className="flex-1 flex items-center justify-center bg-gray-50">
+                <div className="text-center space-y-4">
+                  <p className="text-gray-500 text-lg">
+                    {isFilesystemLibrary
+                      ? "No books found in this folder"
+                      : "Drop EPUB or PDF files here or add a book"}
+                  </p>
+                  {!isFilesystemLibrary && (
+                    <button
+                      type="button"
+                      onClick={handleShowUploadModal}
+                      className="inline-flex items-center justify-center px-6 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm"
+                    >
+                      Upload
+                    </button>
+                  )}
                 </div>
               </div>
-            )}
-          </header>
+            </OpenOnDrop>
+          ) : (
+            <OpenOnDrop onDrop={handleDrop} overlayText="Drop files to upload">
+              <div className="flex-1 bg-gray-50 overflow-y-auto">
+                {/* Header */}
+                <header className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/80">
+                  <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
+                    <h1 className="text-xl font-semibold text-gray-900">
+                      {activeLib?.name || "My Library"}
+                    </h1>
 
-          {/* Content */}
-          <div className="max-w-4xl mx-auto mt-3 mb-8 relative px-4 sm:px-6">
-            <BookList />
-          </div>
+                    <div className="w-full lg:flex-1">
+                      <SearchBar
+                        value={displaySearchQuery}
+                        onChange={handleSearch}
+                      />
+                    </div>
 
-          {/* Error Flash */}
-          {store.uploadErrors.length > 0 && (
-            <ErrorFlash
-              errors={store.uploadErrors}
-              onDismiss={() => store.dismissAllUploadErrors()}
-              onDismissError={(id) => store.dismissUploadError(id)}
-            />
+                    {!isFilesystemLibrary && (
+                      <div className="flex w-full lg:w-auto lg:justify-end">
+                        <button
+                          type="button"
+                          onClick={handleShowUploadModal}
+                          className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm text-center"
+                        >
+                          Upload
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload progress */}
+                  {store.uploadProgress !== null && (
+                    <div className="bg-blue-50/80 backdrop-blur-sm">
+                      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                          <span className="text-sm font-medium text-blue-700">
+                            Uploading...
+                          </span>
+                          <div className="flex-1 bg-blue-200 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                              style={{ width: `${store.uploadProgress}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium text-blue-700 tabular-nums">
+                            {store.uploadProgress}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </header>
+
+                {/* Content */}
+                <div className="max-w-4xl mx-auto mt-3 mb-8 relative px-4 sm:px-6">
+                  <BookList
+                    books={displayBooks}
+                    searchQuery={displaySearchQuery}
+                    isFilesystem={isFilesystemLibrary}
+                    onRefresh={refreshBooks}
+                  />
+                </div>
+
+                {/* Error Flash */}
+                {store.uploadErrors.length > 0 && (
+                  <ErrorFlash
+                    errors={store.uploadErrors}
+                    onDismiss={() => store.dismissAllUploadErrors()}
+                    onDismissError={(id) => store.dismissUploadError(id)}
+                  />
+                )}
+              </div>
+            </OpenOnDrop>
           )}
         </div>
-      </OpenOnDrop>
+      </div>
 
-      {/* Upload Modal */}
       {uploadModal}
     </>
   );

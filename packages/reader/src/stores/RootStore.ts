@@ -4,12 +4,14 @@ import type { CommandPaletteStore } from "../../command/CommandPaletteStore";
 import type { AppEventSystem } from "../app/context";
 import { getDb } from "../lib/providers";
 import type { BookLibraryStore } from "./BookLibraryStore";
+import type { LibraryRegistry } from "./LibraryRegistry";
 import type { ReaderStore } from "./ReaderStore";
 
 export class RootStore {
   constructor(
     public readerStore: ReaderStore,
     public bookLibraryStore: BookLibraryStore,
+    public libraryRegistry: LibraryRegistry,
     public eventSystem: AppEventSystem,
     public commandPaletteStore: CommandPaletteStore,
   ) {}
@@ -50,6 +52,11 @@ export function useBookLibraryStore(): BookLibraryStore {
 export function useCommandPaletteStore(): CommandPaletteStore {
   const rootStore = useRootStore();
   return rootStore.commandPaletteStore;
+}
+
+export function useLibraryRegistry(): LibraryRegistry {
+  const rootStore = useRootStore();
+  return rootStore.libraryRegistry;
 }
 
 export function useEventSystem(): AppEventSystem {
