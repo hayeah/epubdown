@@ -117,7 +117,7 @@ export class FilesystemLibraryStore implements LibraryStore {
     for (const entry of toAdd) {
       const meta = await this.parseMetadata(entry);
       await this.db.exec(
-        `INSERT INTO books (library_id, title, author, filename, file_size, file_type, mtime, metadata, created_at)
+        `INSERT OR IGNORE INTO books (library_id, title, author, filename, file_size, file_type, mtime, metadata, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           this.libraryId,

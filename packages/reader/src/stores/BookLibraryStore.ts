@@ -7,9 +7,9 @@ import type { AppEventSystem } from "../app/context";
 import type { ErrorItem } from "../components/ErrorFlash";
 import { BlobStore } from "../lib/BlobStore";
 import { BookDatabase, type BookMetadata } from "../lib/BookDatabase";
+import { PdfPageSizeCache } from "../lib/PdfPageSizeCache";
 import { getDb } from "../lib/providers";
 import { sha256Bytes } from "../utils/sha256";
-import { PdfPageSizeCache } from "../lib/PdfPageSizeCache";
 
 export interface StoredBook extends BookMetadata {
   blob?: Blob;
@@ -326,8 +326,7 @@ export class BookLibraryStore {
     const blobStoreKey = `book-${bookId}`;
     const blob = await this.blobStore.getBlob(blobStoreKey);
     if (!blob) {
-      // Book blob is missing, clean up metadata
-      await this.bookDb.deleteBook(bookId);
+      // No blob in IndexedDB — this book may belong to a filesystem library
       return null;
     }
 

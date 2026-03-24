@@ -78,4 +78,18 @@ export async function runMigrations(db: SQLiteDB): Promise<void> {
   await migrator.up([
     { name: "create_libraries_table", up: createLibrariesTable },
   ]);
+
+  const addUniqueLibraryFilename = `
+    -- Remove duplicate (library_id, filename) rows, keeping the lowest id
+    DELETE FROM books WHERE id NOT IN (
+      SELECT MIN(id) FROM books GROUP BY library_id, filename
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_books_library_filename
+      ON books(library_id, filename);
+  `;
+
+  await migrator.up([
+    { name: "add_unique_library_filename", up: addUniqueLibraryFilename },
+  ]);
 }
