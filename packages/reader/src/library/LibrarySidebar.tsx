@@ -1,21 +1,15 @@
 import { FolderOpen, Plus, Star, Trash2 } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useState } from "react";
 import type { LibraryConfig } from "../lib/LibraryStore";
 import { useLibraryRegistry } from "../stores/RootStore";
 
 export const LibrarySidebar = observer(() => {
   const registry = useLibraryRegistry();
-  const [isAdding, setIsAdding] = useState(false);
-  const [newName, setNewName] = useState("");
 
   const handleAddLibrary = async () => {
-    if (!newName.trim()) return;
     try {
-      const lib = await registry.addFilesystemLibrary(newName.trim());
+      const lib = await registry.addFilesystemLibrary();
       registry.switchLibrary(lib.id);
-      setNewName("");
-      setIsAdding(false);
     } catch (e) {
       // User cancelled the directory picker
       console.error("Failed to add library:", e);
@@ -75,48 +69,14 @@ export const LibrarySidebar = observer(() => {
       </nav>
 
       <div className="px-2 pb-3 pt-2 border-t border-gray-200">
-        {isAdding ? (
-          <div className="space-y-2">
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddLibrary();
-                if (e.key === "Escape") setIsAdding(false);
-              }}
-              placeholder="Library name..."
-              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-              autoFocus
-            />
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={handleAddLibrary}
-                disabled={!newName.trim()}
-                className="flex-1 px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                Add Folder
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsAdding(false)}
-                className="px-2 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setIsAdding(true)}
-            className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Library</span>
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={handleAddLibrary}
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Library</span>
+        </button>
       </div>
     </aside>
   );

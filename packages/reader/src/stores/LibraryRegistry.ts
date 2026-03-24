@@ -98,18 +98,24 @@ export class LibraryRegistry {
     this.activeLibraryId = libraryId;
   }
 
-  async addFilesystemLibrary(name: string): Promise<LibraryConfig> {
+  async addFilesystemLibrary(name?: string): Promise<LibraryConfig> {
     const dirHandle = await window.showDirectoryPicker({ mode: "read" } as any);
+    const libName = name || dirHandle.name;
     const id = crypto.randomUUID();
     const createdAt = Date.now();
 
     await this.db.exec(
       "INSERT INTO libraries (id, name, type, created_at) VALUES (?, ?, ?, ?)",
-      [id, name, "filesystem", createdAt],
+      [id, libName, "filesystem", createdAt],
     );
     await this.handleStore.put(id, dirHandle);
 
-    const lib: LibraryConfig = { id, name, type: "filesystem", createdAt };
+    const lib: LibraryConfig = {
+      id,
+      name: libName,
+      type: "filesystem",
+      createdAt,
+    };
 
     runInAction(() => {
       this.libraries.push(lib);

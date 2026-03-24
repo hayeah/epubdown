@@ -18,7 +18,7 @@ interface AgentLibraryHandle {
 interface EpubdownAgentAPI {
   libraries(): { id: string; name: string; type: string; bookCount: number }[];
   library(id: string): AgentLibraryHandle;
-  addFilesystemLibrary(name: string): Promise<AgentLibraryHandle>;
+  addFilesystemLibrary(name?: string): Promise<AgentLibraryHandle>;
   addFilesystemLibraryFromHandle(
     name: string,
     handle: FileSystemDirectoryHandle,
