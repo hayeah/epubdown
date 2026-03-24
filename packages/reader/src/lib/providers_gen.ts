@@ -37,6 +37,7 @@ export async function initRootStore(cfg: StorageConfig) {
     appEventSystem,
     commandPaletteStore,
     readerTemplates,
+    libraryRegistry,
   );
   const rootStore = new RootStore(
     readerStore,

@@ -166,6 +166,25 @@ export class LibraryRegistry {
     });
   }
 
+  /**
+   * Load a book by ID, regardless of which library it belongs to.
+   * Looks up library_id from the books table, then delegates to the right store.
+   */
+  async loadBookById(bookId: number): Promise<{
+    blob: Blob;
+    metadata: import("../lib/LibraryStore").BookMetadata;
+  } | null> {
+    const result = await this.db.query(
+      "SELECT library_id FROM books WHERE id = ?",
+      [bookId],
+    );
+    if (result.rows.length === 0) return null;
+
+    const row = result.rows[0] as { library_id: string };
+    const store = this.storeFor(row.library_id);
+    return store.loadBook(String(bookId));
+  }
+
   async checkPermission(libraryId: string): Promise<PermissionState> {
     const handle = this.handleCache.get(libraryId);
     if (!handle) return "denied";

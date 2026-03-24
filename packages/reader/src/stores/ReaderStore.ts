@@ -19,6 +19,7 @@ import { ReaderTemplateContext } from "../templates/ReaderTemplateContext";
 import type { ReaderTemplates } from "../templates/Template";
 import { copyToClipboard } from "../utils/selectionUtils";
 import type { BookLibraryStore } from "./BookLibraryStore";
+import type { LibraryRegistry } from "./LibraryRegistry";
 
 export type NavigateFunction = (path: string) => void;
 
@@ -50,6 +51,7 @@ export class ReaderStore {
     private events: AppEventSystem,
     private palette: CommandPaletteStore,
     private templates: ReaderTemplates,
+    private libraryRegistry?: LibraryRegistry,
   ) {
     this.templateContext = new ReaderTemplateContext(this, palette);
 
@@ -456,7 +458,15 @@ export class ReaderStore {
     if (isNewBook) {
       this.reset();
 
-      const bookData = await this.bookLibraryStore.loadBookForReading(bookId);
+      // Try the library registry first (handles both IndexedDB and filesystem books),
+      // then fall back to the old store for backward compatibility
+      let bookData: { blob: Blob; metadata: { title: string } } | null = null;
+      if (this.libraryRegistry) {
+        bookData = await this.libraryRegistry.loadBookById(bookId);
+      }
+      if (!bookData) {
+        bookData = await this.bookLibraryStore.loadBookForReading(bookId);
+      }
       if (!bookData) {
         throw new Error("Book not found");
       }
