@@ -1,6 +1,7 @@
 packages:
   - packages/core
   - packages/reader
+  - packages/reader2
   - packages/sqlite-browser
   - packages/pdf-render
   - packages/pdf-render/playground
