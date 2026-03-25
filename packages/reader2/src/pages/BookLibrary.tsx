@@ -1,10 +1,25 @@
-import { BookOpen, FolderOpen, Library, Search } from "lucide-react";
-import { observer } from "mobx-react-lite";
-import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BookMetadata } from "../lib/LibraryStore";
-import { useLibraryRegistry } from "../stores/RootStore";
 import { useLocation } from "wouter";
+import {
+  Search,
+  Plus,
+  Library,
+  BookOpen,
+  MoreVertical,
+  FolderPlus,
+  ChevronRight,
+  Hash,
+  X,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { observer } from "mobx-react-lite";
+import { cn } from "../lib/utils";
+import { ASCIIMatrixStream } from "../components/ASCIIMatrixStream/ASCIIMatrixStream";
+import { SidebarShimmer } from "../components/SidebarShimmer";
+import { useIsMobile } from "../hooks/use-mobile";
+import type { BookMetadata, LibraryConfig } from "../lib/LibraryStore";
+import { useLibraryRegistry } from "../stores/RootStore";
+import type { ElementType } from "react";
 
 const __DOC__ = `
 # BookLibrary
@@ -20,23 +35,27 @@ Page for browsing and managing epub library collections.
 - searchQuery — current search filter (string)
 - pickDirectory() — trigger directory picker to add a filesystem library
 - $searchInput — the search <input> element
-- $bookList — the scrollable book list container
+- $scrollContainer — the scrollable book list container
 `;
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+const LIBRARY_ICONS: Record<string, ElementType> = {
+  default: BookOpen,
+};
+
+function iconFor(lib: LibraryConfig): ElementType {
+  return LIBRARY_ICONS[lib.id] ?? Hash;
 }
 
-export const BookLibrary: React.FC = observer(() => {
+export const BookLibrary = observer(() => {
+  const isMobile = useIsMobile();
   const registry = useLibraryRegistry();
   const [, navigate] = useLocation();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [books, setBooks] = useState<BookMetadata[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const bookListRef = useRef<HTMLDivElement>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const loadBooks = useCallback(async () => {
     const store = registry.activeStore;
@@ -71,14 +90,6 @@ export const BookLibrary: React.FC = observer(() => {
     }
   };
 
-  const openBook = (book: BookMetadata) => {
-    if (book.fileType === "pdf") {
-      navigate(`/pdf/${book.id}`);
-    } else {
-      navigate(`/book/${book.id}`);
-    }
-  };
-
   // Register __agent
   useEffect(() => {
     (window as any).__agent = {
@@ -93,8 +104,8 @@ export const BookLibrary: React.FC = observer(() => {
       get $searchInput() {
         return searchRef.current;
       },
-      get $bookList() {
-        return bookListRef.current;
+      get $scrollContainer() {
+        return scrollRef.current;
       },
     };
     return () => {
@@ -102,112 +113,254 @@ export const BookLibrary: React.FC = observer(() => {
     };
   });
 
-  return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto max-w-4xl px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="flex items-center gap-2 text-xl font-semibold text-stone-800">
-              <Library className="w-5 h-5 text-orange-600" />
-              reader2
-            </h1>
-            <button
-              type="button"
-              onClick={pickDirectory}
-              className="flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
-            >
-              <FolderOpen className="w-4 h-4" />
-              Add Library
-            </button>
-          </div>
-        </div>
-      </header>
+  const openBook = (book: BookMetadata) => {
+    if (book.fileType === "pdf") {
+      navigate(`/pdf/${book.id}`);
+    } else {
+      navigate(`/book/${book.id}`);
+    }
+  };
 
-      <div className="mx-auto max-w-4xl px-6 py-6">
-        {/* Library tabs */}
-        {registry.libraries.length > 1 && (
-          <div className="flex gap-2 mb-6 overflow-x-auto">
-            {registry.libraries.map((lib) => (
-              <button
-                key={lib.id}
-                type="button"
-                onClick={() => registry.switchLibrary(lib.id)}
-                className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
-                  registry.activeLibraryId === lib.id
-                    ? "bg-orange-600 text-white"
-                    : "bg-stone-200 text-stone-600 hover:bg-stone-300"
-                }`}
-              >
-                {lib.type === "filesystem" ? (
-                  <FolderOpen className="w-3.5 h-3.5" />
-                ) : (
-                  <Library className="w-3.5 h-3.5" />
-                )}
-                {lib.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Search */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search books..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-stone-300 bg-white py-2.5 pl-10 pr-4 text-sm text-stone-800 placeholder:text-stone-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-          />
-        </div>
-
-        {/* Book list */}
-        <div ref={bookListRef}>
-          {loading && <p className="text-stone-500 text-sm py-8 text-center">Loading...</p>}
-
-          {!loading && books.length === 0 && (
-            <div className="text-center py-16 text-stone-400">
-              <BookOpen className="w-12 h-12 mx-auto mb-3" />
-              <p className="text-sm">
-                {registry.activeStore ? "No books found" : "Add a library folder to get started"}
-              </p>
+  const collectionsNav = (
+    <nav className="px-3 space-y-1">
+      <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-3 mb-2 mt-4">
+        Collections
+      </div>
+      {registry.libraries.map((lib) => {
+        const Icon = iconFor(lib);
+        return (
+          <button
+            key={lib.id}
+            onClick={() => {
+              if (isMobile) {
+                registry.switchLibrary(lib.id);
+                setSheetOpen(false);
+              } else {
+                registry.switchLibrary(lib.id);
+              }
+            }}
+            className={cn(
+              "w-full flex items-center justify-between px-3 py-2 rounded-md transition-all group",
+              registry.activeLibraryId === lib.id
+                ? "bg-orange-50 text-orange-700 font-medium"
+                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <Icon size={16} strokeWidth={registry.activeLibraryId === lib.id ? 2.5 : 2} />
+              <span className="text-sm">{lib.name}</span>
             </div>
-          )}
+          </button>
+        );
+      })}
 
-          {!loading && books.length > 0 && (
+      <button
+        onClick={pickDirectory}
+        className="w-full flex items-center gap-3 px-3 py-2 mt-4 text-gray-400 hover:text-gray-900 transition-colors text-sm border-t border-dashed border-gray-100 pt-4"
+      >
+        <FolderPlus size={16} />
+        <span>New Library</span>
+      </button>
+    </nav>
+  );
+
+  const bookRow = (book: BookMetadata) => (
+    <div
+      key={book.id}
+      onClick={() => openBook(book)}
+      className={cn(
+        "group flex items-center cursor-pointer transition-all",
+        isMobile
+          ? "px-4 py-3.5 border-b border-gray-100"
+          : "px-4 py-2.5 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-100",
+      )}
+    >
+      <div className="flex-[3] flex items-center gap-3 overflow-hidden">
+        <div
+          className={cn(
+            "w-2 h-2 rounded-full flex-shrink-0 transition-colors",
+            isMobile ? "bg-orange-300" : "bg-gray-200 group-hover:bg-orange-400",
+          )}
+        />
+        <span className="font-medium text-sm text-gray-800 truncate">{book.title}</span>
+        {book.author && (
+          <>
+            <span className="text-xs text-gray-400 select-none">·</span>
+            <span className="text-xs text-gray-500 truncate">{book.author}</span>
+          </>
+        )}
+      </div>
+
+      {!isMobile && (
+        <div className="flex-1 flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-all">
+            <MoreVertical size={14} />
+          </button>
+          <div className="text-orange-500 ml-2">
+            <ChevronRight size={16} />
+          </div>
+        </div>
+      )}
+      {isMobile && (
+        <div className="text-gray-300 ml-2">
+          <ChevronRight size={16} />
+        </div>
+      )}
+    </div>
+  );
+
+  const emptyState = loading ? (
+    <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+      <p className="text-sm">Loading...</p>
+    </div>
+  ) : searchQuery ? (
+    <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+        <Search size={24} className="opacity-20" />
+      </div>
+      <p className="text-sm">No books found matching &ldquo;{searchQuery}&rdquo;</p>
+      <button
+        onClick={() => setSearchQuery("")}
+        className="mt-2 text-xs text-orange-500 hover:underline"
+      >
+        Clear search
+      </button>
+    </div>
+  ) : (
+    <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+        <BookOpen size={24} className="opacity-20" />
+      </div>
+      <p className="text-sm">Add a library folder to get started</p>
+    </div>
+  );
+
+  // --- MOBILE LAYOUT ---
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-screen w-full bg-[#FDFDFD] text-[#1A1A1A] font-sans selection:bg-orange-100 overflow-hidden">
+        <div className="flex-shrink-0 bg-white border-b border-gray-100 z-20">
+          <div className="flex items-center gap-2 px-3 h-11">
+            <button
+              onClick={() => setSheetOpen(true)}
+              className="flex items-center justify-center w-9 h-9 text-gray-500 active:bg-gray-100 transition-colors"
+            >
+              <Library size={18} />
+            </button>
+            <div className="flex-1 relative group">
+              <Search
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors"
+              />
+              <input
+                ref={searchRef}
+                type="text"
+                placeholder="Search..."
+                className="w-full h-8 pl-8 pr-3 bg-gray-50 border border-transparent focus:bg-white focus:border-orange-200 text-base text-gray-800 placeholder:text-gray-400 outline-none transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+          <div className="w-full h-24 overflow-hidden relative">
+            <ASCIIMatrixStream autoPlay />
+          </div>
+          <div className="pb-6">
+            {books.map(bookRow)}
+            {books.length === 0 && emptyState}
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {sheetOpen && (
             <>
-              <p className="text-xs text-stone-400 mb-3">
-                {books.length} book{books.length !== 1 ? "s" : ""}
-              </p>
-              <div className="space-y-1">
-                {books.map((book) => (
+              <motion.div
+                className="fixed inset-0 bg-black/30 z-30"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSheetOpen(false)}
+              />
+              <motion.div
+                className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-2xl max-h-[70vh] flex flex-col"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              >
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 rounded-full bg-gray-300" />
+                </div>
+                <div className="flex items-center justify-between px-4 pb-2">
+                  <span className="text-sm font-semibold text-gray-800">Libraries</span>
                   <button
-                    key={book.id}
-                    type="button"
-                    onClick={() => openBook(book)}
-                    className="w-full flex items-baseline justify-between rounded-lg px-4 py-3 text-left hover:bg-white hover:shadow-sm transition-all group"
+                    onClick={() => setSheetOpen(false)}
+                    className="p-1.5 text-gray-400 active:text-gray-600 rounded-full"
                   >
-                    <div className="min-w-0">
-                      <div className="font-medium text-stone-800 group-hover:text-orange-700 truncate">
-                        {book.title}
-                      </div>
-                      {book.author && (
-                        <div className="text-xs text-stone-400 mt-0.5 truncate">{book.author}</div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 ml-4 shrink-0">
-                      <span className="text-xs text-stone-300 uppercase">{book.fileType}</span>
-                      <span className="text-xs text-stone-300">{formatSize(book.fileSize)}</span>
-                    </div>
+                    <X size={18} />
                   </button>
-                ))}
-              </div>
+                </div>
+                <div className="overflow-y-auto pb-8">{collectionsNav}</div>
+              </motion.div>
             </>
           )}
-        </div>
+        </AnimatePresence>
       </div>
+    );
+  }
+
+  // --- DESKTOP LAYOUT ---
+  return (
+    <div className="flex h-screen w-full bg-[#FDFDFD] text-[#1A1A1A] font-sans selection:bg-orange-100 overflow-hidden">
+      <aside className="w-64 border-r border-gray-100 flex flex-col bg-white relative overflow-hidden">
+        <SidebarShimmer />
+        <div className="relative h-28 overflow-hidden flex-shrink-0">
+          <ASCIIMatrixStream autoPlay />
+        </div>
+        <div className="flex-1 relative">{collectionsNav}</div>
+      </aside>
+
+      <main className="flex-1 flex flex-col h-full bg-white relative">
+        <header className="h-16 border-b border-gray-50 px-8 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+          <div className="flex items-center flex-1 max-w-md relative group">
+            <Search
+              size={16}
+              className="absolute left-3 text-gray-400 group-focus-within:text-orange-500 transition-colors"
+            />
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Search by title or author..."
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border-transparent focus:bg-white focus:ring-1 focus:ring-orange-100 focus:border-orange-200 rounded-lg text-sm transition-all outline-none"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={pickDirectory}
+              className="group relative px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-600 hover:text-white border border-orange-300 hover:border-orange-500 overflow-hidden transition-colors duration-150 active:scale-95"
+            >
+              <span className="absolute inset-0 bg-orange-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-200 ease-out" />
+              <span className="relative z-10 flex items-center gap-1.5">
+                <Plus size={12} strokeWidth={3} />
+                Import
+              </span>
+            </button>
+          </div>
+        </header>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-8 py-6 scroll-smooth">
+          <div className="space-y-[1px]">
+            {books.map(bookRow)}
+            {books.length === 0 && emptyState}
+          </div>
+        </div>
+      </main>
     </div>
   );
 });
