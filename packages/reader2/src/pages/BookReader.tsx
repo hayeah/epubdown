@@ -1,7 +1,15 @@
 import { ContentToMarkdown } from "@epubdown/core";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { ChevronLeft, ChevronRight, List, Library, X, Settings, Type } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  List,
+  Library,
+  X,
+  Settings,
+  Type,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { observer } from "mobx-react-lite";
 import { ASCIIMatrixStream } from "../components/ASCIIMatrixStream/ASCIIMatrixStream";
@@ -33,7 +41,8 @@ Page for reading epub chapter content.
 
 // --- Scramble text hook ---
 
-const GLITCH_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789§¶†‡※ΩΣΨΔΦλπξ";
+const GLITCH_CHARS =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789§¶†‡※ΩΣΨΔΦλπξ";
 
 function useScrambleText(text: string, scrambled: boolean, duration = 250) {
   const [display, setDisplay] = useState(text);
@@ -114,7 +123,9 @@ const ChapterContent: React.FC = observer(() => {
   }, [chapter, chapterIndex]);
 
   if (loading) {
-    return <div className="text-center py-16 text-gray-400">Loading chapter...</div>;
+    return (
+      <div className="text-center py-16 text-gray-400">Loading chapter...</div>
+    );
   }
 
   return <>{content}</>;
@@ -156,7 +167,9 @@ function ChapterNav({ compact }: { compact?: boolean }) {
             className="text-gray-300 group-hover:text-orange-500 group-hover:-translate-x-0.5 transition-all"
           />
           <div className="text-left">
-            <p className="text-[9px] uppercase tracking-[0.2em] text-gray-300 mb-0.5">Previous</p>
+            <p className="text-[9px] uppercase tracking-[0.2em] text-gray-300 mb-0.5">
+              Previous
+            </p>
             <p
               className={`text-gray-400 group-hover:text-orange-600 transition-colors ${compact ? "text-xs" : "text-sm"}`}
             >
@@ -174,7 +187,9 @@ function ChapterNav({ compact }: { compact?: boolean }) {
           className="group flex items-center gap-2"
         >
           <div className="text-right">
-            <p className="text-[9px] uppercase tracking-[0.2em] text-gray-300 mb-0.5">Next</p>
+            <p className="text-[9px] uppercase tracking-[0.2em] text-gray-300 mb-0.5">
+              Next
+            </p>
             <p
               className={`text-gray-400 group-hover:text-orange-600 transition-colors ${compact ? "text-xs" : "text-sm"}`}
             >
@@ -206,7 +221,8 @@ export const BookReader = observer(() => {
   const [tocSheetOpen, setTocSheetOpen] = useState(false);
 
   const bookId = params.bookId ? Number(params.bookId) : null;
-  const chapterIndex = params.chapterIndex !== undefined ? Number(params.chapterIndex) : undefined;
+  const chapterIndex =
+    params.chapterIndex !== undefined ? Number(params.chapterIndex) : undefined;
 
   // Wire navigate
   useEffect(() => {
@@ -235,8 +251,10 @@ export const BookReader = observer(() => {
   useEffect(() => {
     (window as any).__agent = {
       store: readerStore,
-      nextChapter: () => readerStore.handleChapterChange(readerStore.currentChapterIndex + 1),
-      previousChapter: () => readerStore.handleChapterChange(readerStore.currentChapterIndex - 1),
+      nextChapter: () =>
+        readerStore.handleChapterChange(readerStore.currentChapterIndex + 1),
+      previousChapter: () =>
+        readerStore.handleChapterChange(readerStore.currentChapterIndex - 1),
       setChapter: (index: number) => readerStore.handleChapterChange(index),
       toggleSidebar: () => readerStore.toggleSidebar(),
       get $topAnchor() {
@@ -272,7 +290,11 @@ export const BookReader = observer(() => {
     );
   }
 
-  const { metadata, currentChapterTitle, currentChapterIndex: chapIdx } = readerStore;
+  const {
+    metadata,
+    currentChapterTitle,
+    currentChapterIndex: chapIdx,
+  } = readerStore;
   const bookTitle = metadata.title || "Unknown Book";
   const bookAuthor = metadata.creator || metadata.author || "";
 
@@ -281,7 +303,10 @@ export const BookReader = observer(() => {
   const fortuneLines: any[] = [...titleLines];
   if (bookAuthor) {
     fortuneLines.push("");
-    fortuneLines.push({ text: bookAuthor.toUpperCase(), color: "rgba(120,113,108,0.6)" });
+    fortuneLines.push({
+      text: bookAuthor.toUpperCase(),
+      color: "rgba(120,113,108,0.6)",
+    });
   }
 
   const readingContent = (
@@ -304,7 +329,9 @@ export const BookReader = observer(() => {
       </div>
 
       <div className="mt-16 flex justify-center">
-        <span className="text-gray-200 text-xs tracking-[0.5em] font-mono">···</span>
+        <span className="text-gray-200 text-xs tracking-[0.5em] font-mono">
+          ···
+        </span>
       </div>
 
       <div className="mt-10 pb-12">
@@ -343,7 +370,7 @@ export const BookReader = observer(() => {
   if (isMobile) {
     return (
       <div className="flex flex-col h-screen w-full bg-white text-[#1A1A1A] selection:bg-orange-100 overflow-hidden">
-        <div className="flex-shrink-0 bg-white border-b border-gray-100 z-20">
+        <div className="flex-shrink-0 bg-white border-b border-gray-100 z-20 pt-[env(safe-area-inset-top)]">
           <div className="flex items-center justify-between px-3 h-11">
             <Link
               href="/"
@@ -397,7 +424,9 @@ export const BookReader = observer(() => {
                   <div className="w-10 h-1 rounded-full bg-gray-300" />
                 </div>
                 <div className="flex items-center justify-between px-4 pb-2">
-                  <span className="text-sm font-semibold text-gray-800">Contents</span>
+                  <span className="text-sm font-semibold text-gray-800">
+                    Contents
+                  </span>
                   <button
                     onClick={() => setTocSheetOpen(false)}
                     className="p-1.5 text-gray-400 active:text-gray-600 rounded-full"
@@ -418,7 +447,10 @@ export const BookReader = observer(() => {
   return (
     <div ref={scrollRef} className="h-screen bg-white overflow-y-auto">
       <div className="mx-auto selection:bg-orange-100">
-        <div ref={topRef} className="relative h-40 max-w-4xl mx-auto overflow-hidden">
+        <div
+          ref={topRef}
+          className="relative h-40 max-w-4xl mx-auto overflow-hidden"
+        >
           <ASCIIMatrixStream fortunes={[fortuneLines]} staticTime={8000} />
         </div>
 
@@ -453,13 +485,17 @@ export const BookReader = observer(() => {
                 className={`transition-opacity duration-300 ease-out ${readerStore.isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
               >
                 {readerStore.navItems.map((item, i) => {
-                  const itemChapterIdx = readerStore.findChapterIndexByPath(item.path);
+                  const itemChapterIdx = readerStore.findChapterIndexByPath(
+                    item.path,
+                  );
                   return (
                     <ScrambleText
                       key={`${item.path}-${i}`}
                       text={item.label}
                       scrambled={!readerStore.isSidebarOpen}
-                      onClick={() => readerStore.handleTocChapterSelect(item.path)}
+                      onClick={() =>
+                        readerStore.handleTocChapterSelect(item.path)
+                      }
                       className={`block w-full text-right py-1.5 text-[13px] transition-colors ${
                         itemChapterIdx === chapIdx
                           ? "text-orange-600"

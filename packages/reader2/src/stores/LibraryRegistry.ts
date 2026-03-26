@@ -39,7 +39,7 @@ export class LibraryRegistry {
       this.libraries = result.rows.map((r: any) => ({
         ...r,
         createdAt: r.created_at ?? r.createdAt,
-        dirPath: r.dir_path ?? r.dirPath ?? null,
+        bookmarkId: r.bookmark_id ?? r.bookmarkId ?? null,
       }));
     });
   }
@@ -62,12 +62,12 @@ export class LibraryRegistry {
     if (lib.type === "filesystem") {
       let store: LibraryStore | null = null;
 
-      if (isNative() && lib.dirPath) {
-        // Native: use Capacitor filesystem with the stored directory path
+      if (isNative() && lib.bookmarkId) {
+        // Native: use SecureDirectory plugin with bookmark
         store = new CapacitorFilesystemLibraryStore(
           this.db,
           libraryId,
-          lib.dirPath,
+          lib.bookmarkId,
         );
       } else {
         // Web: use File System Access API handle
@@ -117,11 +117,11 @@ export class LibraryRegistry {
   }
 
   /**
-   * Add a filesystem library using a native directory path (Capacitor).
+   * Add a filesystem library using a native bookmark ID (Capacitor).
    */
   async addNativeFilesystemLibrary(
     name: string,
-    dirPath: string,
+    bookmarkId: string,
   ): Promise<LibraryConfig> {
     const id = crypto.randomUUID();
     const lib: LibraryConfig = {
@@ -129,12 +129,12 @@ export class LibraryRegistry {
       name,
       type: "filesystem",
       createdAt: Date.now(),
-      dirPath,
+      bookmarkId,
     };
 
     await this.db.exec(
-      "INSERT INTO libraries (id, name, type, created_at, dir_path) VALUES (?, ?, ?, ?, ?)",
-      [lib.id, lib.name, lib.type, lib.createdAt, dirPath],
+      "INSERT INTO libraries (id, name, type, created_at, bookmark_id) VALUES (?, ?, ?, ?, ?)",
+      [lib.id, lib.name, lib.type, lib.createdAt, bookmarkId],
     );
 
     runInAction(() => {

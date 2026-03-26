@@ -18,8 +18,8 @@ export interface LibraryConfig {
   name: string;
   type: LibraryType;
   createdAt: number;
-  /** Native directory path (Capacitor only, null on web) */
-  dirPath?: string | null;
+  /** Native bookmark ID for SecureDirectory (Capacitor only, null on web) */
+  bookmarkId?: string | null;
 }
 
 export interface LibraryStore {

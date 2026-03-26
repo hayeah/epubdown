@@ -5,8 +5,8 @@ export interface PickedDirectory {
   name: string;
   /** On web: FileSystemDirectoryHandle. On native: null. */
   handle: FileSystemDirectoryHandle | null;
-  /** On native: absolute path. On web: null. */
-  path: string | null;
+  /** On native: bookmarkId for SecureDirectory plugin. On web: null. */
+  bookmarkId: string | null;
 }
 
 /**
@@ -21,14 +21,12 @@ export async function pickLibraryDirectory(): Promise<PickedDirectory | null> {
 }
 
 async function pickNative(): Promise<PickedDirectory | null> {
-  const { FilePicker } = await import("@capawesome/capacitor-file-picker");
+  const { SecureDirectory } = await import("./SecureDirectoryPlugin");
   try {
-    const result = await FilePicker.pickDirectory();
-    // result.path is a native absolute path or content URI
-    const name = result.path.split("/").filter(Boolean).pop() || "Library";
-    return { name, handle: null, path: result.path };
+    const result = await SecureDirectory.pickDirectory();
+    return { name: result.name, handle: null, bookmarkId: result.bookmarkId };
   } catch {
-    // User cancelled or plugin error
+    // User cancelled
     return null;
   }
 }
@@ -36,7 +34,7 @@ async function pickNative(): Promise<PickedDirectory | null> {
 async function pickWeb(): Promise<PickedDirectory | null> {
   try {
     const handle = await window.showDirectoryPicker({ mode: "read" });
-    return { name: handle.name, handle, path: null };
+    return { name: handle.name, handle, bookmarkId: null };
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") return null;
     throw e;

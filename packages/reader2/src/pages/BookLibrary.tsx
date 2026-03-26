@@ -19,6 +19,7 @@ import { SidebarShimmer } from "../components/SidebarShimmer";
 import { useIsMobile } from "../hooks/use-mobile";
 import type { BookMetadata, LibraryConfig } from "../lib/LibraryStore";
 import { pickLibraryDirectory } from "../lib/pickLibraryDirectory";
+import { isNative } from "../lib/platform";
 import { useLibraryRegistry } from "../stores/RootStore";
 import type { ElementType } from "react";
 
@@ -89,11 +90,11 @@ export const BookLibrary = observer(() => {
       if (picked.handle) {
         // Web: use FileSystemDirectoryHandle
         lib = await registry.addFilesystemLibrary(picked.name, picked.handle);
-      } else if (picked.path) {
-        // Native: use directory path
+      } else if (picked.bookmarkId) {
+        // Native: use security-scoped bookmark
         lib = await registry.addNativeFilesystemLibrary(
           picked.name,
-          picked.path,
+          picked.bookmarkId,
         );
       } else {
         return;
@@ -103,6 +104,23 @@ export const BookLibrary = observer(() => {
       console.error(e);
     }
   };
+
+  // On native, auto-prompt folder picker if no filesystem libraries exist
+  const hasPromptedRef = useRef(false);
+  useEffect(() => {
+    if (!isNative()) return;
+    if (hasPromptedRef.current) return;
+    const fsLibs = registry.libraries.filter((l) => l.type === "filesystem");
+    if (fsLibs.length === 0 && registry.libraries.length > 0) {
+      hasPromptedRef.current = true;
+      pickDirectory();
+    }
+  }, [registry.libraries.length]);
+
+  // On native, filter out the "default" indexeddb library
+  const visibleLibraries = isNative()
+    ? registry.libraries.filter((l) => l.type === "filesystem")
+    : registry.libraries;
 
   // Register __agent
   useEffect(() => {
@@ -140,7 +158,7 @@ export const BookLibrary = observer(() => {
       <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-3 mb-2 mt-4">
         Collections
       </div>
-      {registry.libraries.map((lib) => {
+      {visibleLibraries.map((lib) => {
         const Icon = iconFor(lib);
         return (
           <button
@@ -257,6 +275,12 @@ export const BookLibrary = observer(() => {
         <BookOpen size={24} className="opacity-20" />
       </div>
       <p className="text-sm">Add a library folder to get started</p>
+      <button
+        onClick={pickDirectory}
+        className="mt-4 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg active:bg-orange-600 transition-colors"
+      >
+        Choose Folder
+      </button>
     </div>
   );
 
@@ -264,7 +288,7 @@ export const BookLibrary = observer(() => {
   if (isMobile) {
     return (
       <div className="flex flex-col h-screen w-full bg-[#FDFDFD] text-[#1A1A1A] font-sans selection:bg-orange-100 overflow-hidden">
-        <div className="flex-shrink-0 bg-white border-b border-gray-100 z-20">
+        <div className="flex-shrink-0 bg-white border-b border-gray-100 z-20 pt-[env(safe-area-inset-top)]">
           <div className="flex items-center gap-2 px-3 h-11">
             <button
               onClick={() => setSheetOpen(true)}

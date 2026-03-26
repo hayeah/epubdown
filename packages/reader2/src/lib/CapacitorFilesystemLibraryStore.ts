@@ -1,20 +1,19 @@
-import { Filesystem } from "@capacitor/filesystem";
 import { EPub } from "@epubdown/core";
 import type { SQLiteDB } from "@hayeah/sqlite-browser";
 import type { BookMetadata, FileType, LibraryStore } from "./LibraryStore";
 import { rowToBookMetadata } from "./LibraryStore";
+import { SecureDirectory } from "./SecureDirectoryPlugin";
 
 interface NativeFileEntry {
   relativePath: string;
-  absolutePath: string;
   fileType: FileType;
   size: number;
   mtime: number;
 }
 
 /**
- * LibraryStore backed by @capacitor/filesystem for native iOS/Android.
- * Uses an absolute directory path instead of FileSystemDirectoryHandle.
+ * LibraryStore backed by the SecureDirectory native plugin.
+ * Uses a bookmarkId to access a security-scoped directory on iOS.
  */
 export class CapacitorFilesystemLibraryStore implements LibraryStore {
   private lastSyncAt: number | null = null;
@@ -23,7 +22,7 @@ export class CapacitorFilesystemLibraryStore implements LibraryStore {
   constructor(
     private readonly db: SQLiteDB,
     private readonly libraryId: string,
-    private readonly directoryPath: string,
+    private readonly bookmarkId: string,
   ) {}
 
   async listBooks(opts?: { match?: string }): Promise<BookMetadata[]> {
@@ -61,12 +60,12 @@ export class CapacitorFilesystemLibraryStore implements LibraryStore {
     if (result.rows.length === 0) throw new Error(`Book not found: ${id}`);
 
     const metadata = rowToBookMetadata(result.rows[0]);
-    const absolutePath = joinPath(this.directoryPath, metadata.filename);
 
-    // Read file as base64 (no encoding = binary/base64)
-    const readResult = await Filesystem.readFile({ path: absolutePath });
-    const base64 = readResult.data as string;
-    const binary = base64ToArrayBuffer(base64);
+    const readResult = await SecureDirectory.readFile({
+      bookmarkId: this.bookmarkId,
+      path: metadata.filename,
+    });
+    const binary = base64ToArrayBuffer(readResult.data);
     const blob = new Blob([binary], {
       type: mimeForFileType(metadata.fileType),
     });
@@ -79,7 +78,7 @@ export class CapacitorFilesystemLibraryStore implements LibraryStore {
   }
 
   async sync(): Promise<number> {
-    const onDisk = await this.walkDirectory(this.directoryPath, "");
+    const onDisk = await this.walkDirectory("");
     const indexResult = await this.db.query(
       "SELECT id, filename, mtime FROM books WHERE library_id = ?",
       [this.libraryId],
@@ -151,33 +150,31 @@ export class CapacitorFilesystemLibraryStore implements LibraryStore {
     return onDisk.length;
   }
 
-  private async walkDirectory(
-    dirPath: string,
-    prefix: string,
-  ): Promise<NativeFileEntry[]> {
+  private async walkDirectory(subpath: string): Promise<NativeFileEntry[]> {
     const entries: NativeFileEntry[] = [];
 
-    const result = await Filesystem.readdir({ path: dirPath });
+    const result = await SecureDirectory.listFiles({
+      bookmarkId: this.bookmarkId,
+      path: subpath || undefined,
+    });
 
     for (const fileInfo of result.files) {
-      const relativePath = prefix
-        ? `${prefix}/${fileInfo.name}`
+      const relativePath = subpath
+        ? `${subpath}/${fileInfo.name}`
         : fileInfo.name;
-      const absolutePath = joinPath(dirPath, fileInfo.name);
 
       if (fileInfo.type === "file") {
         const ext = fileInfo.name.split(".").pop()?.toLowerCase();
         if (ext === "epub" || ext === "pdf") {
           entries.push({
             relativePath,
-            absolutePath,
             fileType: ext as FileType,
             size: fileInfo.size,
             mtime: fileInfo.mtime,
           });
         }
       } else if (fileInfo.type === "directory") {
-        const subEntries = await this.walkDirectory(absolutePath, relativePath);
+        const subEntries = await this.walkDirectory(relativePath);
         entries.push(...subEntries);
       }
     }
@@ -190,11 +187,11 @@ export class CapacitorFilesystemLibraryStore implements LibraryStore {
   ): Promise<{ title: string; author?: string; metadata?: string }> {
     if (entry.fileType === "epub") {
       try {
-        const readResult = await Filesystem.readFile({
-          path: entry.absolutePath,
+        const readResult = await SecureDirectory.readFile({
+          bookmarkId: this.bookmarkId,
+          path: entry.relativePath,
         });
-        const base64 = readResult.data as string;
-        const arrayBuffer = base64ToArrayBuffer(base64);
+        const arrayBuffer = base64ToArrayBuffer(readResult.data);
         const epub = await EPub.fromZip(arrayBuffer);
         const meta = epub.metadata.toJSON();
         return {
@@ -213,11 +210,6 @@ export class CapacitorFilesystemLibraryStore implements LibraryStore {
 function titleFromFilename(filename: string): string {
   const basename = filename.split("/").pop() || filename;
   return basename.replace(/\.(epub|pdf)$/i, "");
-}
-
-function joinPath(base: string, child: string): string {
-  const cleanBase = base.endsWith("/") ? base.slice(0, -1) : base;
-  return `${cleanBase}/${child}`;
 }
 
 function base64ToArrayBuffer(base64: string): ArrayBuffer {

@@ -43,6 +43,10 @@ async function runMigrations(db: SQLiteDB): Promise<void> {
       name: "add_dir_path",
       up: `ALTER TABLE libraries ADD COLUMN dir_path TEXT;`,
     },
+    {
+      name: "rename_dir_path_to_bookmark_id",
+      up: `ALTER TABLE libraries RENAME COLUMN dir_path TO bookmark_id;`,
+    },
   ]);
 }
 
