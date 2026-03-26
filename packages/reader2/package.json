@@ -11,6 +11,9 @@
     "preview": "vp preview"
   },
   "dependencies": {
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capawesome/capacitor-file-picker": "^8.0.2",
     "@epubdown/core": "workspace:*",
     "@hayeah/sqlite-browser": "workspace:*",
     "clsx": "^2.1.1",
@@ -27,6 +30,8 @@
     "wouter": "^2.x"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/ios": "^8.3.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "catalog:",
     "@types/react": "^19.0.0",

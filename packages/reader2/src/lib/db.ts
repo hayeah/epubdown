@@ -39,6 +39,10 @@ async function runMigrations(db: SQLiteDB): Promise<void> {
         CREATE UNIQUE INDEX IF NOT EXISTS idx_books_library_filename ON books(library_id, filename);
       `,
     },
+    {
+      name: "add_dir_path",
+      up: `ALTER TABLE libraries ADD COLUMN dir_path TEXT;`,
+    },
   ]);
 }
 

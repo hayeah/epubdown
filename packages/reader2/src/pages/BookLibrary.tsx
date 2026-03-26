@@ -18,6 +18,7 @@ import { ASCIIMatrixStream } from "../components/ASCIIMatrixStream/ASCIIMatrixSt
 import { SidebarShimmer } from "../components/SidebarShimmer";
 import { useIsMobile } from "../hooks/use-mobile";
 import type { BookMetadata, LibraryConfig } from "../lib/LibraryStore";
+import { pickLibraryDirectory } from "../lib/pickLibraryDirectory";
 import { useLibraryRegistry } from "../stores/RootStore";
 import type { ElementType } from "react";
 
@@ -81,11 +82,24 @@ export const BookLibrary = observer(() => {
 
   const pickDirectory = async () => {
     try {
-      const handle = await window.showDirectoryPicker({ mode: "read" });
-      const lib = await registry.addFilesystemLibrary(handle.name, handle);
+      const picked = await pickLibraryDirectory();
+      if (!picked) return;
+
+      let lib;
+      if (picked.handle) {
+        // Web: use FileSystemDirectoryHandle
+        lib = await registry.addFilesystemLibrary(picked.name, picked.handle);
+      } else if (picked.path) {
+        // Native: use directory path
+        lib = await registry.addNativeFilesystemLibrary(
+          picked.name,
+          picked.path,
+        );
+      } else {
+        return;
+      }
       registry.switchLibrary(lib.id);
     } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") return;
       console.error(e);
     }
   };
@@ -147,7 +161,10 @@ export const BookLibrary = observer(() => {
             )}
           >
             <div className="flex items-center gap-3">
-              <Icon size={16} strokeWidth={registry.activeLibraryId === lib.id ? 2.5 : 2} />
+              <Icon
+                size={16}
+                strokeWidth={registry.activeLibraryId === lib.id ? 2.5 : 2}
+              />
               <span className="text-sm">{lib.name}</span>
             </div>
           </button>
@@ -179,14 +196,20 @@ export const BookLibrary = observer(() => {
         <div
           className={cn(
             "w-2 h-2 rounded-full flex-shrink-0 transition-colors",
-            isMobile ? "bg-orange-300" : "bg-gray-200 group-hover:bg-orange-400",
+            isMobile
+              ? "bg-orange-300"
+              : "bg-gray-200 group-hover:bg-orange-400",
           )}
         />
-        <span className="font-medium text-sm text-gray-800 truncate">{book.title}</span>
+        <span className="font-medium text-sm text-gray-800 truncate">
+          {book.title}
+        </span>
         {book.author && (
           <>
             <span className="text-xs text-gray-400 select-none">·</span>
-            <span className="text-xs text-gray-500 truncate">{book.author}</span>
+            <span className="text-xs text-gray-500 truncate">
+              {book.author}
+            </span>
           </>
         )}
       </div>
@@ -218,7 +241,9 @@ export const BookLibrary = observer(() => {
       <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
         <Search size={24} className="opacity-20" />
       </div>
-      <p className="text-sm">No books found matching &ldquo;{searchQuery}&rdquo;</p>
+      <p className="text-sm">
+        No books found matching &ldquo;{searchQuery}&rdquo;
+      </p>
       <button
         onClick={() => setSearchQuery("")}
         className="mt-2 text-xs text-orange-500 hover:underline"
@@ -295,7 +320,9 @@ export const BookLibrary = observer(() => {
                   <div className="w-10 h-1 rounded-full bg-gray-300" />
                 </div>
                 <div className="flex items-center justify-between px-4 pb-2">
-                  <span className="text-sm font-semibold text-gray-800">Libraries</span>
+                  <span className="text-sm font-semibold text-gray-800">
+                    Libraries
+                  </span>
                   <button
                     onClick={() => setSheetOpen(false)}
                     className="p-1.5 text-gray-400 active:text-gray-600 rounded-full"
@@ -354,7 +381,10 @@ export const BookLibrary = observer(() => {
           </div>
         </header>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-8 py-6 scroll-smooth">
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto px-8 py-6 scroll-smooth"
+        >
           <div className="space-y-[1px]">
             {books.map(bookRow)}
             {books.length === 0 && emptyState}
