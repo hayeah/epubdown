@@ -1,17 +1,22 @@
 import SwiftUI
+import UIKit
 
 struct ReadingView: View {
     @Environment(AppState.self) private var appState
     let bridge: EPUBBridge
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var screenSize: CGSize = UIScreen.main.bounds.size
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             if let session = appState.sessions.first {
+                // WebView with explicit screen-sized frame
                 ChapterWebView(session: session, bridge: bridge)
-                    .ignoresSafeArea()
+                    .frame(width: screenSize.width, height: screenSize.height)
+                    .position(x: screenSize.width / 2, y: screenSize.height / 2)
 
+                // Bottom bar explicitly positioned
                 if session.isBottomBarVisible {
                     BottomBar(session: session) {
                         await navigateChapter(delta: -1)
@@ -20,13 +25,15 @@ struct ReadingView: View {
                     } onLibrary: {
                         appState.isLibraryVisible = true
                     }
-                    .transition(.move(edge: .bottom))
+                    .frame(width: screenSize.width)
+                    .position(x: screenSize.width / 2, y: screenSize.height - 60)
                 }
             }
 
             if isLoading {
                 Color.black.opacity(0.3)
-                    .ignoresSafeArea()
+                    .frame(width: screenSize.width, height: screenSize.height)
+                    .position(x: screenSize.width / 2, y: screenSize.height / 2)
                     .overlay {
                         ProgressView("Loading...")
                             .tint(.white)
@@ -35,16 +42,26 @@ struct ReadingView: View {
             }
 
             if let error = errorMessage {
-                errorOverlay(error)
+                VStack(spacing: 12) {
+                    Text("Error").font(.headline)
+                    Text(error).font(.caption).foregroundStyle(.secondary)
+                    Button("Retry") {
+                        errorMessage = nil
+                        loadBook()
+                    }
+                }
+                .padding()
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: appState.sessions.first?.isBottomBarVisible)
+        .ignoresSafeArea()
         .onChange(of: bridge.isReady) { _, ready in
             if ready { loadBook() }
         }
         .onAppear {
             if appState.sessions.isEmpty {
-                let _ = appState.openBook(filename: "Alice's Adventures in Wonderland.epub")
+                let session = appState.openBook(filename: "Alice's Adventures in Wonderland.epub")
+                session.currentChapterIndex = 1
             }
         }
     }
@@ -80,19 +97,5 @@ struct ReadingView: View {
         guard newIndex >= 0, newIndex < session.chapterCount else { return }
         session.currentChapterIndex = newIndex
         try? await bridge.renderChapter(handle: handle, index: newIndex)
-    }
-
-    @ViewBuilder
-    private func errorOverlay(_ message: String) -> some View {
-        VStack(spacing: 12) {
-            Text("Error").font(.headline)
-            Text(message).font(.caption).foregroundStyle(.secondary)
-            Button("Retry") {
-                errorMessage = nil
-                loadBook()
-            }
-        }
-        .padding()
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 }

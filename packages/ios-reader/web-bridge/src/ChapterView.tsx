@@ -24,8 +24,8 @@ export function ChapterView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-gray-400">
-        Loading...
+      <div className="flex items-center justify-center min-h-dvh text-gray-400 bg-blue-50">
+        Waiting for chapter...
       </div>
     );
   }

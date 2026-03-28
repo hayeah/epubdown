@@ -1,7 +1,16 @@
 @import "tailwindcss";
 
+html, body, #root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+}
+
 /* Reading typography */
 .chapter-content {
+  min-height: 100vh;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.125rem;
   line-height: 1.75;

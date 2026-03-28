@@ -9,7 +9,7 @@ struct ChapterWebView: UIViewRepresentable {
         Coordinator(session: session, bridge: bridge)
     }
 
-    func makeUIView(context: Context) -> WKWebView {
+    func makeUIView(context: Context) -> UIView {
         let config = WKWebViewConfiguration()
         let userContent = config.userContentController
 
@@ -24,6 +24,18 @@ struct ChapterWebView: UIViewRepresentable {
         // Store reference on the shared bridge
         bridge.webView = webView
 
+        // Wrap in a container UIView with Auto Layout constraints
+        // so the WKWebView fills the available space
+        let container = UIView()
+        container.addSubview(webView)
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            webView.topAnchor.constraint(equalTo: container.topAnchor),
+            webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+        ])
+
         // Load the bridge HTML from bundle, or fall back to dev server
         if let bridgeURL = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "WebContent") {
             webView.loadFileURL(bridgeURL, allowingReadAccessTo: bridgeURL.deletingLastPathComponent())
@@ -31,11 +43,16 @@ struct ChapterWebView: UIViewRepresentable {
             webView.load(URLRequest(url: URL(string: "http://localhost:5190")!))
         }
 
-        return webView
+        return container
     }
 
-    func updateUIView(_ webView: WKWebView, context: Context) {
+    func updateUIView(_ container: UIView, context: Context) {
         context.coordinator.session = session
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UIView, context: Context) -> CGSize? {
+        guard let width = proposal.width, let height = proposal.height else { return nil }
+        return CGSize(width: width, height: height)
     }
 
     class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
