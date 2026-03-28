@@ -7,43 +7,35 @@ struct ReadingView: View {
   @State private var errorMessage: String?
 
   var body: some View {
-    GeometryReader { geometry in
-      contentView(session: appState.sessions.first, size: geometry.size)
-    }
-    .onChange(of: bridge.isReady) { _, ready in
-      if ready { loadBook() }
-    }
-    .onAppear {
-      if appState.sessions.isEmpty {
-        let session = appState.openBook(filename: "Alice's Adventures in Wonderland.epub")
-        session.currentChapterIndex = 3
+    Group {
+      if let session = appState.sessions.first {
+        ChapterWebView(session: session, bridge: bridge)
+      } else {
+        Color(.systemBackground)
       }
     }
-  }
-
-  @ViewBuilder
-  private func contentView(session: ReadingSession?, size: CGSize) -> some View {
-    if let session = session {
-      ChapterWebView(session: session, bridge: bridge)
-        .frame(width: size.width, height: size.height)
-        .ignoresSafeArea()
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-          if session.isBottomBarVisible {
-            BottomBar(session: session) {
-              await navigateChapter(delta: -1)
-            } onNext: {
-              await navigateChapter(delta: 1)
-            } onLibrary: {
-              appState.isLibraryVisible = true
-            }
-            .frame(maxWidth: .infinity)
-            .background(.regularMaterial)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .safeAreaInset(edge: .bottom, spacing: 0) {
+      if let session = appState.sessions.first, session.isBottomBarVisible {
+          BottomBar(session: session) {
+            await navigateChapter(delta: -1)
+          } onNext: {
+            await navigateChapter(delta: 1)
+          } onLibrary: {
+            appState.isLibraryVisible = true
           }
+          .background(.ultraThinMaterial)
         }
-    } else {
-      Color(.systemBackground)
-        .frame(width: size.width, height: size.height)
-    }
+      }
+      .onChange(of: bridge.isReady) { _, ready in
+        if ready { loadBook() }
+      }
+      .onAppear {
+        if appState.sessions.isEmpty {
+          let session = appState.openBook(filename: "Alice's Adventures in Wonderland.epub")
+          session.currentChapterIndex = 3
+        }
+      }
   }
 
   private func loadBook() {

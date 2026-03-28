@@ -7,51 +7,45 @@ struct BottomBar: View {
     var onLibrary: () -> Void
 
     var body: some View {
-        HStack(spacing: 16) {
-            // Library button
+        HStack {
             Button(action: onLibrary) {
-                Image(systemName: "books.vertical")
-                    .font(.system(size: 18))
+                Image(systemName: "book")
             }
 
             Spacer()
 
-            // Previous chapter
             Button {
                 Task { await onPrevious() }
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 14, weight: .semibold))
             }
             .disabled(!session.hasPreviousChapter)
 
-            // Chapter info
-            VStack(spacing: 2) {
-                Text(session.bookTitle)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Text("Chapter \(session.currentChapterIndex + 1) of \(session.chapterCount)")
-                    .font(.caption)
-                    .fontWeight(.medium)
-            }
+            Spacer()
 
-            // Next chapter
+            Text("Chapter \(session.currentChapterIndex + 1) of \(session.chapterCount)")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
             Button {
                 Task { await onNext() }
             } label: {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
             }
             .disabled(!session.hasNextChapter)
 
             Spacer()
 
-            // Spacer to balance the library button
-            Color.clear.frame(width: 18)
+            Button {} label: {
+                Image(systemName: "textformat.size")
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
+        .buttonStyle(.plain)
+        .font(.system(size: 20))
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
     }
 }
