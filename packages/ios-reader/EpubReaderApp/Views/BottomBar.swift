@@ -51,8 +51,7 @@ struct BottomBar: View {
             Color.clear.frame(width: 18)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .padding(.bottom, 4) // Extra padding above home indicator
-        .background(.ultraThinMaterial)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
     }
 }
