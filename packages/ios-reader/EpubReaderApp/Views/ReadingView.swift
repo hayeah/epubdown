@@ -10,7 +10,6 @@ struct ReadingView: View {
     GeometryReader { geometry in
       contentView(session: appState.sessions.first, size: geometry.size)
     }
-    .ignoresSafeArea()
     .onChange(of: bridge.isReady) { _, ready in
       if ready { loadBook() }
     }
@@ -27,6 +26,7 @@ struct ReadingView: View {
     if let session = session {
       ChapterWebView(session: session, bridge: bridge)
         .frame(width: size.width, height: size.height)
+        .ignoresSafeArea()
         .safeAreaInset(edge: .bottom, spacing: 0) {
           if session.isBottomBarVisible {
             BottomBar(session: session) {
