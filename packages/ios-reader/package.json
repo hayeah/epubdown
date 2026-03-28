@@ -1,0 +1,33 @@
+{
+  "name": "@epubdown/ios-reader",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "epubreader-agent": "./server/src/cli.ts"
+  },
+  "scripts": {
+    "dev:server": "bun ./server/src/cli.ts serve",
+    "dev:bridge": "vp dev --config web-bridge/vite.config.ts",
+    "build:bridge": "vp build --config web-bridge/vite.config.ts",
+    "check:server": "vp check --config server/vite.config.ts",
+    "check:bridge": "vp check --config web-bridge/vite.config.ts"
+  },
+  "dependencies": {
+    "@epubdown/core": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "yargs": "^17"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "catalog:",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/yargs": "^17",
+    "@vitejs/plugin-react": "^4.3.0",
+    "tailwindcss": "^4.0.0",
+    "vite-plugin-node-polyfills": "catalog:",
+    "vite-plus": "latest"
+  }
+}

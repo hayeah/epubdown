@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "bun"],
+    "paths": {
+      "@epubdown/core": ["../core/src"],
+      "@epubdown/core/*": ["../core/src/*"]
+    }
+  },
+  "include": ["server/src/**/*", "web-bridge/src/**/*"]
+}
