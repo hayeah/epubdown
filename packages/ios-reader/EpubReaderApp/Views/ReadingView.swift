@@ -24,7 +24,7 @@ struct ReadingView: View {
           } onLibrary: {
             appState.isLibraryVisible = true
           }
-          .background(.ultraThinMaterial)
+          .liquidGlassBar()
         }
       }
       .onChange(of: bridge.isReady) { _, ready in

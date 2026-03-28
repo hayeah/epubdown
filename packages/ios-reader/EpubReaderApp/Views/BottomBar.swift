@@ -42,10 +42,30 @@ struct BottomBar: View {
                 Image(systemName: "textformat.size")
             }
         }
-        .buttonStyle(.plain)
+        .liquidGlassButtons()
         .font(.system(size: 20))
-        .foregroundStyle(.primary)
         .padding(.horizontal, 24)
         .padding(.vertical, 12)
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func liquidGlassButtons() -> some View {
+        if #available(iOS 26, *) {
+            self.buttonStyle(.glass)
+        } else {
+            self.buttonStyle(.plain)
+                .foregroundStyle(.primary)
+        }
+    }
+
+    @ViewBuilder
+    func liquidGlassBar() -> some View {
+        if #available(iOS 26, *) {
+            self.glassEffect(.regular, in: .rect(cornerRadius: 0))
+        } else {
+            self.background(.ultraThinMaterial)
+        }
     }
 }
