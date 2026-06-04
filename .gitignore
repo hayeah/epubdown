@@ -151,3 +151,5 @@ packages/pdf-render/test/src/test_pdfs
 
 
 packages/core/epub-dumper-*
+
+.claude/agents

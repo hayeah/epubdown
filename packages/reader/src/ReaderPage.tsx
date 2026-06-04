@@ -5,15 +5,14 @@ import { useLocation, useRoute } from "wouter";
 import { CommandPalette } from "../command/CommandPalette";
 import { ChapterContent } from "./book/ChapterContent";
 import { ChapterNavigation } from "./book/ChapterNavigation";
+import { CopyMultipleChaptersModal } from "./book/CopyMultipleChaptersModal";
 import { Sidebar } from "./book/Sidebar";
 import { TableOfContents } from "./book/TableOfContents";
 import { OpenOnDrop } from "./components/OpenOnDrop";
-import { useReadingProgress } from "./stores/ReadingProgressStore";
 import { useReaderStore } from "./stores/RootStore";
 
 export const ReaderPage = observer(() => {
   const readerStore = useReaderStore();
-  const readingProgress = useReadingProgress();
   const [location, navigate] = useLocation();
   const [match, params] = useRoute("/book/:bookId/:chapterIndex?");
   const [isMobile, setIsMobile] = useState(false);
@@ -33,7 +32,6 @@ export const ReaderPage = observer(() => {
   const { epub, currentChapterIndex, chapters, metadata } = readerStore;
 
   const bookId = match ? params?.bookId : null;
-  const initialChapter = match ? Number(params?.chapterIndex ?? 0) : 0;
 
   // Set navigate function on ReaderStore
   useEffect(() => {
@@ -54,10 +52,12 @@ export const ReaderPage = observer(() => {
 
   // Handle URL changes
   useEffect(() => {
-    // Use full URL including query params and hash
-    const fullUrl =
-      window.location.pathname + window.location.search + window.location.hash;
-    if (match && params?.bookId && fullUrl !== lastProcessedUrl.current) {
+    if (!match || !params?.bookId) return;
+
+    // Build full URL from wouter location and window search/hash
+    const fullUrl = location + window.location.search + window.location.hash;
+
+    if (fullUrl !== lastProcessedUrl.current) {
       lastProcessedUrl.current = fullUrl;
       readerStore.handleUrlChange(fullUrl);
     }
@@ -131,6 +131,16 @@ export const ReaderPage = observer(() => {
 
           {/* Command Palette */}
           <CommandPalette />
+
+          {/* Copy Multiple Chapters Modal */}
+          <CopyMultipleChaptersModal
+            isOpen={readerStore.showCopyMultipleModal}
+            navItems={readerStore.navItems || []}
+            onClose={() => readerStore.closeCopyMultipleModal()}
+            onCopy={(selectedIndices) =>
+              readerStore.copyMultipleChapters(selectedIndices)
+            }
+          />
         </div>
       </OpenOnDrop>
     );

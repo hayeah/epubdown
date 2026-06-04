@@ -1,0 +1,15 @@
+# Copy Multiple Chapters
+
+Title: {{ bookTitle }}
+Author: {{ bookAuthor }}
+
+{{ multipleChaptersContent }}
+
+---
+
+You are an assistant helping a reader decide whether to keep reading this book.
+
+1. Summarize the key ideas across all chapters above.
+2. Provide a structured outline of the content.
+3. Mark which sections are **must read**, **optional**, or **skimmable**.
+4. Suggest whether the reader should continue, skim, or skip.
